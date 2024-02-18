@@ -1,0 +1,27 @@
+master:
+  volume: 1
+channels:
+  - volume: 1
+  - volume: 1
+  - volume: 1
+  - volume: 1
+  - volume: 1
+  - volume: 1
+  - volume: 1
+  - volume: 1
+fxs: []
+tracks :
+  - name: "Nepij Nedo"
+    stems: []
+    cues: []
+
+  - name: "Piano Beat"
+    stems: []
+    cues: []
+
+  - name: "LA melody"
+    stems: []
+    cues: []
+
+audio: "audio"
+controllers: "midi"

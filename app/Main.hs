@@ -11,4 +11,4 @@ main = do
   configFile : _ <- getArgs
   config <- readConfig configFile
   BS.putStr $ Yaml.encode config
-  runScene (loadScene config)
+  runScene config

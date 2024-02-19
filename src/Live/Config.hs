@@ -26,6 +26,7 @@ data Config = Config
   , tracks :: [TrackConfig]
   , audio :: AudioConfig
   , controllers :: ControllerConfig
+  , dir :: Maybe FilePath
   }
   deriving (Generic, FromJSON, ToJSON)
 
@@ -43,14 +44,15 @@ data FxConfig = Reverb | Delay
   deriving (Generic, FromJSON, ToJSON)
 
 data TrackConfig = TrackConfig
-  { name :: Text
+  { dir :: Maybe FilePath
+  , name :: Text
   , stems :: [Stem]
   , cues :: [TimeSlot]
   }
   deriving (Generic, FromJSON, ToJSON)
 
 data Stem = Stem
-  { volume :: Float
+  { volume :: Maybe Float
   , file :: FilePath
   , channel :: Int
   }

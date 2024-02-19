@@ -11,11 +11,26 @@ module Live.Scene
 
 import Live.Config
 import Csound.Core
+import System.FilePath ((</>))
 
-runScene :: SE Scene -> IO ()
-runScene = undefined
+runScene :: Config -> IO ()
+runScene config =
+  dac {- writeCsd "tmp.csd" -} $ do
+  scene <- loadScene config
+  toAudio config scene
 
-data Scene
+data Scene = Scene
+  { master :: Master
+  , channels :: [Channel]
+  }
+
+data Master = Master
+  { volume :: Ref Sig
+  }
+
+data Channel = Channel
+  { volume :: Ref Sig
+  }
 
 -- * Mixer
 
@@ -56,5 +71,41 @@ data Act
 act :: Scene -> Act -> SE ()
 act = undefined
 
+toAudio :: Config -> Scene -> SE Sig2
+toAudio config scene = do
+  tracks <- head <$> mapM (playTrack config.dir scene) config.tracks
+  applyMaster scene.master tracks
+
+playTrack :: Maybe FilePath -> Scene -> TrackConfig -> SE Sig2
+playTrack sceneDir scene track =
+  sum <$> mapM (playStem trackDir scene) track.stems
+  where
+    trackDir = addFilePrefix sceneDir <$> track.dir
+
+playStem :: Maybe FilePath -> Scene -> Stem -> SE Sig2
+playStem mDir scene stem = do
+  vol <- readRef (scene.channels !! (stem.channel - 1)).volume
+  pure $ mul (vol * maybe 1 float stem.volume) (loopWav file 1)
+  where
+    file = fromString $ addFilePrefix mDir stem.file
+
+addFilePrefix :: Maybe FilePath -> FilePath -> FilePath
+addFilePrefix mDir file = maybe id (</>) mDir file
+
+applyMaster :: Master -> Sig2 -> SE Sig2
+applyMaster master asig = do
+  vol <- readRef master.volume
+  pure $ mul vol asig
+
 loadScene :: Config -> SE Scene
-loadScene = undefined
+loadScene config =
+  Scene
+    <$> loadMaster
+    <*> loadChannels
+  where
+    loadMaster =
+      Master <$> newRef (float config.master.volume)
+
+    loadChannels =
+      mapM (fmap Channel . newRef . float . (.volume)) config.channels
+

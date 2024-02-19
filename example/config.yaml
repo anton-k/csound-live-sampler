@@ -10,17 +10,75 @@ channels:
   - volume: 1
   - volume: 1
 fxs: []
+dir: "../tracks"
 tracks :
-  - name: "Nepij Nedo"
-    stems: []
-    cues: []
 
   - name: "Piano Beat"
-    stems: []
+    dir: "LaMelodyStems_85bpm"
+    stems:
+      - file: "Arps.wav"
+        channel: 4
+      - file: "Kick.wav"
+        channel: 1
+      - file: "Piano.wav"
+        channel: 4
+      - file: "Bass.wav"
+        channel: 3
+      - file: "KoraFull.wav"
+        channel: 5
+      - file: "Snare.wav"
+        channel: 1
+      - file: "Flute.wav"
+        channel: 5
+      - file: "Ngoni.wav"
+        channel: 6
+      - file: "Strings.wav"
+        channel: 6
+      - file: "Kalimba.wav"
+        channel: 5
+      - file: "Ohs+Room.wav"
+        channel: 2
+      - file: "Tom.wav"
+        channel: 2
+      - file: "Kalimba2.wav"
+        channel: 5
+      - file: "Percussion.wav"
+        channel: 2
+      - file: "Vibraphone.wav"
+        channel: 5
     cues: []
 
-  - name: "LA melody"
-    stems: []
+  - name: "Never Enough"
+    dir: "NE_Stems_85bpm"
+    stems:
+      - file: "Arp.wav"
+        channel: 4
+      - file: "MainSample.wav"
+        channel: 4
+      - file: "Atmo.wav"
+        channel: 7
+      - file: "Percussion.wav"
+        channel: 2
+      - file: "Bass.wav"
+        channel: 3
+      - file: "Piano.wav"
+        channel: 4
+      - file: "DrumLoop.wav"
+        channel: 1
+      - file: "RevGtrs.wav"
+        channel: 4
+      - file: "Flute.wav"
+        channel: 6
+      - file: "Shaker+Tamburine.wav"
+        channel: 2
+      - file: "Gtrs.wav"
+        channel: 5
+      - file: "Strings.wav"
+        channel: 4
+      - file: "Hats.wav"
+        channel: 2
+      - file: "VocalsSample.wav"
+        channel: 4
     cues: []
 
 audio: "audio"

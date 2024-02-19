@@ -43,6 +43,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , csound-core
+    , filepath
     , text
     , yaml
   default-language: GHC2021
@@ -68,6 +69,7 @@ executable csound-live-sampler-exe
     , bytestring
     , csound-core
     , csound-live-sampler
+    , filepath
     , text
     , yaml
   default-language: GHC2021
@@ -94,6 +96,7 @@ test-suite csound-live-sampler-test
     , bytestring
     , csound-core
     , csound-live-sampler
+    , filepath
     , text
     , yaml
   default-language: GHC2021

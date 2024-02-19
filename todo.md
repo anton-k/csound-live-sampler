@@ -7,9 +7,9 @@ prototypes:
 - implement app that can load one track in loop
   it assigns stems to channels. and plays bakc everything as in config.
 
-    - implement csound multitrack player
+    [x] implement csound multitrack player
 
-    - test on various files, create several tracks, configs
+    [x] test on various files, create several tracks, configs
 
 - add volume control with MIDI. Master and channels
 

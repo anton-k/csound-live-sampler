@@ -5,7 +5,7 @@
 
 packages:
 - completed:
-    commit: 279fed9c64ca73efe36f78b24acd0dd8e37dd4bf
+    commit: 3d2392c68394e3d7ee2ca56ab8299f3da00fbc9d
     git: https://github.com/spell-music/csound-expression
     name: csound-expression-dynamic
     pantry-tree:
@@ -14,20 +14,20 @@ packages:
     subdir: packages/core/csound-expression-dynamic
     version: 0.3.9.1
   original:
-    commit: 279fed9c64ca73efe36f78b24acd0dd8e37dd4bf
+    commit: 3d2392c68394e3d7ee2ca56ab8299f3da00fbc9d
     git: https://github.com/spell-music/csound-expression
     subdir: packages/core/csound-expression-dynamic
 - completed:
-    commit: 279fed9c64ca73efe36f78b24acd0dd8e37dd4bf
+    commit: 3d2392c68394e3d7ee2ca56ab8299f3da00fbc9d
     git: https://github.com/spell-music/csound-expression
     name: csound-core
     pantry-tree:
-      sha256: d4012cc613f5db16d20076271233193d60efca10ba197e3941fcabcc99140e1d
+      sha256: 143cd9b4e6dcaa08b96c56711630123912987be71de576ccf1197dadb017cefd
       size: 2303
     subdir: packages/core/csound-core
     version: 0.2.7
   original:
-    commit: 279fed9c64ca73efe36f78b24acd0dd8e37dd4bf
+    commit: 3d2392c68394e3d7ee2ca56ab8299f3da00fbc9d
     git: https://github.com/spell-music/csound-expression
     subdir: packages/core/csound-core
 - completed:

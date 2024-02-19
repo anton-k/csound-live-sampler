@@ -81,10 +81,10 @@ loadScene config =
     <*> loadChannels
   where
     loadMaster =
-      Master <$> newRef (float config.master.volume)
+      Master <$> newCtrlRef (float config.master.volume)
 
     loadChannels =
-      mapM (fmap Channel . newRef . float . (.volume)) config.channels
+      mapM (fmap Channel . newCtrlRef . float . (.volume)) config.channels
 
 setupFaders :: Config -> Scene -> SE ()
 setupFaders config scene = do

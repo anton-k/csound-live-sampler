@@ -44,7 +44,7 @@ packages:
 
 extra-deps:
   - git: https://github.com/spell-music/csound-expression
-    commit: 279fed9c64ca73efe36f78b24acd0dd8e37dd4bf
+    commit: 3d2392c68394e3d7ee2ca56ab8299f3da00fbc9d
     subdirs:
        - packages/core/csound-expression-dynamic
        - packages/core/csound-core

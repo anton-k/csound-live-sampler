@@ -82,4 +82,8 @@ tracks :
     cues: []
 
 audio: "audio"
-controllers: "midi"
+controllers:
+  # midi channels for faders (numbers for: Akai MidiMix)
+  faders:
+    master: 62
+    channels: [19, 23, 27, 31, 49, 53, 57, 61]

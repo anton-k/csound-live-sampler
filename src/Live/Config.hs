@@ -9,6 +9,7 @@ module Live.Config
   , Cue (..)
   , AudioConfig (..)
   , ControllerConfig (..)
+  , FadersMidiConfig (..)
   , readConfig
   ) where
 
@@ -74,7 +75,15 @@ data Cue = Cue
 data AudioConfig = AudioConfig String
   deriving (Generic, FromJSON, ToJSON)
 
-data ControllerConfig = ControllerConfig String
+data ControllerConfig = ControllerConfig
+  { faders :: FadersMidiConfig
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data FadersMidiConfig = FadersMidiConfig
+  { master :: Int
+  , channels :: [Int]
+  }
   deriving (Generic, FromJSON, ToJSON)
 
 readConfig :: FilePath -> IO Config

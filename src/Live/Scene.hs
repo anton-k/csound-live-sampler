@@ -5,8 +5,6 @@ module Live.Scene
   , TrackId
   , PartId
   , Clip
-  , Act (..)
-  , act
   ) where
 
 import Live.Config
@@ -34,16 +32,6 @@ data Channel = Channel
   { volume :: Ref Sig
   }
 
--- * Mixer
-
-setVolume :: Scene -> Sig -> SE ()
-setVolume = undefined
-
-setChanVolume :: Scene -> D -> Sig -> SE ()
-setChanVolume = undefined
-
--- * Parts
-
 data TrackId
 data PartId
 
@@ -59,19 +47,6 @@ playClip = undefined
 
 data ChanId
 data FxId
-
--- | Messages
-data Act
-  -- v1
-  = SetMasterVolume D
-  | SetChanVolume ChanId D
-  | ToggleMute ChanId
-  | NextClip Clip
-  -- v2
-  | SetFxSend ChanId FxId D
-
-act :: Scene -> Act -> SE ()
-act = undefined
 
 toAudio :: Config -> Scene -> SE Sig2
 toAudio config scene = do
@@ -111,23 +86,28 @@ loadScene config =
     loadChannels =
       mapM (fmap Channel . newRef . float . (.volume)) config.channels
 
-
 setupFaders :: Config -> Scene -> SE ()
 setupFaders config scene = do
-  setupMaster config.master scene.master
-  setupChannels config.channels scene.channels
+  setupMaster fadersMidi config.master scene.master
+  setupChannels fadersMidi config.channels scene.channels
+  where
+    fadersMidi = config.controllers.faders
 
-setupChannels :: [ChannelConfig] -> [Channel] -> SE ()
-setupChannels configs channels =
-  mapM_ (\(chn, config, channel) -> setupChannel chn config channel) (zip3 akaiChannels configs channels)
+setupChannels :: FadersMidiConfig -> [ChannelConfig] -> [Channel] -> SE ()
+setupChannels fadersConfig configs channels =
+  mapM_
+    (\(chn, config, channel) -> setupChannel chn config channel)
+    (zip3 midiChannels configs channels)
+  where
+    midiChannels = int <$> fadersConfig.channels
 
 setupChannel :: D -> ChannelConfig -> Channel -> SE ()
 setupChannel chn config channel =
   initFader chn config.volume channel.volume
 
-setupMaster :: MasterConfig -> Master -> SE ()
-setupMaster config master =
-  initFader akaiMasterFader config.volume master.volume
+setupMaster :: FadersMidiConfig -> MasterConfig -> Master -> SE ()
+setupMaster fadersConfig config master =
+  initFader (int fadersConfig.master) config.volume master.volume
 
 initFader :: D -> Float -> Ref Sig -> SE ()
 initFader chn initVal ref = do
@@ -135,12 +115,3 @@ initFader chn initVal ref = do
   writeRef ref kVol
   where
     kVol = gainslider $ kr $ ctrl7 1 chn 0 127
-
-akaiMasterFader :: D
-akaiMasterFader = 62
-
-akaiChannels :: [D]
-akaiChannels =
-  [19, 23, 27, 31, 49, 53, 57, 61]
-
-

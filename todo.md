@@ -14,6 +14,7 @@ prototypes:
 - add volume control with MIDI. Master and channels
 
     - implement controller in csound for AKAI midi mix
+        csound midi: https://flossmanual.csound.com/midi/receiving-events-by-midiin
 
     - use it to control volumes
 

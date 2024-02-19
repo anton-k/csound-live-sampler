@@ -15,9 +15,11 @@ import System.FilePath ((</>))
 
 runScene :: Config -> IO ()
 runScene config =
-  dac {- writeCsd "tmp.csd" -} $ do
-  scene <- loadScene config
-  toAudio config scene
+  dacBy setMa {- writeCsd "tmp.csd" -} $ do
+  -- writeCsd "tmp.csd" $ do
+    scene <- loadScene config
+    setupFaders config scene
+    toAudio config scene
 
 data Scene = Scene
   { master :: Master
@@ -108,4 +110,37 @@ loadScene config =
 
     loadChannels =
       mapM (fmap Channel . newRef . float . (.volume)) config.channels
+
+
+setupFaders :: Config -> Scene -> SE ()
+setupFaders config scene = do
+  setupMaster config.master scene.master
+  setupChannels config.channels scene.channels
+
+setupChannels :: [ChannelConfig] -> [Channel] -> SE ()
+setupChannels configs channels =
+  mapM_ (\(chn, config, channel) -> setupChannel chn config channel) (zip3 akaiChannels configs channels)
+
+setupChannel :: D -> ChannelConfig -> Channel -> SE ()
+setupChannel chn config channel =
+  initFader chn config.volume channel.volume
+
+setupMaster :: MasterConfig -> Master -> SE ()
+setupMaster config master =
+  initFader akaiMasterFader config.volume master.volume
+
+initFader :: D -> Float -> Ref Sig -> SE ()
+initFader chn initVal ref = do
+  initc7  (CtrlInit 1 chn (float initVal))
+  writeRef ref kVol
+  where
+    kVol = gainslider $ kr $ ctrl7 1 chn 0 127
+
+akaiMasterFader :: D
+akaiMasterFader = 62
+
+akaiChannels :: [D]
+akaiChannels =
+  [19, 23, 27, 31, 49, 53, 57, 61]
+
 

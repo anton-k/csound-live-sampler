@@ -37,13 +37,17 @@ library
       OverloadedRecordDot
       LambdaCase
       DeriveAnyClass
+      RecordWildCards
+      DerivingStrategies
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      aeson
+      Boolean
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , csound-core
     , filepath
+    , safe
     , text
     , yaml
   default-language: GHC2021
@@ -62,14 +66,18 @@ executable csound-live-sampler-exe
       OverloadedRecordDot
       LambdaCase
       DeriveAnyClass
+      RecordWildCards
+      DerivingStrategies
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
+      Boolean
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , csound-core
     , csound-live-sampler
     , filepath
+    , safe
     , text
     , yaml
   default-language: GHC2021
@@ -89,14 +97,18 @@ test-suite csound-live-sampler-test
       OverloadedRecordDot
       LambdaCase
       DeriveAnyClass
+      RecordWildCards
+      DerivingStrategies
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
+      Boolean
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , csound-core
     , csound-live-sampler
     , filepath
+    , safe
     , text
     , yaml
   default-language: GHC2021

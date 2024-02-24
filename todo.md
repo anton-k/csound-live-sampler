@@ -26,6 +26,10 @@ prototypes:
 
 - [ ] add switch between several tracks. Igonre the cues so far
   Just switch on a new track and turn off previous one.
+    - with single button
+
+    - with shift button (shift is used to reuse the same buttons
+      and also to not to swiitch tracks by accident)
 
 - [ ] add clips (track parts). ignore bpm sync.
   Just switch imidiately to the track part in a loop

@@ -5,32 +5,6 @@
 
 packages:
 - completed:
-    commit: 3d2392c68394e3d7ee2ca56ab8299f3da00fbc9d
-    git: https://github.com/spell-music/csound-expression
-    name: csound-expression-dynamic
-    pantry-tree:
-      sha256: ec719ec6c94b87bd22f75bf0fa1de1872685b03f89951bbfe3fe1c231bef9408
-      size: 1531
-    subdir: packages/core/csound-expression-dynamic
-    version: 0.3.9.1
-  original:
-    commit: 3d2392c68394e3d7ee2ca56ab8299f3da00fbc9d
-    git: https://github.com/spell-music/csound-expression
-    subdir: packages/core/csound-expression-dynamic
-- completed:
-    commit: 3d2392c68394e3d7ee2ca56ab8299f3da00fbc9d
-    git: https://github.com/spell-music/csound-expression
-    name: csound-core
-    pantry-tree:
-      sha256: 143cd9b4e6dcaa08b96c56711630123912987be71de576ccf1197dadb017cefd
-      size: 2303
-    subdir: packages/core/csound-core
-    version: 0.2.7
-  original:
-    commit: 3d2392c68394e3d7ee2ca56ab8299f3da00fbc9d
-    git: https://github.com/spell-music/csound-expression
-    subdir: packages/core/csound-core
-- completed:
     commit: abff72605479401fc43fa62f053153a11d7a1c61
     git: https://github.com/spell-music/data-fix-cse
     name: data-fix-cse
@@ -46,5 +20,4 @@ snapshots:
     sha256: 2fdd7d3e54540062ef75ca0a73ca3a804c527dbf8a4cadafabf340e66ac4af40
     size: 712469
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/11.yaml
-  original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/11.yaml
+  original: lts-22.11

@@ -87,3 +87,4 @@ controllers:
   faders:
     master: 62
     channels: [19, 23, 27, 31, 49, 53, 57, 61]
+  mutes: [1, 4, 7, 10, 13, 16, 19, 22]

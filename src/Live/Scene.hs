@@ -7,16 +7,22 @@ module Live.Scene
   , Clip
   ) where
 
+import Data.Maybe
 import Live.Config
 import Csound.Core
 import System.FilePath ((</>))
+import Safe (atMay)
+import Data.Boolean ((==*))
+import Control.Monad
+import Data.List qualified as List
+import Data.Function qualified as Function
 
 runScene :: Config -> IO ()
 runScene config =
-  dacBy setMa {- writeCsd "tmp.csd" -} $ do
-  -- writeCsd "tmp.csd" $ do
+  dacBy (setMa <> setTrace) {- writeCsd "tmp.csd" -} $ do
+  -- writeCsdBy (setMa <> setDac) "tmp.csd" $ do
     scene <- loadScene config
-    setupFaders config scene
+    setupMidiFaders config scene
     toAudio config scene
 
 data Scene = Scene
@@ -30,6 +36,7 @@ data Master = Master
 
 data Channel = Channel
   { volume :: Ref Sig
+  , mute :: Ref Sig
   }
 
 data TrackId
@@ -48,6 +55,9 @@ playClip = undefined
 data ChanId
 data FxId
 
+-------------------------------------------------------------------------------------
+-- audio playback
+
 toAudio :: Config -> Scene -> SE Sig2
 toAudio config scene = do
   tracks <- head <$> mapM (playTrack config.dir scene) config.tracks
@@ -55,14 +65,33 @@ toAudio config scene = do
 
 playTrack :: Maybe FilePath -> Scene -> TrackConfig -> SE Sig2
 playTrack sceneDir scene track =
-  sum <$> mapM (playStem trackDir scene) track.stems
+  sum <$> mapM (playStemGroup trackDir) (groupStemsByChannels scene.channels track.stems)
   where
     trackDir = addFilePrefix sceneDir <$> track.dir
 
-playStem :: Maybe FilePath -> Scene -> Stem -> SE Sig2
-playStem mDir scene stem = do
-  vol <- readRef (scene.channels !! (stem.channel - 1)).volume
-  pure $ mul (vol * maybe 1 float stem.volume) (loopWav file 1)
+-- | Group of stems that belong to the same channel
+data StemGroup = StemGroup
+  { channel :: Channel
+  , stems :: [Stem]
+  }
+
+groupStemsByChannels :: [Channel] -> [Stem] -> [StemGroup]
+groupStemsByChannels channels stems =
+  mapMaybe fromGroup $ List.groupBy ((==) `Function.on` (.channel)) $ List.sortOn (.channel) stems
+  where
+    fromGroup = \case
+      [] -> Nothing
+      x:xs -> fmap (\chan -> StemGroup chan (x:xs)) $ channels `atMay` (x.channel - 1)
+
+playStemGroup :: Maybe FilePath -> StemGroup -> SE Sig2
+playStemGroup mDir (StemGroup channel stems) = do
+  vol <- readRef channel.volume
+  mute <- readRef channel.mute
+  pure $ mul (vol * mute) $ sum $ fmap (playStem mDir) stems
+
+playStem :: Maybe FilePath -> Stem -> Sig2
+playStem mDir stem =
+  mul (maybe 1 float stem.volume) (loopWav file 1)
   where
     file = fromString $ addFilePrefix mDir stem.file
 
@@ -74,6 +103,9 @@ applyMaster master asig = do
   vol <- readRef master.volume
   pure $ mul vol asig
 
+-------------------------------------------------------------------------------------
+-- init scene
+
 loadScene :: Config -> SE Scene
 loadScene config =
   Scene
@@ -84,25 +116,35 @@ loadScene config =
       Master <$> newCtrlRef (float config.master.volume)
 
     loadChannels =
-      mapM (fmap Channel . newCtrlRef . float . (.volume)) config.channels
+      mapM initChannel config.channels
 
-setupFaders :: Config -> Scene -> SE ()
-setupFaders config scene = do
+    initChannel channelConfig = do
+      volume <- newCtrlRef (float channelConfig.volume)
+      mute <- newCtrlRef 1
+      pure Channel {..}
+
+-------------------------------------------------------------------------------------
+-- init midi controls
+
+setupMidiFaders :: Config -> Scene -> SE ()
+setupMidiFaders config scene = do
   setupMaster fadersMidi config.master scene.master
-  setupChannels fadersMidi config.channels scene.channels
+  setupChannels fadersMidi mutesMidi config.channels scene.channels
   where
     fadersMidi = config.controllers.faders
+    mutesMidi = config.controllers.mutes
 
-setupChannels :: FadersMidiConfig -> [ChannelConfig] -> [Channel] -> SE ()
-setupChannels fadersConfig configs channels =
+setupChannels :: FadersMidiConfig -> MutesMidiConfig -> [ChannelConfig] -> [Channel] -> SE ()
+setupChannels fadersConfig (MutesMidiConfig mutesConfig) configs channels = do
   mapM_
     (\(chn, config, channel) -> setupChannel chn config channel)
     (zip3 midiChannels configs channels)
+  initMutes $ zip (fmap int mutesConfig) (fmap (.mute) channels)
   where
     midiChannels = int <$> fadersConfig.channels
 
 setupChannel :: D -> ChannelConfig -> Channel -> SE ()
-setupChannel chn config channel =
+setupChannel chn config channel = do
   initFader chn config.volume channel.volume
 
 setupMaster :: FadersMidiConfig -> MasterConfig -> Master -> SE ()
@@ -115,3 +157,20 @@ initFader chn initVal ref = do
   writeRef ref kVol
   where
     kVol = gainslider $ kr $ ctrl7 1 chn 0 127
+
+initMutes :: [(D, Ref Sig)] -> SE ()
+initMutes mutes = do
+  instr <- newProc (muteInstr mutes)
+  global $ massign 1 instr
+
+muteInstr :: [(D, Ref Sig)] -> () -> SE ()
+muteInstr muteNotes = const $ do
+  n <- notnum
+  whens
+    (fmap (uncurry $ toMuteCase n) muteNotes)
+    (pure ())
+  where
+    toMuteCase :: D -> D -> Ref Sig -> (BoolD, SE ())
+    toMuteCase notePressed noteId ref = (notePressed ==* noteId, go)
+      where
+        go = modifyInitRef ref $ \current -> ifB (current ==* 1) 0 1

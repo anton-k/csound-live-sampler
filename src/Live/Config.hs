@@ -20,6 +20,7 @@ import Data.Text qualified as Text
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Yaml qualified as Yaml
+import System.FilePath
 
 data Config = Config
   { master :: MasterConfig
@@ -93,7 +94,7 @@ newtype MutesMidiConfig = MutesMidiConfig [Int]
   deriving newtype (FromJSON, ToJSON)
 
 readConfig :: FilePath -> IO Config
-readConfig file = do
+readConfig file = appendAbsPath <$> do
   config <- Yaml.decodeFileThrow file
   mErr <- validateConfig config
   case mErr of
@@ -122,3 +123,22 @@ validateConfig config = do
     checkAudio _ = pure Nothing -- TODO
     checkControllers _ = pure Nothing -- TODO
     checkChannels _ = pure Nothing -- TODO
+
+-- | makes path absolute for stems
+appendAbsPath :: Config -> Config
+appendAbsPath config =
+  config { tracks = fmap (appendTrack config.dir) config.tracks }
+  where
+    appendTrack mRootDir track =
+      track { stems = fmap (appendStem trackDir) track.stems }
+      where
+        trackDir =
+          case mRootDir of
+            Nothing -> track.dir
+            Just rootDir ->
+              Just $ case track.dir of
+                Nothing -> rootDir
+                Just dir -> rootDir </> dir
+
+    appendStem mTrackDir stem =
+      stem { file = maybe id (</>) mTrackDir stem.file }

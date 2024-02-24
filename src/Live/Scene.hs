@@ -10,7 +10,6 @@ module Live.Scene
 import Data.Maybe
 import Live.Config
 import Csound.Core
-import System.FilePath ((</>))
 import Safe (atMay)
 import Data.Boolean ((==*))
 import Control.Monad
@@ -65,9 +64,7 @@ toAudio config scene = do
 
 playTrack :: Maybe FilePath -> Scene -> TrackConfig -> SE Sig2
 playTrack sceneDir scene track =
-  sum <$> mapM (playStemGroup trackDir) (groupStemsByChannels scene.channels track.stems)
-  where
-    trackDir = addFilePrefix sceneDir <$> track.dir
+  sum <$> mapM playStemGroup (groupStemsByChannels scene.channels track.stems)
 
 -- | Group of stems that belong to the same channel
 data StemGroup = StemGroup
@@ -83,20 +80,15 @@ groupStemsByChannels channels stems =
       [] -> Nothing
       x:xs -> fmap (\chan -> StemGroup chan (x:xs)) $ channels `atMay` (x.channel - 1)
 
-playStemGroup :: Maybe FilePath -> StemGroup -> SE Sig2
-playStemGroup mDir (StemGroup channel stems) = do
+playStemGroup :: StemGroup -> SE Sig2
+playStemGroup (StemGroup channel stems) = do
   vol <- readRef channel.volume
   mute <- readRef channel.mute
-  pure $ mul (vol * mute) $ sum $ fmap (playStem mDir) stems
+  pure $ mul (vol * mute) $ sum $ fmap playStem stems
 
-playStem :: Maybe FilePath -> Stem -> Sig2
-playStem mDir stem =
-  mul (maybe 1 float stem.volume) (loopWav file 1)
-  where
-    file = fromString $ addFilePrefix mDir stem.file
-
-addFilePrefix :: Maybe FilePath -> FilePath -> FilePath
-addFilePrefix mDir file = maybe id (</>) mDir file
+playStem :: Stem -> Sig2
+playStem stem =
+  mul (maybe 1 float stem.volume) (loopWav (fromString stem.file) 1)
 
 applyMaster :: Master -> Sig2 -> SE Sig2
 applyMaster master asig = do

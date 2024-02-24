@@ -20,7 +20,7 @@ prototypes:
 
     - [x] make it configurable (reasignable channels)
 
-- [ ] add toggle mutes
+- [x] add toggle mutes
 
     - use mute buttons
 

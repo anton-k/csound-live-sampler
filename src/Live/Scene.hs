@@ -11,7 +11,7 @@ import Data.Maybe
 import Live.Config
 import Csound.Core
 import Safe (atMay)
-import Data.Boolean ((==*))
+import Data.Boolean ((==*), (/=*), (>*))
 import Control.Monad
 import Data.List qualified as List
 import Data.Function qualified as Function
@@ -19,8 +19,8 @@ import Data.Either
 
 runScene :: Config -> IO ()
 runScene config =
-  -- dacBy (setMa <> setTrace) {- writeCsd "tmp.csd" -} $ do
-  writeCsdBy (setMa <> setDac) "tmp.csd" $ do
+  dacBy (setMa <> setTrace) {- writeCsd "tmp.csd" -} $ do
+  -- writeCsdBy (setMa <> setDac) "tmp.csd" $ do
     scene <- loadScene config
     setupMidiFaders config scene
     toAudio config scene
@@ -29,11 +29,27 @@ data Scene = Scene
   { master :: Master
   , channels :: [Channel]
   , tracks :: [Track]
-  , currentTrack :: Ref Sig
+  , currentTrack :: CurrentTrack
+  , midiInstr :: MidiInstr
   }
+
+data MidiInstr = MidiInstr (D -> SE ())
+
+data CurrentTrack = CurrentTrack (Ref D)
+
+setCurrentTrack :: CurrentTrack -> InstrRef () -> SE ()
+setCurrentTrack (CurrentTrack ref) instrRef =
+  case getInstrRefId instrRef of
+    Right n -> writeRef ref n
+    Left _ -> pure ()
+
+getCurrentTrack :: CurrentTrack -> SE D
+getCurrentTrack (CurrentTrack ref) =
+  readRef ref
 
 data Master = Master
   { volume :: Ref Sig
+  , audio :: Ref Sig2
   }
 
 data Channel = Channel
@@ -43,7 +59,6 @@ data Channel = Channel
 
 data Track = Track
   { instr :: InstrRef ()
-  , audio :: Sig2
   }
 
 data TrackId
@@ -54,27 +69,13 @@ data Clip = Clip
   , part :: PartId
   }
 
--- | Completes crrently played clip and switches
--- to the next Clip
-playClip :: Scene -> Clip -> SE ()
-playClip = undefined
-
-data ChanId
-data FxId
-
 -------------------------------------------------------------------------------------
 -- audio playback
 
 toAudio :: Config -> Scene -> SE Sig2
 toAudio config scene = do
-  play instrRef [Note 0 (-1) ()]
---   play instrRef [Note 5 1 ()]
-
-  writeInitRef scene.currentTrack (fromRight undefined $ getInstrRefId instrRef)
-  changeInstr scene
-  applyMaster scene.master $ sum $ fmap (.audio) $ scene.tracks
-  where
-    instrRef = ((.instr) $ head $ scene.tracks)
+  runMidiInstr scene.midiInstr
+  applyMaster scene.master
 
 -- Schema of multiple instrumentplay:
 --
@@ -83,20 +84,11 @@ toAudio config scene = do
 -- we lookup current played instrument and we turn it off
 -- and start tto play next one
 
-changeInstr :: Scene -> SE ()
-changeInstr scene = do
-  instr <- newProc $ \() -> do
-    n <- notnum
-    when1 (n ==* 24) $ do
-      turnoff2_i track1.instr 0 0.01
-      play track2.instr [Note 0 (-1) ()]
-  global $ massign 1 instr
-  where
-    [track1, track2] = scene.tracks
-
-trackInstr :: [Channel] -> TrackConfig -> SE Track
-trackInstr channels track =
-  uncurry Track <$> (newInstr PolyMix 0.01 $ const $ playTrack channels track)
+trackInstr :: Ref Sig2 -> [Channel] -> TrackConfig -> SE Track
+trackInstr masterRef channels track =
+  fmap Track $ newProc $ \() -> do
+    audio <- playTrack channels track
+    writeRef masterRef audio
 
 playTrack :: [Channel] -> TrackConfig -> SE Sig2
 playTrack channels track =
@@ -128,10 +120,12 @@ playStem :: Stem -> Sig2
 playStem stem =
   mul (maybe 1 float stem.volume) (loopWav (fromString stem.file) 1)
 
-applyMaster :: Master -> Sig2 -> SE Sig2
-applyMaster master asig = do
+applyMaster :: Master -> SE Sig2
+applyMaster master = do
   vol <- readRef master.volume
-  pure $ mul vol asig
+  audio <- readRef master.audio
+  writeRef master.audio 0
+  pure $ mul vol audio
 
 -------------------------------------------------------------------------------------
 -- init scene
@@ -140,12 +134,18 @@ loadScene :: Config -> SE Scene
 loadScene config = do
   master <- loadMaster
   channels <- loadChannels
-  tracks <- loadTracks channels
+  tracks <- loadTracks master channels
   currentTrack <- initCurrentTrack
+  let
+    MutesMidiConfig mutesConfig = config.controllers.mutes
+    mutes = zip (fmap int mutesConfig) (fmap (.mute) channels)
+    midiInstr = initMidiInstr mutes currentTrack tracks
   pure $ Scene {..}
   where
     loadMaster =
-      Master <$> newCtrlRef (float config.master.volume)
+      Master
+        <$> newCtrlRef (float config.master.volume)
+        <*> newRef 0
 
     loadChannels =
       mapM initChannel config.channels
@@ -155,9 +155,9 @@ loadScene config = do
       mute <- newCtrlRef 1
       pure Channel {..}
 
-    initCurrentTrack = newCtrlRef (-1)
+    initCurrentTrack = CurrentTrack <$> (newCtrlRef (-1))
 
-    loadTracks channels = mapM (trackInstr channels) config.tracks
+    loadTracks master channels = mapM (trackInstr master.audio channels) config.tracks
 
 -------------------------------------------------------------------------------------
 -- init midi controls
@@ -175,7 +175,6 @@ setupChannels fadersConfig (MutesMidiConfig mutesConfig) configs channels = do
   mapM_
     (\(chn, config, channel) -> setupChannel chn config channel)
     (zip3 midiChannels configs channels)
-  initMutes $ zip (fmap int mutesConfig) (fmap (.mute) channels)
   where
     midiChannels = int <$> fadersConfig.channels
 
@@ -199,9 +198,8 @@ initMutes mutes = do
   instr <- newProc (muteInstr mutes)
   global $ massign 1 instr
 
-muteInstr :: [(D, Ref Sig)] -> () -> SE ()
-muteInstr muteNotes = const $ do
-  n <- notnum
+muteInstr :: [(D, Ref Sig)] -> D -> SE ()
+muteInstr muteNotes n = do
   whens
     (fmap (uncurry $ toMuteCase n) muteNotes)
     (pure ())
@@ -210,3 +208,33 @@ muteInstr muteNotes = const $ do
     toMuteCase notePressed noteId ref = (notePressed ==* noteId, go)
       where
         go = modifyInitRef ref $ \current -> ifB (current ==* 1) 0 1
+
+changeInstr :: CurrentTrack -> [Track] -> D -> SE ()
+changeInstr currentTrackRef tracks = \n -> do
+  whens (zipWith (instrCase n) trackButtons tracks) (pure ())
+  where
+    instrCase buttonMidi buttonTrack track = (cond, body)
+      where
+        cond = buttonMidi ==* int buttonTrack
+
+        body = do
+          currentTrack <- getCurrentTrack currentTrackRef
+          when1 (currentTrack /=* getInstrRefIdNum track.instr) $ do
+            setCurrentTrack currentTrackRef track.instr
+            when1 (currentTrack >* 0) $
+              turnoff2_i (instrRefFromNum @() currentTrack) 0 0.05
+            play track.instr [Note 0 (-1) ()]
+
+trackButtons :: [Int]
+trackButtons = [3, 6, 9, 12, 15, 18, 21, 24]
+
+initMidiInstr :: [(D, Ref Sig)] -> CurrentTrack -> [Track] -> MidiInstr
+initMidiInstr mutes currentTrack tracks = MidiInstr $ \n -> do
+  muteInstr mutes n
+  changeInstr currentTrack tracks n
+
+runMidiInstr :: MidiInstr -> SE ()
+runMidiInstr (MidiInstr body) = do
+  instrId <- newProc $ \() -> body =<< notnum
+  global $ massign 1 instrId
+

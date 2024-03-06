@@ -89,3 +89,4 @@ controllers:
     channels: [19, 23, 27, 31, 49, 53, 57, 61]
   # note numbers for mutes
   mutes: [1, 4, 7, 10, 13, 16, 19, 22]
+  trackChanges: [3, 6, 9, 12, 15, 18, 21, 24]

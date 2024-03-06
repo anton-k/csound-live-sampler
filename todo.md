@@ -22,11 +22,11 @@ prototypes:
 
 - [x] add toggle mutes
 
-    - use mute buttons
+    - [x] use mute buttons
 
 - [ ] add switch between several tracks. Igonre the cues so far
   Just switch on a new track and turn off previous one.
-    - with single button
+    - [x] with single button
 
     - with shift button (shift is used to reuse the same buttons
       and also to not to swiitch tracks by accident)

@@ -11,6 +11,7 @@ module Live.Config
   , ControllerConfig (..)
   , FadersMidiConfig (..)
   , MutesMidiConfig (..)
+  , TrackChangesMidiConfig (..)
   , readConfig
   ) where
 
@@ -80,6 +81,7 @@ data AudioConfig = AudioConfig String
 data ControllerConfig = ControllerConfig
   { faders :: FadersMidiConfig
   , mutes :: MutesMidiConfig
+  , trackChanges :: TrackChangesMidiConfig
   }
   deriving (Generic, FromJSON, ToJSON)
 
@@ -91,6 +93,10 @@ data FadersMidiConfig = FadersMidiConfig
 
 -- | Note numbers for the mutes
 newtype MutesMidiConfig = MutesMidiConfig [Int]
+  deriving newtype (FromJSON, ToJSON)
+
+-- | Note numbers for the track changes
+newtype TrackChangesMidiConfig = TrackChangesMidiConfig [Int]
   deriving newtype (FromJSON, ToJSON)
 
 readConfig :: FilePath -> IO Config

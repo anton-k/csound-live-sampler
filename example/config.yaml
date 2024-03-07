@@ -81,6 +81,37 @@ tracks :
         channel: 4
     cues: []
 
+  - name: "Samurai"
+    dir: "SamuraiStems119bpm"
+    stems:
+      - file: "Bansuri.wav"
+        channel: 4
+      - file: "FilterHats.wav"
+        channel: 2
+      - file: "Pads+Atmos.wav"
+        channel: 6
+      - file: "Rim+Clap.wav"
+        channel: 1
+      - file: "Vibraphone.wav"
+        channel: 4
+      - file: "Bass.wav"
+        channel: 3
+      - file: "Kick.wav"
+        channel: 1
+      - file: "Percussion.wav"
+        channel: 2
+      - file: "Shamisen.wav"
+        channel: 4
+      - file: "CinematicSamples.wav"
+        channel: 6
+      - file: "OffbeatHats.wav"
+        channel: 2
+      - file: "RevDholak.wav"
+        channel: 2
+      - file: "Snaps.wav"
+        channel: 2
+    cues: []
+
 audio: "audio"
 controllers:
   # midi channels for faders (numbers for: Akai MidiMix)

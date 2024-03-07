@@ -23,7 +23,7 @@ runScene config =
   -- writeCsdBy (setMa <> setDac) "tmp.csd" $ do
     scene <- loadScene config
     setupMidiFaders config scene
-    toAudio config scene
+    toAudio scene
 
 data Scene = Scene
   { master :: Master
@@ -72,8 +72,8 @@ data Clip = Clip
 -------------------------------------------------------------------------------------
 -- audio playback
 
-toAudio :: Config -> Scene -> SE Sig2
-toAudio config scene = do
+toAudio :: Scene -> SE Sig2
+toAudio scene = do
   runMidiInstr scene.midiInstr
   applyMaster scene.master
 
@@ -163,13 +163,12 @@ loadScene config = do
 setupMidiFaders :: Config -> Scene -> SE ()
 setupMidiFaders config scene = do
   setupMaster fadersMidi config.master scene.master
-  setupChannels fadersMidi mutesMidi config.channels scene.channels
+  setupChannels fadersMidi config.channels scene.channels
   where
     fadersMidi = config.controllers.faders
-    mutesMidi = config.controllers.mutes
 
-setupChannels :: FadersMidiConfig -> MutesMidiConfig -> [ChannelConfig] -> [Channel] -> SE ()
-setupChannels fadersConfig (MutesMidiConfig mutesConfig) configs channels = do
+setupChannels :: FadersMidiConfig -> [ChannelConfig] -> [Channel] -> SE ()
+setupChannels fadersConfig configs channels = do
   mapM_
     (\(chn, config, channel) -> setupChannel chn config channel)
     (zip3 midiChannels configs channels)
@@ -190,11 +189,6 @@ initFader chn initVal ref = do
   writeRef ref kVol
   where
     kVol = gainslider $ kr $ ctrl7 1 chn 0 127
-
-initMutes :: [(D, Ref Sig)] -> SE ()
-initMutes mutes = do
-  instr <- newProc (muteInstr mutes)
-  global $ massign 1 instr
 
 muteInstr :: [(D, Ref Sig)] -> D -> SE ()
 muteInstr muteNotes n = do

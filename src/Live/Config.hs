@@ -36,11 +36,13 @@ data Config = Config
 
 data MasterConfig = MasterConfig
   { volume :: Float
+  , gain :: Maybe Float
   }
   deriving (Generic, FromJSON, ToJSON)
 
 data ChannelConfig = ChannelConfig
   { volume :: Float
+  , gain :: Maybe Float
   }
   deriving (Generic, FromJSON, ToJSON)
 
@@ -52,6 +54,7 @@ data TrackConfig = TrackConfig
   , name :: Text
   , stems :: [Stem]
   , cues :: [TimeSlot]
+  , gain :: Maybe Float
   }
   deriving (Generic, FromJSON, ToJSON)
 
@@ -59,6 +62,7 @@ data Stem = Stem
   { volume :: Maybe Float
   , file :: FilePath
   , channel :: Int
+  , gain :: Maybe Float
   }
   deriving (Generic, FromJSON, ToJSON)
 

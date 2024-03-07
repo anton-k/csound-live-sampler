@@ -50,11 +50,13 @@ getCurrentTrack (CurrentTrack ref) =
 data Master = Master
   { volume :: Ref Sig
   , audio :: Ref Sig2
+  , gain :: Maybe Float
   }
 
 data Channel = Channel
   { volume :: Ref Sig
   , mute :: Ref Sig
+  , gain :: Maybe Float
   }
 
 data Track = Track
@@ -92,7 +94,8 @@ trackInstr masterRef channels track =
 
 playTrack :: [Channel] -> TrackConfig -> SE Sig2
 playTrack channels track =
-  sum <$> mapM playStemGroup (groupStemsByChannels channels track.stems)
+  withGain track.gain . sum
+    <$> mapM playStemGroup (groupStemsByChannels channels track.stems)
 
 -- | Group of stems that belong to the same channel
 data StemGroup = StemGroup
@@ -114,18 +117,18 @@ playStemGroup :: StemGroup -> SE Sig2
 playStemGroup (StemGroup channel stems) = do
   vol <- readRef channel.volume
   mute <- readRef channel.mute
-  pure $ mul (vol * mute) $ sum $ fmap playStem stems
+  pure $ withGain channel.gain $ mul (vol * mute) $ sum $ fmap playStem stems
 
 playStem :: Stem -> Sig2
 playStem stem =
-  mul (maybe 1 float stem.volume) (loopWav (fromString stem.file) 1)
+  withGain stem.gain $ mul (maybe 1 float stem.volume) (loopWav (fromString stem.file) 1)
 
 applyMaster :: Master -> SE Sig2
 applyMaster master = do
   vol <- readRef master.volume
   audio <- readRef master.audio
   writeRef master.audio 0
-  pure $ mul vol audio
+  pure $ withGain master.gain $ mul vol audio
 
 -------------------------------------------------------------------------------------
 -- init scene
@@ -144,6 +147,7 @@ loadScene config = do
       Master
         <$> newCtrlRef (float config.master.volume)
         <*> newRef 0
+        <*> pure config.master.gain
 
     loadChannels =
       mapM initChannel config.channels
@@ -151,6 +155,8 @@ loadScene config = do
     initChannel channelConfig = do
       volume <- newCtrlRef (float channelConfig.volume)
       mute <- newCtrlRef 1
+      let
+        gain = channelConfig.gain
       pure Channel {..}
 
     initCurrentTrack = CurrentTrack <$> (newCtrlRef (-1))
@@ -229,3 +235,13 @@ runMidiInstr :: MidiInstr -> SE ()
 runMidiInstr (MidiInstr body) = do
   instrId <- newProc $ \() -> body =<< notnum
   global $ massign 1 instrId
+
+-------------------------------------------------------------------------------------
+-- utils
+
+withGain :: Maybe Float -> Sig2 -> Sig2
+withGain mValue audio =
+  case mValue of
+    Nothing -> audio
+    Just value -> mul (float value) audio
+

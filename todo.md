@@ -20,6 +20,8 @@ prototypes:
 
     - [x] make it configurable (reasignable channels)
 
+- [x] add gains: master, channel, tracks, stems
+
 - [x] add toggle mutes
 
     - [x] use mute buttons
@@ -28,7 +30,7 @@ prototypes:
   Just switch on a new track and turn off previous one.
     - [x] with single button
 
-    - with shift button (shift is used to reuse the same buttons
+    - [x] with shift button (shift is used to reuse the same buttons
       and also to not to swiitch tracks by accident)
 
 - [ ] add clips (track parts). ignore bpm sync.

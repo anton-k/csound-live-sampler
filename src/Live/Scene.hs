@@ -30,12 +30,18 @@ data Scene = Scene
   , channels :: [Channel]
   , tracks :: [Track]
   , currentTrack :: CurrentTrack
+  , shift :: Shift
   , midiInstr :: MidiInstr
   }
 
 data MidiInstr = MidiInstr (D -> SE ())
 
 data CurrentTrack = CurrentTrack (Ref D)
+
+data Shift = Shift (Ref Sig)
+
+getShift :: Shift -> SE BoolD
+getShift (Shift ref) = (==* 1) <$> readInitRef ref
 
 setCurrentTrack :: CurrentTrack -> InstrRef () -> SE ()
 setCurrentTrack (CurrentTrack ref) instrRef =
@@ -139,8 +145,9 @@ loadScene config = do
   channels <- loadChannels
   tracks <- loadTracks master channels
   currentTrack <- initCurrentTrack
+  shift <- initShift
   let
-    midiInstr = initMidiInstr config currentTrack channels tracks
+    midiInstr = initMidiInstr config currentTrack channels tracks shift
   pure $ Scene {..}
   where
     loadMaster =
@@ -160,6 +167,8 @@ loadScene config = do
       pure Channel {..}
 
     initCurrentTrack = CurrentTrack <$> (newCtrlRef (-1))
+
+    initShift = Shift <$> newCtrlRef 0
 
     loadTracks master channels = mapM (trackInstr master.audio channels) config.tracks
 
@@ -196,24 +205,26 @@ initFader chn initVal ref = do
   where
     kVol = gainslider $ kr $ ctrl7 1 chn 0 127
 
-muteInstr :: [(D, Ref Sig)] -> D -> SE ()
-muteInstr muteNotes n = do
+muteInstr :: Shift -> [(D, Ref Sig)] -> D -> SE ()
+muteInstr shiftRef muteNotes n = do
+  isShift <- getShift shiftRef
   whens
-    (fmap (uncurry $ toMuteCase n) muteNotes)
+    (fmap (uncurry $ toMuteCase isShift n) muteNotes)
     (pure ())
   where
-    toMuteCase :: D -> D -> Ref Sig -> (BoolD, SE ())
-    toMuteCase notePressed noteId ref = (notePressed ==* noteId, go)
+    toMuteCase :: BoolD -> D -> D -> Ref Sig -> (BoolD, SE ())
+    toMuteCase isShift notePressed noteId ref = (notB isShift &&* notePressed ==* noteId, go)
       where
         go = modifyInitRef ref $ \current -> ifB (current ==* 1) 0 1
 
-changeInstr :: TrackChangesMidiConfig -> CurrentTrack -> [Track] -> D -> SE ()
-changeInstr (TrackChangesMidiConfig trackButtons) currentTrackRef tracks = \n -> do
-  whens (zipWith (instrCase n) trackButtons tracks) (pure ())
+changeInstr :: TrackChangesMidiConfig -> CurrentTrack -> [Track] -> Shift -> D -> SE ()
+changeInstr (TrackChangesMidiConfig trackButtons) currentTrackRef tracks shiftRef = \n -> do
+  isShift <- getShift shiftRef
+  whens (zipWith (instrCase isShift n) trackButtons tracks) (pure ())
   where
-    instrCase buttonMidi buttonTrack track = (cond, body)
+    instrCase isShift buttonMidi buttonTrack track = (cond, body)
       where
-        cond = buttonMidi ==* int buttonTrack
+        cond = isShift &&* (buttonMidi ==* int buttonTrack)
 
         body = do
           currentTrack <- getCurrentTrack currentTrackRef
@@ -223,10 +234,16 @@ changeInstr (TrackChangesMidiConfig trackButtons) currentTrackRef tracks = \n ->
               turnoff2_i (instrRefFromNum @() currentTrack) 0 0.05
             play track.instr [Note 0 (-1) ()]
 
-initMidiInstr :: Config -> CurrentTrack -> [Channel] -> [Track] -> MidiInstr
-initMidiInstr config currentTrack channels tracks = MidiInstr $ \n -> do
-  muteInstr mutes n
-  changeInstr config.controllers.trackChanges currentTrack tracks n
+shiftInstr :: ShiftMidiConfig -> Shift -> D -> SE ()
+shiftInstr (ShiftMidiConfig n) (Shift shiftRef) note =
+  when1 (note ==* int n) $
+    writeRef shiftRef (linsegr [1] 0.1 0)
+
+initMidiInstr :: Config -> CurrentTrack -> [Channel] -> [Track] -> Shift -> MidiInstr
+initMidiInstr config currentTrack channels tracks shift = MidiInstr $ \n -> do
+  muteInstr shift mutes n
+  changeInstr config.controllers.trackChanges currentTrack tracks shift n
+  shiftInstr config.controllers.shift shift n
   where
     MutesMidiConfig mutesConfig = config.controllers.mutes
     mutes = zip (fmap int mutesConfig) (fmap (.mute) channels)

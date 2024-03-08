@@ -28,6 +28,8 @@ library
       Live.Scene.Gen
       Live.Scene.Midi
       Live.Scene.Midi.Config
+      Live.Scene.Midi.Mixer
+      Live.Scene.Midi.Sampler
       Live.Scene.Mixer
       Live.Scene.Mixer.Config
       Live.Scene.Sampler
@@ -52,6 +54,7 @@ library
     , aeson
     , base >=4.7 && <5
     , bytestring
+    , containers
     , csound-core
     , filepath
     , safe
@@ -81,6 +84,7 @@ executable csound-live-sampler-exe
     , aeson
     , base >=4.7 && <5
     , bytestring
+    , containers
     , csound-core
     , csound-live-sampler
     , filepath
@@ -112,6 +116,7 @@ test-suite csound-live-sampler-test
     , aeson
     , base >=4.7 && <5
     , bytestring
+    , containers
     , csound-core
     , csound-live-sampler
     , filepath

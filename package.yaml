@@ -39,6 +39,7 @@ dependencies:
 - filepath
 - safe
 - Boolean
+- containers
 
 ghc-options:
 - -Wall

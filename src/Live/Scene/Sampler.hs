@@ -4,6 +4,8 @@ module Live.Scene.Sampler
   , module X
   ) where
 
+import Data.Maybe
+import Data.Bifunctor
 import Csound.Core
 import Live.Scene.Gen as X
 import Live.Scene.Sampler.Config as X
@@ -12,6 +14,7 @@ import Data.Function qualified as Function
 import Data.List qualified as List
 import Data.Maybe
 import Data.Boolean
+import Data.Map.Strict qualified as Map
 
 newtype TrackId = TrackId Int
 
@@ -117,14 +120,25 @@ data StemGroup = StemGroup
   }
 
 groupStemsByChannels :: [Channel] -> [StemConfig] -> [StemGroup]
-groupStemsByChannels channels stems =
-  mapMaybe fromGroup $ groupOn (.channel) $ List.sortOn (.channel) stems
+groupStemsByChannels channels stems = fillMissing
   where
     groupOn f = List.groupBy ((==) `Function.on` f)
 
     fromGroup = \case
       [] -> Nothing
-      x:xs -> fmap (\chan -> StemGroup chan (x:xs)) $ channels `atMay` (x.channel - 1)
+      x:xs ->
+        let n = x.channel - 1
+        in  fmap (\chan -> (ChannelId n, StemGroup chan (x:xs))) $ channels `atMay` n
+
+    fillMissing = fmap (\(chanId, chan) -> fromMaybe (emptyChan chan) $ Map.lookup chanId stemMap) indexes
+
+    stemMap = Map.fromList $ mapMaybe fromGroup $ groupOn (.channel) $ List.sortOn (.channel) stems
+
+    indexes = fmap (first ChannelId) $ zip [0..] channels
+
+    size = length channels
+
+    emptyChan chan = StemGroup chan []
 
 playStem :: StemConfig -> Sig2
 playStem stem =

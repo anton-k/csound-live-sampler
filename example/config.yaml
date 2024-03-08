@@ -12,107 +12,107 @@ mixer:
     - volume: 1
     - volume: 1
 fxs: []
-dir: "../tracks"
-tracks :
+sampler:
+  dir: "../tracks"
+  tracks :
+    - name: "Piano Beat"
+      dir: "LaMelodyStems_85bpm"
+      stems:
+        - file: "Arps.wav"
+          channel: 4
+        - file: "Kick.wav"
+          channel: 1
+        - file: "Piano.wav"
+          channel: 4
+        - file: "Bass.wav"
+          channel: 3
+        - file: "KoraFull.wav"
+          channel: 5
+        - file: "Snare.wav"
+          channel: 1
+        - file: "Flute.wav"
+          channel: 5
+        - file: "Ngoni.wav"
+          channel: 6
+        - file: "Strings.wav"
+          channel: 6
+        - file: "Kalimba.wav"
+          channel: 5
+        - file: "Ohs+Room.wav"
+          channel: 2
+        - file: "Tom.wav"
+          channel: 2
+        - file: "Kalimba2.wav"
+          channel: 5
+        - file: "Percussion.wav"
+          channel: 2
+        - file: "Vibraphone.wav"
+          channel: 5
+      cues: []
 
-  - name: "Piano Beat"
-    dir: "LaMelodyStems_85bpm"
-    stems:
-      - file: "Arps.wav"
-        channel: 4
-      - file: "Kick.wav"
-        channel: 1
-      - file: "Piano.wav"
-        channel: 4
-      - file: "Bass.wav"
-        channel: 3
-      - file: "KoraFull.wav"
-        channel: 5
-      - file: "Snare.wav"
-        channel: 1
-      - file: "Flute.wav"
-        channel: 5
-      - file: "Ngoni.wav"
-        channel: 6
-      - file: "Strings.wav"
-        channel: 6
-      - file: "Kalimba.wav"
-        channel: 5
-      - file: "Ohs+Room.wav"
-        channel: 2
-      - file: "Tom.wav"
-        channel: 2
-      - file: "Kalimba2.wav"
-        channel: 5
-      - file: "Percussion.wav"
-        channel: 2
-      - file: "Vibraphone.wav"
-        channel: 5
-    cues: []
+    - name: "Never Enough"
+      dir: "NE_Stems_85bpm"
+      stems:
+        - file: "Arp.wav"
+          channel: 4
+        - file: "MainSample.wav"
+          channel: 4
+        - file: "Atmo.wav"
+          channel: 7
+        - file: "Percussion.wav"
+          channel: 2
+        - file: "Bass.wav"
+          channel: 3
+        - file: "Piano.wav"
+          channel: 4
+        - file: "DrumLoop.wav"
+          channel: 1
+        - file: "RevGtrs.wav"
+          channel: 4
+        - file: "Flute.wav"
+          channel: 6
+        - file: "Shaker+Tamburine.wav"
+          channel: 2
+        - file: "Gtrs.wav"
+          channel: 5
+        - file: "Strings.wav"
+          channel: 4
+        - file: "Hats.wav"
+          channel: 2
+        - file: "VocalsSample.wav"
+          channel: 4
+      cues: []
 
-  - name: "Never Enough"
-    dir: "NE_Stems_85bpm"
-    stems:
-      - file: "Arp.wav"
-        channel: 4
-      - file: "MainSample.wav"
-        channel: 4
-      - file: "Atmo.wav"
-        channel: 7
-      - file: "Percussion.wav"
-        channel: 2
-      - file: "Bass.wav"
-        channel: 3
-      - file: "Piano.wav"
-        channel: 4
-      - file: "DrumLoop.wav"
-        channel: 1
-      - file: "RevGtrs.wav"
-        channel: 4
-      - file: "Flute.wav"
-        channel: 6
-      - file: "Shaker+Tamburine.wav"
-        channel: 2
-      - file: "Gtrs.wav"
-        channel: 5
-      - file: "Strings.wav"
-        channel: 4
-      - file: "Hats.wav"
-        channel: 2
-      - file: "VocalsSample.wav"
-        channel: 4
-    cues: []
-
-  - name: "Samurai"
-    dir: "SamuraiStems119bpm"
-    stems:
-      - file: "Bansuri.wav"
-        channel: 4
-      - file: "FilterHats.wav"
-        channel: 2
-      - file: "Pads+Atmos.wav"
-        channel: 6
-      - file: "Rim+Clap.wav"
-        channel: 1
-      - file: "Vibraphone.wav"
-        channel: 4
-      - file: "Bass.wav"
-        channel: 3
-      - file: "Kick.wav"
-        channel: 1
-      - file: "Percussion.wav"
-        channel: 2
-      - file: "Shamisen.wav"
-        channel: 4
-      - file: "CinematicSamples.wav"
-        channel: 6
-      - file: "OffbeatHats.wav"
-        channel: 2
-      - file: "RevDholak.wav"
-        channel: 2
-      - file: "Snaps.wav"
-        channel: 2
-    cues: []
+    - name: "Samurai"
+      dir: "SamuraiStems119bpm"
+      stems:
+        - file: "Bansuri.wav"
+          channel: 4
+        - file: "FilterHats.wav"
+          channel: 2
+        - file: "Pads+Atmos.wav"
+          channel: 6
+        - file: "Rim+Clap.wav"
+          channel: 1
+        - file: "Vibraphone.wav"
+          channel: 4
+        - file: "Bass.wav"
+          channel: 3
+        - file: "Kick.wav"
+          channel: 1
+        - file: "Percussion.wav"
+          channel: 2
+        - file: "Shamisen.wav"
+          channel: 4
+        - file: "CinematicSamples.wav"
+          channel: 6
+        - file: "OffbeatHats.wav"
+          channel: 2
+        - file: "RevDholak.wav"
+          channel: 2
+        - file: "Snaps.wav"
+          channel: 2
+      cues: []
 
 audio: "audio"
 controllers:

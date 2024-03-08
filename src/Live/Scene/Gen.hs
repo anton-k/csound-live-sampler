@@ -12,6 +12,7 @@ import Csound.Core hiding (gen)
 import Control.Monad
 
 newtype ChannelId = ChannelId Int
+  deriving newtype (Show, Eq, Ord)
 
 data Gen = Gen
   { read :: ChannelId -> SE Sig2
@@ -63,8 +64,8 @@ par a b =
 (|>) :: Gen -> Gen -> Gen
 (|>) a b = do
   Gen
-    { read = a.read
-    , write = b.write
+    { read = b.read
+    , write = a.write
     , inputs = a.inputs
     , outputs = b.outputs
     , update = do

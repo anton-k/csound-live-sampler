@@ -34,6 +34,7 @@ library
       Live.Scene.Mixer.Config
       Live.Scene.Sampler
       Live.Scene.Sampler.Config
+      Live.Scene.Sampler.Engine
       Live.Scene.Sampler.Timing
   other-modules:
       Paths_csound_live_sampler

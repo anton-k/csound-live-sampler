@@ -1,14 +1,16 @@
-master:
-  volume: 1
-channels:
-  - volume: 1
-  - volume: 1
-  - volume: 1
-  - volume: 1
-  - volume: 1
-  - volume: 1
-  - volume: 1
-  - volume: 1
+mixer:
+  master:
+    volume: 1
+  channels:
+    - volume: 1
+      gain: 1.5
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
 fxs: []
 dir: "../tracks"
 tracks :

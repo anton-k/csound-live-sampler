@@ -25,6 +25,13 @@ library
   exposed-modules:
       Live.Config
       Live.Scene
+      Live.Scene.Gen
+      Live.Scene.Midi
+      Live.Scene.Midi.Config
+      Live.Scene.Mixer
+      Live.Scene.Mixer.Config
+      Live.Scene.Sampler
+      Live.Scene.Sampler.Config
   other-modules:
       Paths_csound_live_sampler
   autogen-modules:

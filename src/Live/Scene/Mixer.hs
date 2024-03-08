@@ -1,3 +1,15 @@
+-- | Mixer reads stereo audio from set of channels
+-- and mixes them into single stereo audio output.
+--
+-- We can
+--
+-- * modify master volume
+-- * modify individual channels volume
+-- * toggle mute channels
+-- * write audio to channels
+-- * read output audio of the master bus
+--
+-- Mixer is an audio generator with inputs as channels and single output
 module Live.Scene.Mixer
   ( Mixer (..)
   , MixerConfig (..)

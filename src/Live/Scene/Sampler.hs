@@ -4,7 +4,6 @@ module Live.Scene.Sampler
   , module X
   ) where
 
-import Data.Maybe
 import Data.Bifunctor
 import Csound.Core
 import Live.Scene.Gen as X

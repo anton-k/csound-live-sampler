@@ -1,2 +1,6 @@
+import Test.Tasty
+
+import Test.Timing qualified as Timing
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = defaultMain Timing.tests

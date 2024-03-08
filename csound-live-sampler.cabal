@@ -34,6 +34,7 @@ library
       Live.Scene.Mixer.Config
       Live.Scene.Sampler
       Live.Scene.Sampler.Config
+      Live.Scene.Sampler.Timing
   other-modules:
       Paths_csound_live_sampler
   autogen-modules:
@@ -48,6 +49,7 @@ library
       DeriveAnyClass
       RecordWildCards
       DerivingStrategies
+      StrictData
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       Boolean
@@ -78,6 +80,7 @@ executable csound-live-sampler-exe
       DeriveAnyClass
       RecordWildCards
       DerivingStrategies
+      StrictData
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Boolean
@@ -97,6 +100,7 @@ test-suite csound-live-sampler-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Test.Timing
       Paths_csound_live_sampler
   autogen-modules:
       Paths_csound_live_sampler
@@ -110,6 +114,7 @@ test-suite csound-live-sampler-test
       DeriveAnyClass
       RecordWildCards
       DerivingStrategies
+      StrictData
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Boolean
@@ -121,6 +126,8 @@ test-suite csound-live-sampler-test
     , csound-live-sampler
     , filepath
     , safe
+    , tasty
+    , tasty-hunit
     , text
     , yaml
   default-language: GHC2021

@@ -38,13 +38,14 @@ data StemConfig = StemConfig
 data TimeSlot = TimeSlot
   { bpm :: Float
   , measure :: Maybe (Int, Int)  -- default is 4/4
+  , changeRate :: Maybe Int
   , cues :: [Cue]
   }
   deriving (Generic, FromJSON, ToJSON)
 
 data Cue = Cue
-  { start :: Float
-  , dur :: Float
+  { start :: Maybe Int
+  , dur :: Int
   }
   deriving (Generic, FromJSON, ToJSON)
 

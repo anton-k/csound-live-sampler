@@ -22,7 +22,7 @@ data TrackConfig = TrackConfig
   { dir :: Maybe FilePath
   , name :: Text
   , stems :: [StemConfig]
-  , cues :: [TimeSlot]
+  , slots :: [TimeSlot]
   , gain :: Maybe Float
   }
   deriving (Generic, FromJSON, ToJSON)

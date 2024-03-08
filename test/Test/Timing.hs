@@ -36,7 +36,8 @@ check1 =
         { bpm = 60
         , changeRate = 4
         , start = 0
-        , size = 20
+        , beatSize = 20
+        , timeSize = 20
         }
 
 check2 :: Assertion
@@ -64,7 +65,8 @@ check2 =
         { bpm = 120
         , changeRate = 4
         , start = 0
-        , size = 20
+        , beatSize = 20
+        , timeSize = 10
         }
 
     clip2 =
@@ -72,7 +74,8 @@ check2 =
         { bpm = 120
         , changeRate = 4
         , start = 10
-        , size = 10
+        , beatSize = 10
+        , timeSize = 5
         }
 
 
@@ -101,7 +104,8 @@ check3 =
         { bpm = 120
         , changeRate = 4
         , start = 1
-        , size = 20
+        , beatSize = 20
+        , timeSize = 10
         }
 
     clip2 =
@@ -109,7 +113,8 @@ check3 =
         { bpm = 120
         , changeRate = 4
         , start = 13
-        , size = 10
+        , beatSize = 10
+        , timeSize = 5
         }
 
 
@@ -150,7 +155,8 @@ check4 =
         { bpm = 120
         , changeRate = 4
         , start = 1
-        , size = 20
+        , beatSize = 20
+        , timeSize = 10
         }
 
     clip2 =
@@ -158,7 +164,8 @@ check4 =
         { bpm = 120
         , changeRate = 4
         , start = 13
-        , size = 10
+        , beatSize = 10
+        , timeSize = 5
         }
 
     clip3 =
@@ -166,5 +173,6 @@ check4 =
         { bpm = 30
         , changeRate = 2
         , start = 22
-        , size = 20
+        , beatSize = 20
+        , timeSize = 40
         }

@@ -3,7 +3,6 @@ mixer:
     volume: 1
   channels:
     - volume: 1
-      gain: 1.5
     - volume: 1
     - volume: 1
     - volume: 1
@@ -15,7 +14,7 @@ fxs: []
 sampler:
   dir: "../tracks"
   tracks :
-    - name: "Piano Beat"
+    - name: "La melody"
       dir: "LaMelodyStems_85bpm"
       stems:
         - file: "Arps.wav"
@@ -48,7 +47,14 @@ sampler:
           channel: 2
         - file: "Vibraphone.wav"
           channel: 5
-      cues: []
+      slots:
+        - bpm: 85
+          measure: [4, 4]
+          changeRate: 4
+          cues:
+            - dur: 16
+            - dur: 16
+            - dur: 8
 
     - name: "Never Enough"
       dir: "NE_Stems_85bpm"
@@ -81,7 +87,14 @@ sampler:
           channel: 2
         - file: "VocalsSample.wav"
           channel: 4
-      cues: []
+      slots:
+        - bpm: 85
+          measure: [4, 4]
+          changeRate: 4
+          cues:
+            - dur: 16
+            - dur: 16
+            - dur: 8
 
     - name: "Samurai"
       dir: "SamuraiStems119bpm"
@@ -112,7 +125,15 @@ sampler:
           channel: 2
         - file: "Snaps.wav"
           channel: 2
-      cues: []
+      slots:
+        - bpm: 119
+          measure: [4, 4]
+          changeRate: 4
+          cues:
+            - start: 4
+              dur: 16
+            - dur: 16
+            - dur: 8
 
 audio: "audio"
 controllers:

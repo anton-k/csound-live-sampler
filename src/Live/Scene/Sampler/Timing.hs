@@ -12,7 +12,8 @@ data Clip = Clip
   { bpm :: Float
   , start :: Float
   , changeRate :: Int
-  , size :: Int
+  , beatSize :: Int
+  , timeSize :: Float
   }
   deriving (Eq, Show)
 
@@ -65,8 +66,10 @@ splitSlot st cue =
       { bpm = st.bpm_
       , start = st.lastTime + toAbsTime st (fromIntegral start)
       , changeRate = st.changeRate
-      , size = cue.dur
+      , beatSize = cue.dur
+      , timeSize = toAbsTime st (fromIntegral cue.dur)
       }
 
+-- | Converts beats to seconds
 toAbsTime :: St -> Float -> Float
 toAbsTime st beats = 60 * beats / st.bpm_

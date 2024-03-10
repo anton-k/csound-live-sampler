@@ -4,6 +4,9 @@
 module Live.Scene.Sampler.Playlist
   ( Playlist (..)
   , Cursor (..)
+  , Part (..)
+  , ClipInstr
+  , Clip (..)
   , newPlaylist
   , TrackId (..)
   , ClipId (..)

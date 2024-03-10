@@ -14,6 +14,7 @@ import Data.List qualified as List
 import Data.Maybe
 import Data.Boolean
 import Data.Map.Strict qualified as Map
+import Live.Scene.Sampler.Engine
 
 newtype TrackId = TrackId Int
 
@@ -148,4 +149,3 @@ withGain mValue audio =
   case mValue of
     Nothing -> audio
     Just value -> mul (float value) audio
-

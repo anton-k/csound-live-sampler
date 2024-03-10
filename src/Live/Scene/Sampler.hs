@@ -15,6 +15,44 @@ import Data.Maybe
 import Data.Boolean
 import Data.Map.Strict qualified as Map
 import Live.Scene.Sampler.Engine
+import Live.Scene.Sampler.Playlist (Cursor (..), newPlaylist, Playlist (..))
+
+
+data Sampler' = Sampler'
+  { audio :: Gen
+  , cursor :: Cursor
+  , start :: SE ()
+  , stop :: SE ()
+  }
+
+newSampler' :: SamplerConfig -> SE Sampler'
+newSampler' config = do
+  instrIds <- newTrackInstrs
+  playlist <- newPlaylist config instrIds
+  engine <- newEngine
+  pure $ Sampler'
+    { audio = undefined
+    , cursor = initSamplerCursor playlist engine
+    , start = engine.start
+    , stop = engine.stop
+    }
+
+newTrackInstrs :: SE [InstrRef D]
+newTrackInstrs = undefined
+
+initSamplerCursor :: Playlist -> Engine -> Cursor
+initSamplerCursor playlist engine =
+  Cursor
+    { modifyTrack = \f -> do
+        playlist.cursor.modifyTrack f
+        part <- playlist.getPart
+        engine.setPart part
+
+    , modifyPart = \f -> do
+        playlist.cursor.modifyPart f
+        part <- playlist.getPart
+        engine.setPart part
+    }
 
 newtype TrackId = TrackId Int
 
@@ -47,14 +85,14 @@ data St = St
   }
 
 data Track = Track
-  { instr :: InstrRef ()
+  { instr :: InstrRef D
   }
 
 data Channel = Channel { audio :: Ref Sig2 }
 
 data CurrentTrack = CurrentTrack (Ref D)
 
-setCurrentTrack :: CurrentTrack -> InstrRef () -> SE ()
+setCurrentTrack :: CurrentTrack -> InstrRef D -> SE ()
 setCurrentTrack (CurrentTrack ref) instrRef =
   case getInstrRefId instrRef of
     Right n -> writeRef ref n
@@ -97,21 +135,21 @@ setTrackSt st trackId =
       setCurrentTrack st.currentTrack track.instr
       when1 (currentTrack >* 0) $
         turnoff2_i (instrRefFromNum @() currentTrack) 0 0.05
-      play track.instr [Note 0 (-1) ()]
+      play track.instr [Note 0 (-1) 0]
 
 trackInstr :: [Channel] -> TrackConfig -> SE Track
 trackInstr channels track =
-  fmap Track $ newProc $ \() -> playTrack channels track
+  fmap Track $ newProc $ \skipStartTime -> playTrack channels skipStartTime track
 
-playTrack :: [Channel] -> TrackConfig -> SE ()
-playTrack channels track =
+playTrack :: [Channel] -> D -> TrackConfig -> SE ()
+playTrack channels skipStartTime track =
   mapM_ playStemGroup (groupStemsByChannels channels track.stems)
   where
     playStemGroup :: StemGroup -> SE ()
     playStemGroup group =
       writeRef group.channel.audio audio
       where
-        audio = withGain track.gain $ sum $ fmap playStem group.stems
+        audio = withGain track.gain $ sum $ fmap (playStem skipStartTime) group.stems
 
 -- | Group of stems that belong to the same channel
 data StemGroup = StemGroup
@@ -140,9 +178,9 @@ groupStemsByChannels channels stems = fillMissing
 
     emptyChan chan = StemGroup chan []
 
-playStem :: StemConfig -> Sig2
-playStem stem =
-  withGain stem.gain $ mul (maybe 1 float stem.volume) (loopWav (fromString stem.file) 1)
+playStem :: D -> StemConfig -> Sig2
+playStem skipStartTime stem =
+  withGain stem.gain $ mul (maybe 1 float stem.volume) (diskin2 (fromString stem.file) `withDs` [1, skipStartTime])
 
 withGain :: Maybe Float -> Sig2 -> Sig2
 withGain mValue audio =

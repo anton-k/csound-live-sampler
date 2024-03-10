@@ -32,10 +32,10 @@ library
       Live.Scene.Midi.Sampler
       Live.Scene.Mixer
       Live.Scene.Mixer.Config
-      Live.Scene.Playlist
       Live.Scene.Sampler
       Live.Scene.Sampler.Config
       Live.Scene.Sampler.Engine
+      Live.Scene.Sampler.Playlist
       Live.Scene.Sampler.Timing
   other-modules:
       Paths_csound_live_sampler

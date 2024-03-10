@@ -32,10 +32,22 @@ data Clip = Clip
   , timeSize :: D
   }
 
+instance Tuple Clip where
+  tupleMethods =
+    makeTupleMethods
+      (\(a, b, c, d, e) -> Clip a b c d e)
+      (\(Clip a b c d e) -> (a, b, c, d, e))
+
 data Part = Part
   { clip :: Clip
   , track :: ClipInstr
   }
+
+instance Tuple Part where
+  tupleMethods =
+    makeTupleMethods
+      (\(a, b) -> Part a b)
+      (\(Part a b) -> (a, b))
 
 data Engine = Engine
   { setPart :: Part -> SE ()

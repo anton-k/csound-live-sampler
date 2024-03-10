@@ -19,13 +19,13 @@ main =
       printPart part
       nextPart playlist
 
-    printPart part = prints "Part: %d %d %d %d\n" (part.track, part.clip.bpm, part.clip.start, part.clip.timeSize)
+    printPart part = prints "part: { instr: %d, bpm: %d, start: %d, dur: %d }\n" (part.track, part.clip.bpm, part.clip.start, part.clip.timeSize)
 
     instrIds = instrRefFromNum <$> [1,2,3]
 
     config =
       SamplerConfig
-        { tracks = zipWith toTrack [0..] [track1, track2]
+        { tracks = zipWith toTrack [0..] [track1, track2, track3]
         , dir = Nothing
         }
 
@@ -73,6 +73,20 @@ main =
               , Cue
                   { start = Just 4
                   , dur = 10
+                  }
+              ]
+          }
+
+    track3 = [slot]
+      where
+        slot = TimeSlot
+          { bpm = 140
+          , measure = Just (4, 4)
+          , changeRate = Just 4
+          , cues =
+              [ Cue
+                  { start = Nothing
+                  , dur = 20
                   }
               ]
           }

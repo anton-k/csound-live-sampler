@@ -105,6 +105,7 @@ modifyPartSt :: St -> (D -> D) -> SE ()
 modifyPartSt st f = do
   modifyInitRef st.index (wrapArrayBounds st.infos .  f)
 
+-- | TODO: make wrap strategy configurtable: also consider loop
 wrapArrayBounds :: Arr D a -> D -> D
 wrapArrayBounds arr index =
   ifB (index <* 0)

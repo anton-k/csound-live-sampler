@@ -1,8 +1,8 @@
 {-# Language
-  DuplicateRecordFields
-  OverloadedStrings
+  DuplicateRecordFields,
+  OverloadedStrings,
   OverloadedRecordDot
- #-}
+#-}
 
 -- | App to check that engine works.
 --

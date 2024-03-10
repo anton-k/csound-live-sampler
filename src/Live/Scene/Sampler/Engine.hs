@@ -2,10 +2,17 @@
 --
 -- Note that engine can play any instrument which has single
 -- argument: skip start time
+--
+-- TOOD: interesting idea: we can make it more generic if we
+-- use csoundf opcode scoreline thus we can have just three arguments for clip:
+-- * instr id
+-- * arguments as a string
+-- * duration
+--
+-- or even we can keep everything in single score, but this way we can not stop it
 module Live.Scene.Sampler.Engine
   ( Clip (..)
   , Part (..)
-  , StartTime
   , ClipInstr
   , Engine (..)
   , newEngine
@@ -14,8 +21,8 @@ module Live.Scene.Sampler.Engine
 import Data.Boolean
 import Csound.Core
 
-type StartTime = D
-type ClipInstr = InstrRef StartTime
+-- | Single argument is start time of the loop in audio file
+type ClipInstr = InstrRef D
 
 data Clip = Clip
   { bpm :: D

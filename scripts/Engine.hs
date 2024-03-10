@@ -41,6 +41,3 @@ main =
       , Note 20 1 (instr1, 120, 1)
       , Note 60 1 (instr2, 30, 4)
       ]
-
-
-

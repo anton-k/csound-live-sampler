@@ -19,7 +19,6 @@ module Live.Scene.Sampler.Playlist
   ) where
 
 import Prelude hiding ((<*))
-import Control.Monad
 import Data.Boolean
 import Csound.Core
 import Live.Scene.Sampler.Timing qualified as Timing
@@ -99,7 +98,7 @@ modifyTrackSt st f = do
     nextTrackId = wrapArrayBounds st.trackStarts (f trackId)
     diff = index - trackStart
   nextTrackStart <- readArr st.trackStarts nextTrackId
-  writeInitRef st.index $ wrapArrayBounds st.infos $ nextTrackId + diff
+  writeInitRef st.index $ wrapArrayBounds st.infos $ nextTrackStart + diff
 
 modifyPartSt :: St -> (D -> D) -> SE ()
 modifyPartSt st f = do
@@ -130,10 +129,10 @@ initPartArray :: [TimedTrack] -> SE PartArray
 initPartArray tracks =
   fillGlobalCtrlArr [length parts] parts
   where
-    parts = toPart <$> ((\track -> fmap (\clip -> (track.track, track.instr, clip)) track.clips) =<< tracks)
+    parts = toPart <$> ((\track -> fmap (\clip -> (track.instr, clip)) track.clips) =<< tracks)
 
-    toPart :: (TrackConfig, ClipInstr, Timing.Clip) -> Part
-    toPart (config, instr, clip) =
+    toPart :: (ClipInstr, Timing.Clip) -> Part
+    toPart (instr, clip) =
       Part
         { track = instr
         , clip =

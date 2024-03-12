@@ -24,23 +24,23 @@ main =
     makeStep playlist = do
       part <- playlist.getPart
       printPart part
-      nextPart playlist
+      nextPart playlist.cursor
 
     makeTrackStep playlist = do
       part <- playlist.getPart
       printPart part
-      nextTrack playlist
+      nextTrack playlist.cursor
 
     iterateParts playlist =
       sequence_ $ replicate 8 (makeStep playlist)
 
     iterateTracks playlist = do
-      setPart playlist (TrackId 0) (ClipId 0)
+      setPart playlist.cursor (TrackId 0) (ClipId 0)
       sequence_ $ replicate 4 (makeTrackStep playlist)
 
     iterateTracksWithShift playlist = do
-      setPart playlist (TrackId 0) (ClipId 0)
-      nextPart playlist
+      setPart playlist.cursor (TrackId 0) (ClipId 0)
+      nextPart playlist.cursor
       sequence_ $ replicate 4 (makeTrackStep playlist)
 
     newline = prints "\n" ()

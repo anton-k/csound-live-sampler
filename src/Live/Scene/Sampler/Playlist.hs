@@ -38,24 +38,24 @@ data Cursor = Cursor
   , modifyPart :: (D -> D) -> SE ()
   }
 
-nextTrack :: Playlist -> SE ()
-nextTrack playlist = playlist.cursor.modifyTrack (+1)
+nextTrack :: Cursor -> SE ()
+nextTrack cursor = cursor.modifyTrack (+1)
 
-prevTrack :: Playlist -> SE ()
-prevTrack playlist = playlist.cursor.modifyTrack (\x -> x - 1)
+prevTrack :: Cursor -> SE ()
+prevTrack cursor = cursor.modifyTrack (\x -> x - 1)
 
-nextPart :: Playlist -> SE ()
-nextPart playlist = playlist.cursor.modifyPart (+1)
+nextPart :: Cursor -> SE ()
+nextPart cursor = cursor.modifyPart (+1)
 
-prevPart :: Playlist -> SE ()
-prevPart playlist = playlist.cursor.modifyPart (\x -> x - 1)
+prevPart :: Cursor -> SE ()
+prevPart cursor = cursor.modifyPart (\x -> x - 1)
 
-setTrack :: Playlist -> TrackId -> SE ()
-setTrack playlist (TrackId trackId) = playlist.cursor.modifyTrack (const trackId)
+setTrack :: Cursor -> TrackId -> SE ()
+setTrack cursor (TrackId trackId) = cursor.modifyTrack (const trackId)
 
-setPart :: Playlist -> TrackId -> ClipId -> SE ()
-setPart playlist (TrackId trackId) (ClipId clipId) =
-  playlist.cursor.modifyTrack ((+ clipId) . const trackId)
+setPart :: Cursor -> TrackId -> ClipId -> SE ()
+setPart cursor (TrackId trackId) (ClipId clipId) =
+  cursor.modifyTrack ((+ clipId) . const trackId)
 
 newPlaylist :: SamplerConfig -> [ClipInstr] -> SE Playlist
 newPlaylist config instrs = do

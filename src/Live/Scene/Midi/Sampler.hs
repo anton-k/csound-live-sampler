@@ -16,4 +16,4 @@ changeTrackInstr (TrackChangesMidiConfig trackButtons) sampler readShift = \note
       where
         condition = isShift &&* (buttonMidi ==* int buttonTrack)
 
-        body = sampler.setTrack trackId
+        body = setTrack sampler.cursor trackId

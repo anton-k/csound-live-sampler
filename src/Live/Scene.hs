@@ -8,8 +8,6 @@ import Live.Scene.Midi
 import Live.Scene.Mixer
 import Live.Scene.Sampler
 
-import Live.Scene.Sampler.Engine
-
 runScene :: Config -> IO ()
 runScene config =
   dacBy (setMa <> setTrace) {- writeCsd "tmp.csd" -} $ do

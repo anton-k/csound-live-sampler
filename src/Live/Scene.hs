@@ -10,8 +10,8 @@ import Live.Scene.Sampler
 
 runScene :: Config -> IO ()
 runScene config =
-  dacBy (setMa <> setTrace) {- writeCsd "tmp.csd" -} $ do
-  -- writeCsdBy (setMa <> setDac) "tmp.csd" $ do
+  -- dacBy (setMa <> setTrace) {- writeCsd "tmp.csd" -} $ do
+  writeCsdBy (setMa <> setDac) "tmp.csd" $ do
     toAudio =<< loadScene config
 
 data Scene = Scene
@@ -22,9 +22,9 @@ data Scene = Scene
 -- * audio playback
 
 toAudio :: Scene -> SE Sig2
-toAudio scene =
-  sum <$> (runGen (scene.sampler.audio) [])
---  sum <$> (runGen (scene.sampler.audio |> scene.mixer.audio) [])
+toAudio scene = do
+  scene.sampler.start
+  sum <$> (runGen (scene.sampler.audio |> scene.mixer.audio) [])
 
 -- * init
 

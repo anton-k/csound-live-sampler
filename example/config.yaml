@@ -53,8 +53,8 @@ sampler:
           changeRate: 4
           cues:
             - dur: 16
-            - dur: 16
-            - dur: 8
+            - dur: 32
+            - dur: 32
 
     - name: "Never Enough"
       dir: "NE_Stems_85bpm"
@@ -90,7 +90,7 @@ sampler:
       slots:
         - bpm: 85
           measure: [4, 4]
-          changeRate: 4
+          changeRate: 8
           cues:
             - dur: 16
             - dur: 16
@@ -130,10 +130,13 @@ sampler:
           measure: [4, 4]
           changeRate: 4
           cues:
-            - start: 4
-              dur: 16
             - dur: 16
-            - dur: 8
+              nextAction: "stop"
+            - dur: 16
+              nextAction: "next"
+            - dur: 12
+              nextAction: "next"
+            - dur: 64
 
 audio: "audio"
 controllers:
@@ -142,6 +145,81 @@ controllers:
     master: 62
     channels: [19, 23, 27, 31, 49, 53, 57, 61]
   # note numbers for mutes
-  mutes: [1, 4, 7, 10, 13, 16, 19, 22]
-  trackChanges: [3, 6, 9, 12, 15, 18, 21, 24]
-  shift: 27
+  # mutes: [1, 4, 7, 10, 13, 16, 19, 22]
+  # trackChanges: [3, 6, 9, 12, 15, 18, 21, 24]
+  modifiers:
+    shift: 27
+  notes:
+    - when:
+        key: 25
+      act:
+        - shiftPart: -1
+    - when:
+        key: 26
+      act:
+        - shiftPart: 1
+    - when:
+        key: 25
+        modifier: shift
+      act:
+        - shiftTrack: -1
+    - when:
+        key: 26
+        modifier: shift
+      act:
+        - shiftTrack: 1
+    - when:
+        key: 3
+        modifier: shift
+      act:
+        - track: 1
+    - when:
+        key: 6
+        modifier: shift
+      act:
+        - track: 2
+    - when:
+        key: 9
+        modifier: shift
+      act:
+        - track: 3
+
+    - when:
+        key: 1
+      act:
+        - mute: 1
+
+    - when:
+        key: 4
+      act:
+        - mute: 2
+
+    - when:
+        key: 7
+      act:
+        - mute: 3
+
+    - when:
+        key: 10
+      act:
+        - mute: 4
+
+    - when:
+        key: 13
+      act:
+        - mute: 5
+
+    - when:
+        key: 16
+      act:
+        - mute: 6
+
+    - when:
+        key: 19
+      act:
+        - mute: 7
+
+    - when:
+        key: 22
+      act:
+        - mute: 8

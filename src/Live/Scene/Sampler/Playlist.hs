@@ -25,8 +25,11 @@ import Live.Scene.Sampler.Timing qualified as Timing
 import Live.Scene.Sampler.Config
 import Live.Scene.Sampler.Engine (Part (..), ClipInstr, Clip (..))
 
-data TrackId = TrackId D
-data ClipId = ClipId D
+newtype TrackId = TrackId D
+  deriving newtype (Tuple, Arg)
+
+newtype ClipId = ClipId D
+  deriving newtype (Tuple, Arg)
 
 data Playlist = Playlist
   { getPart :: SE Part
@@ -34,8 +37,8 @@ data Playlist = Playlist
   }
 
 data Cursor = Cursor
-  { modifyTrack :: (D -> D) -> SE ()
-  , modifyPart :: (D -> D) -> SE ()
+  { modifyTrack :: (Sig -> Sig) -> SE ()
+  , modifyPart :: (Sig -> Sig) -> SE ()
   }
 
 nextTrack :: Cursor -> SE ()
@@ -51,11 +54,13 @@ prevPart :: Cursor -> SE ()
 prevPart cursor = cursor.modifyPart (\x -> x - 1)
 
 setTrack :: Cursor -> TrackId -> SE ()
-setTrack cursor (TrackId trackId) = cursor.modifyTrack (const trackId)
+setTrack cursor (TrackId trackId) =
+  cursor.modifyTrack (const trackId)
 
 setPart :: Cursor -> TrackId -> ClipId -> SE ()
-setPart cursor (TrackId trackId) (ClipId clipId) =
-  cursor.modifyTrack ((+ clipId) . const trackId)
+setPart cursor (TrackId trackId) (ClipId clipId) = do
+  cursor.modifyTrack (const trackId)
+  cursor.modifyPart (+ clipId)
 
 newPlaylist :: SamplerConfig -> [ClipInstr] -> SE Playlist
 newPlaylist config instrs = do
@@ -73,7 +78,7 @@ type ClipToTrackArray = Arr D D
 data St = St
   { infos :: PartArray
   , trackStarts :: TrackStartArray
-  , cliptoTrack :: ClipToTrackArray
+  , clipToTrack :: ClipToTrackArray
   , index :: Ref Sig
   }
 
@@ -92,13 +97,13 @@ initCursor st =
 modifyTrackSt :: St -> (D -> D) -> SE ()
 modifyTrackSt st f = do
   index <- readInitRef st.index
-  trackId <- readArr st.cliptoTrack index
-  trackStart <- readArr st.trackStarts trackId
+  trackId <- readArr st.clipToTrack index
+  -- trackStart <- readArr st.trackStarts trackId
   let
     nextTrackId = wrapArrayBounds st.trackStarts (f trackId)
-    diff = index - trackStart
+    {- diff = index - trackStart -}
   nextTrackStart <- readArr st.trackStarts nextTrackId
-  writeInitRef st.index $ wrapArrayBounds st.infos $ nextTrackStart + diff
+  writeInitRef st.index $ wrapArrayBounds st.infos $ nextTrackStart {- + diff -}
 
 modifyPartSt :: St -> (D -> D) -> SE ()
 modifyPartSt st f = do
@@ -119,7 +124,7 @@ initSt :: SamplerConfig -> [ClipInstr] -> SE St
 initSt config instrs = do
   infos <- initPartArray tracks
   trackStarts <- initTrackStartArray tracks
-  cliptoTrack <- initClipToTrackArray tracks
+  clipToTrack <- initClipToTrackArray tracks
   index <- newCtrlRef 0
   pure St {..}
   where
@@ -142,6 +147,7 @@ initPartArray tracks =
               , changeRate = int clip.changeRate
               , beatSize = int clip.beatSize
               , timeSize = float clip.timeSize
+              , nextAction = int $ fromEnum clip.nextAction
               }
         }
 

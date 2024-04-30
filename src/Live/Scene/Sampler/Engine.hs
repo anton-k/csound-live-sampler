@@ -30,13 +30,24 @@ data Clip = Clip
   , changeRate :: D
   , beatSize :: D
   , timeSize :: D
+  , nextAction :: D
+    -- ^
+    --next actions:
+    --  0 - loop
+    --  1 - play next
+    --  2 - stop
   }
+
+playLoop, playNext, stopPlayback :: D
+playLoop = 0
+playNext = 1
+stopPlayback = 2
 
 instance Tuple Clip where
   tupleMethods =
     makeTupleMethods
-      (\(a, b, c, d, e) -> Clip a b c d e)
-      (\(Clip a b c d e) -> (a, b, c, d, e))
+      (\(a, b, c, d, e, f) -> Clip a b c d e f)
+      (\(Clip a b c d e f) -> (a, b, c, d, e, f))
 
 data Part = Part
   { clip :: Clip
@@ -55,9 +66,9 @@ data Engine = Engine
   , stop :: SE ()
   }
 
-newEngine :: SE Engine
-newEngine = do
-  st <- initSt
+newEngine :: GetNextPart -> SE Engine
+newEngine getNextPart = do
+  st <- initSt getNextPart
   pure $
     Engine
       { setPart = setPartSt st
@@ -83,6 +94,7 @@ data ClipSt = ClipSt
   , timeSize :: Ref Sig
   , change :: Counter
   , loop :: Counter
+  , nextAction :: Ref Sig
   }
 
 copyClipTo :: ClipSt -> ClipSt -> SE ()
@@ -96,6 +108,7 @@ copyClipTo from to =
     , (.change.step)
     , (.loop.size)
     , (.loop.step)
+    , (.nextAction)
     ]
   where
     copy f = writeRef (f to) =<< readRef (f from)
@@ -119,35 +132,39 @@ nextCount counter = do
     writeRef counter.step =<< readRef counter.size
   pure (current ==* 0)
 
-initSt :: SE St
-initSt = do
+initSt :: GetNextPart -> SE St
+initSt getNextPart = do
   bpm <- Bpm  <$> newCtrlRef 120
   current <- initClipSt
   next <- initClipSt
-  main <- newProc (\() -> mainInstr bpm current next)
+  main <- newProc (\() -> mainInstr getNextPart bpm current next)
   pure St {..}
-  where
-    initClipSt = do
-      track <- newCtrlRef (-1)
-      bpm <- newCtrlRef 120
-      startTime <- newCtrlRef 0
-      timeSize <- newCtrlRef 0.5
-      change <- initCounter 1
-      loop <- initCounter 1
-      pure ClipSt {..}
 
-mainInstr :: Bpm -> ClipSt -> ClipSt -> SE ()
-mainInstr bpm current next =
+initClipSt :: SE ClipSt
+initClipSt = do
+  track <- newCtrlRef (-1)
+  bpm <- newCtrlRef 120
+  startTime <- newCtrlRef 0
+  timeSize <- newCtrlRef 0.5
+  change <- initCounter 1
+  loop <- initCounter 1
+  nextAction <- newCtrlRef (toSig playLoop)
+  pure ClipSt {..}
+
+type GetNextPart = SE Part
+
+mainInstr :: GetNextPart -> Bpm -> ClipSt -> ClipSt -> SE ()
+mainInstr getNextPart bpm current next =
   periodic bpm $ do
     isBoundary <- updateCounters current
-    onChanges isBoundary bpm current next
+    onChanges getNextPart isBoundary bpm current next
 
-onChanges :: IsBoundary -> Bpm -> ClipSt -> ClipSt -> SE ()
-onChanges boundary bpm current next = do
+onChanges :: GetNextPart -> IsBoundary -> Bpm -> ClipSt -> ClipSt -> SE ()
+onChanges getNextPart boundary bpm current next = do
   isClip <- isClipChange current next
   whens
     [ (boundary.isChange &&* isClip, onChange bpm current next)
-    , (boundary.isLoop, onLoop current)
+    , (boundary.isLoop, onLoop getNextPart bpm current next)
     ]
     (pure ())
 
@@ -196,12 +213,43 @@ readTrackId clip =
     <*> readRef clip.startTime
     <*> readRef clip.timeSize
 
-onLoop :: ClipSt -> SE ()
-onLoop current = do
+onLoop :: GetNextPart -> Bpm -> ClipSt -> ClipSt -> SE ()
+onLoop getNextPart bpm current next = do
+  nextAction <- readRef current.nextAction
+  whens
+    [ (isPlayLoop nextAction, onPlayLoop current)
+    , (isPlayNext nextAction, onPlayNext getNextPart)
+    , (isStopPlayback nextAction, onStopPlayback bpm current next)
+    ]
+    (pure ())
+
+isPlayLoop :: Sig -> BoolSig
+isPlayLoop x = x ==* toSig playLoop
+
+onPlayLoop :: ClipSt -> SE ()
+onPlayLoop current = do
   track <- readRef current.track
   startTime <- readRef current.startTime
   dur <- readRef current.timeSize
   play (instrRefFromNum $ toD track) [Note 0 (toD dur) (toD startTime)]
+
+isPlayNext :: Sig -> BoolSig
+isPlayNext x = x ==* toSig playNext
+
+onPlayNext :: GetNextPart -> SE ()
+onPlayNext getNextPart = do
+  pure ()
+{-
+  instr <- readRef ref
+  play instr [Note 0 (-1) ()]
+-}
+isStopPlayback :: Sig -> BoolSig
+isStopPlayback x = x ==* toSig stopPlayback
+
+onStopPlayback :: Bpm -> ClipSt -> ClipSt -> SE ()
+onStopPlayback bpm current next = do
+  writeRef current.track (-1)
+  writeRef next.track (-1)
 
 data IsBoundary = IsBoundary
   { isChange :: BoolSig
@@ -222,6 +270,10 @@ periodic (Bpm bpmRef) onTick = do
 
 setPartSt :: St -> Part -> SE ()
 setPartSt st part = do
+  setNextPart st.next part
+
+setNextPart :: ClipSt -> Part -> SE ()
+setNextPart next part = do
   write (.track) (getInstrRefIdNum part.track)
   write (.bpm) part.clip.bpm
   write (.startTime) part.clip.start
@@ -230,8 +282,9 @@ setPartSt st part = do
   write (.change.step) part.clip.changeRate
   write (.loop.size) part.clip.beatSize
   write (.loop.step) part.clip.beatSize
+  write (.nextAction) part.clip.nextAction
   where
-    write f = writeInitRef (f st.next)
+    write f = writeInitRef (f next)
 
 startSt :: St -> SE ()
 startSt st =

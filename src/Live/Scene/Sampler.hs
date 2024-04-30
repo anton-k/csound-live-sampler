@@ -16,6 +16,7 @@ import Live.Scene.Sampler.Playlist
   , Playlist (..)
   , newPlaylist
   , TrackId (..)
+  , nextPart
   )
 import Live.Scene.Sampler.Audio (setupAudio)
 
@@ -31,7 +32,11 @@ newSampler :: SamplerConfig -> SE Sampler
 newSampler config = do
   (audio, instrIds) <- setupAudio config
   playlist <- newPlaylist config instrIds
-  engine <- newEngine
+  let
+    getNextPart = do
+      nextPart playlist.cursor
+      getPart playlist
+  engine <- newEngine getNextPart
   pure $ Sampler
     { audio
     , cursor = initSamplerCursor playlist engine

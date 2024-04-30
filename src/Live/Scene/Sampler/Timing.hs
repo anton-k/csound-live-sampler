@@ -14,6 +14,7 @@ data Clip = Clip
   , changeRate :: Int
   , beatSize :: Int
   , timeSize :: Float
+  , nextAction :: NextAction
   }
   deriving (Eq, Show)
 
@@ -68,6 +69,7 @@ splitSlot st cue =
       , changeRate = st.changeRate
       , beatSize = cue.dur
       , timeSize = toAbsTime st (fromIntegral cue.dur)
+      , nextAction = fromMaybe PlayLoop cue.nextAction
       }
 
 -- | Converts beats to seconds

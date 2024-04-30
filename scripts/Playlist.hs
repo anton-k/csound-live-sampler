@@ -7,14 +7,22 @@ import Csound.Core
 import Live.Scene.Sampler.Config
 import Live.Scene.Sampler.Playlist
 import Data.String
+import Data.Boolean ((/=*), (==*), true)
+
 
 main =
-  dacBy setTrace $ do
-  -- writeCsdBy (setMa <> setDac) "tmp.csd" $ do
+  -- dacBy setTrace $ do
+  writeCsdBy (setMa <> setDac) "tmp.csd" $ do
     playlist <- newPlaylist config instrIds
-    block "Iterate parts" iterateParts playlist
-    block "Iterate tracks" iterateTracks playlist
-    block "Iterate tracks with shift" iterateTracksWithShift playlist
+    instr1 <- newProc $ \(n :: D) -> do
+      whens
+        [ (n ==* 1, block "Iterate parts" (iterateParts 2) playlist)
+        , (n ==* 2, block "Iterate tracks" iterateTracks playlist)
+        ]
+        (pure ())
+    -- block "Iterate tracks with shift" iterateTracksWithShift playlist
+    play instr1 [Note 0 0.5 1]
+    play instr1 [Note 1 0.5 2]
   where
     block name proc playlist = do
       newline
@@ -31,8 +39,8 @@ main =
       printPart part
       nextTrack playlist.cursor
 
-    iterateParts playlist =
-      sequence_ $ replicate 8 (makeStep playlist)
+    iterateParts n playlist =
+      sequence_ $ replicate n (makeStep playlist)
 
     iterateTracks playlist = do
       setPart playlist.cursor (TrackId 0) (ClipId 0)
@@ -129,3 +137,4 @@ toTrack trackId slots = TrackConfig
   , slots
   , gain = Nothing
   }
+

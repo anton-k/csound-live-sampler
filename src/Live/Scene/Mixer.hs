@@ -16,6 +16,7 @@ module Live.Scene.Mixer
   , MasterConfig (..)
   , ChannelConfig (..)
   , newMixer
+  , getChannelSize
   , module X
   ) where
 
@@ -33,6 +34,10 @@ data Mixer = Mixer
   , modifyChannelVolume :: ChannelId -> (Sig -> Sig) -> SE ()
   , modifyMasterVolume :: (Sig -> Sig) -> SE ()
   }
+
+getChannelSize :: Mixer -> Int
+getChannelSize mixer =
+  length mixer.audio.inputs
 
 newMixer :: MixerConfig -> SE Mixer
 newMixer config = do

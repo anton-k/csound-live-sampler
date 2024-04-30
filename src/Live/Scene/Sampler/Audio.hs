@@ -33,7 +33,12 @@ setupAudioGen channels =
   where
     readChannel :: ChannelId -> SE Sig2
     readChannel channelId =
-      maybe (pure 0) (readRef . (.audio)) (getChannel channelId)
+      maybe (pure 0) (readAndClear . (.audio)) (getChannel channelId)
+
+    readAndClear ref = do
+      res <- readRef ref
+      writeRef ref 0
+      pure res
 
     getChannel :: ChannelId -> Maybe Channel
     getChannel (ChannelId n) = channels `atMay` n

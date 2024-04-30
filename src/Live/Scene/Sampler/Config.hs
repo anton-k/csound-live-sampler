@@ -4,12 +4,15 @@ module Live.Scene.Sampler.Config
   , StemConfig (..)
   , TimeSlot (..)
   , Cue (..)
+  , NextAction (..)
   , appendAbsPath
   ) where
 
-import Data.Aeson
+import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson qualified as Json
 import GHC.Generics
 import Data.Text (Text)
+import Data.Text qualified as Text
 import System.FilePath
 
 data SamplerConfig = SamplerConfig
@@ -46,8 +49,25 @@ data TimeSlot = TimeSlot
 data Cue = Cue
   { start :: Maybe Int
   , dur :: Int
+  , nextAction :: Maybe NextAction
   }
   deriving (Generic, FromJSON, ToJSON)
+
+data NextAction = PlayLoop | PlayNext | StopPlayback
+  deriving (Show, Eq, Enum)
+
+instance ToJSON NextAction where
+  toJSON = \case
+    PlayLoop -> "loop"
+    PlayNext -> "next"
+    StopPlayback -> "stop"
+
+instance FromJSON NextAction where
+  parseJSON = Json.withText "NextAction" $ \case
+    "loop" -> pure PlayLoop
+    "next" -> pure PlayNext
+    "stop" -> pure StopPlayback
+    other -> fail $ Text.unpack ("Failed to parse: " <> other)
 
 -- | makes path absolute for stems
 appendAbsPath :: SamplerConfig -> SamplerConfig

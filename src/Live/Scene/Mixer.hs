@@ -126,7 +126,7 @@ withChannel st channelId f =
 toggleChannelMuteSt :: St -> ChannelId -> SE ()
 toggleChannelMuteSt st channelId =
   withChannel st channelId $ \channel ->
-    modifyInitRef channel.mute $ \mute -> ifB (mute ==* 1) 0 1
+    modifyRef channel.mute $ \mute -> ifB (mute ==* 1) 0 1
 
 modifyChannelVolumeSt :: St -> ChannelId -> (Sig -> Sig) -> SE ()
 modifyChannelVolumeSt st channelId f =

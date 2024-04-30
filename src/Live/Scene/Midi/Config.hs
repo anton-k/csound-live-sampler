@@ -9,6 +9,10 @@ module Live.Scene.Midi.Config
   , MidiNote (..)
   , MidiNoteType (..)
   , NoteModifier (..)
+  , MidiKnob (..)
+  , MidiKnobAct (..)
+  , KnobLink (..)
+  , KnobWithRange (..)
   ) where
 
 import Control.Applicative (Alternative (..))
@@ -20,11 +24,9 @@ import Data.Text qualified as Text
 import Data.Map.Strict (Map)
 
 data ControllerConfig = ControllerConfig
-  { faders :: FadersMidiConfig
-  -- , mutes :: MutesMidiConfig
-  -- , trackChanges :: TrackChangesMidiConfig
-  , modifiers :: Map Text Int
+  { modifiers :: Map Text Int
   , notes :: [ActLink]
+  , knobs :: [KnobLink]
   }
   deriving (Generic, FromJSON, ToJSON)
 
@@ -112,3 +114,41 @@ data ActLink = ActLink
   , act :: [MidiAct]
   }
   deriving (Generic, FromJSON, ToJSON)
+
+data KnobLink = KnobLink
+  { when :: MidiKnob
+  , act :: [KnobWithRange]
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data MidiKnob = MidiKnob
+  { key :: Int
+  , modifier :: Maybe NoteModifier
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data KnobWithRange = KnobWithRange
+  { on :: MidiKnobAct
+  , range :: Maybe (Float, Float)
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data MidiKnobAct
+  = SetChannelVolume Int
+  | SetMasterVolume
+
+instance ToJSON MidiKnobAct where
+  toJSON = \case
+    SetChannelVolume n -> Json.object ["channelVolume" .= n]
+    SetMasterVolume -> Json.String "masterVolume"
+
+instance FromJSON MidiKnobAct where
+  parseJSON = \case
+    Json.String "masterVolume" -> pure SetMasterVolume
+    Json.Object obj ->
+      let
+        getInt cons name = cons <$> (obj .: name)
+      in
+        getInt SetChannelVolume "channelVolume"
+    _ -> fail "Failed to parse MidiKnobAct"
+

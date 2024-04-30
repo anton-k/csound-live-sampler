@@ -55,12 +55,12 @@ prevPart cursor = cursor.modifyPart (\x -> x - 1)
 
 setTrack :: Cursor -> TrackId -> SE ()
 setTrack cursor (TrackId trackId) =
-  cursor.modifyTrack (const trackId)
+  cursor.modifyTrack (const $ toSig trackId)
 
 setPart :: Cursor -> TrackId -> ClipId -> SE ()
 setPart cursor (TrackId trackId) (ClipId clipId) = do
-  cursor.modifyTrack (const trackId)
-  cursor.modifyPart (+ clipId)
+  cursor.modifyTrack (const $ toSig trackId)
+  cursor.modifyPart (+ toSig clipId)
 
 newPlaylist :: SamplerConfig -> [ClipInstr] -> SE Playlist
 newPlaylist config instrs = do
@@ -71,9 +71,9 @@ newPlaylist config instrs = do
       , cursor = initCursor st
       }
 
-type PartArray = Arr D Part
-type TrackStartArray = Arr D D
-type ClipToTrackArray = Arr D D
+type PartArray = Arr Sig Part
+type TrackStartArray = Arr Sig Sig
+type ClipToTrackArray = Arr Sig Sig
 
 data St = St
   { infos :: PartArray
@@ -84,7 +84,7 @@ data St = St
 
 getPartSt :: St -> SE Part
 getPartSt st = do
-  index <- readInitRef st.index
+  index <- readRef st.index
   readArr st.infos index
 
 initCursor :: St -> Cursor
@@ -94,23 +94,23 @@ initCursor st =
     , modifyPart = modifyPartSt st
     }
 
-modifyTrackSt :: St -> (D -> D) -> SE ()
+modifyTrackSt :: St -> (Sig -> Sig) -> SE ()
 modifyTrackSt st f = do
-  index <- readInitRef st.index
+  index <- readRef st.index
   trackId <- readArr st.clipToTrack index
   -- trackStart <- readArr st.trackStarts trackId
   let
     nextTrackId = wrapArrayBounds st.trackStarts (f trackId)
     {- diff = index - trackStart -}
   nextTrackStart <- readArr st.trackStarts nextTrackId
-  writeInitRef st.index $ wrapArrayBounds st.infos $ nextTrackStart {- + diff -}
+  writeRef st.index $ wrapArrayBounds st.infos $ nextTrackStart {- + diff -}
 
-modifyPartSt :: St -> (D -> D) -> SE ()
+modifyPartSt :: St -> (Sig -> Sig) -> SE ()
 modifyPartSt st f = do
-  modifyInitRef st.index (wrapArrayBounds st.infos .  f)
+  modifyRef st.index (wrapArrayBounds st.infos .  f)
 
 -- | TODO: make wrap strategy configurtable: also consider loop
-wrapArrayBounds :: Arr D a -> D -> D
+wrapArrayBounds :: Arr Sig a -> Sig -> Sig
 wrapArrayBounds arr index =
   ifB (index <* 0)
     0
@@ -118,7 +118,7 @@ wrapArrayBounds arr index =
       (len - 1)
       index)
   where
-    len = lenarray arr
+    len = toSig (lenarray arr)
 
 initSt :: SamplerConfig -> [ClipInstr] -> SE St
 initSt config instrs = do
@@ -155,7 +155,7 @@ initTrackStartArray :: [TimedTrack] -> SE TrackStartArray
 initTrackStartArray tracks =
   fillGlobalCtrlArr
     [length tracks]
-    (fmap int $ init $ scanl (+) 0 $ fmap (length . (.clips)) tracks)
+    (fmap (toSig . int) $ init $ scanl (+) 0 $ fmap (length . (.clips)) tracks)
 
 initClipToTrackArray :: [TimedTrack] -> SE ClipToTrackArray
 initClipToTrackArray tracks =
@@ -163,7 +163,7 @@ initClipToTrackArray tracks =
   where
     ids = concat $ zipWith clipToTrackIds [0..] tracks
 
-    clipToTrackIds :: Int -> TimedTrack -> [D]
+    clipToTrackIds :: Int -> TimedTrack -> [Sig]
     clipToTrackIds trackId track =
       fmap (const $ int trackId) track.clips
 

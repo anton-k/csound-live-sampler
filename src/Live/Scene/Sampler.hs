@@ -31,7 +31,7 @@ data Sampler = Sampler
 newSampler :: SamplerConfig -> SE Sampler
 newSampler config = do
   (audio, instrIds) <- setupAudio config
-  playlist <- newPlaylist config instrIds
+  playlist <- newPlaylist config (fmap (toSig . getInstrRefIdNum) instrIds)
   let
     getNextPart = do
       nextPart playlist.cursor

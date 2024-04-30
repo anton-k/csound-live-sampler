@@ -22,15 +22,15 @@ import Data.Boolean
 import Csound.Core
 
 -- | Single argument is start time of the loop in audio file
-type ClipInstr = InstrRef D
+type ClipInstr = Sig -- InstrRef D
 
 data Clip = Clip
-  { bpm :: D
-  , start :: D
-  , changeRate :: D
-  , beatSize :: D
-  , timeSize :: D
-  , nextAction :: D
+  { bpm :: Sig
+  , start :: Sig
+  , changeRate :: Sig
+  , beatSize :: Sig
+  , timeSize :: Sig
+  , nextAction :: Sig
     -- ^
     --next actions:
     --  0 - loop
@@ -218,8 +218,8 @@ onLoop getNextPart bpm current next = do
   nextAction <- readRef current.nextAction
   whens
     [ (isPlayLoop nextAction, onPlayLoop current)
-    , (isPlayNext nextAction, onPlayNext getNextPart)
-    , (isStopPlayback nextAction, onStopPlayback bpm current next)
+    , (isPlayNext nextAction, onPlayNext getNextPart bpm current next)
+    , (isStopPlayback nextAction, onStopPlayback current next)
     ]
     (pure ())
 
@@ -236,18 +236,19 @@ onPlayLoop current = do
 isPlayNext :: Sig -> BoolSig
 isPlayNext x = x ==* toSig playNext
 
-onPlayNext :: GetNextPart -> SE ()
-onPlayNext getNextPart = do
-  pure ()
-{-
-  instr <- readRef ref
-  play instr [Note 0 (-1) ()]
--}
+onPlayNext :: GetNextPart -> Bpm -> ClipSt -> ClipSt -> SE ()
+onPlayNext getNextPart bpm current next = do
+  part <- getNextPart
+  setNextPart next part
+  stopClip current
+  scheduleClip bpm next
+  copyClipTo next current
+
 isStopPlayback :: Sig -> BoolSig
 isStopPlayback x = x ==* toSig stopPlayback
 
-onStopPlayback :: Bpm -> ClipSt -> ClipSt -> SE ()
-onStopPlayback bpm current next = do
+onStopPlayback :: ClipSt -> ClipSt -> SE ()
+onStopPlayback current next = do
   writeRef current.track (-1)
   writeRef next.track (-1)
 
@@ -274,7 +275,7 @@ setPartSt st part = do
 
 setNextPart :: ClipSt -> Part -> SE ()
 setNextPart next part = do
-  write (.track) (getInstrRefIdNum part.track)
+  write (.track) part.track
   write (.bpm) part.clip.bpm
   write (.startTime) part.clip.start
   write (.timeSize) part.clip.timeSize
@@ -284,7 +285,7 @@ setNextPart next part = do
   write (.loop.step) part.clip.beatSize
   write (.nextAction) part.clip.nextAction
   where
-    write f = writeInitRef (f next)
+    write f = writeRef (f next)
 
 startSt :: St -> SE ()
 startSt st =

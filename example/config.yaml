@@ -149,6 +149,53 @@ controllers:
   # trackChanges: [3, 6, 9, 12, 15, 18, 21, 24]
   modifiers:
     shift: 27
+
+  knobs:
+    - when:
+        key: 62
+      act:
+        - on: "masterVolume"
+    - when:
+        key: 19
+      act:
+        - on:
+            channelVolume: 1
+    - when:
+        key: 23
+      act:
+        - on:
+            channelVolume: 2
+    - when:
+        key: 27
+      act:
+        - on:
+            channelVolume: 3
+    - when:
+        key: 31
+      act:
+        - on:
+            channelVolume: 4
+    - when:
+        key: 31
+      act:
+        - on:
+            channelVolume: 5
+    - when:
+        key: 49
+      act:
+        - on:
+            channelVolume: 6
+    - when:
+        key: 53
+      act:
+        - on:
+            channelVolume: 7
+    - when:
+        key: 61
+      act:
+        - on:
+            channelVolume: 8
+
   notes:
     - when:
         key: 25

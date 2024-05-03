@@ -27,10 +27,7 @@ library
       Live.Scene
       Live.Scene.Gen
       Live.Scene.Midi
-      Live.Scene.Midi.Act
       Live.Scene.Midi.Config
-      Live.Scene.Midi.Mixer
-      Live.Scene.Midi.Sampler
       Live.Scene.Mixer
       Live.Scene.Mixer.Config
       Live.Scene.Sampler

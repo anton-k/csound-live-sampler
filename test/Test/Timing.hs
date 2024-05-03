@@ -27,6 +27,7 @@ check1 =
           [ Cue
               { start = Nothing
               , dur = 20
+              , nextAction = Just PlayLoop
               }
           ]
       }
@@ -38,6 +39,7 @@ check1 =
         , start = 0
         , beatSize = 20
         , timeSize = 20
+        , nextAction = PlayLoop
         }
 
 check2 :: Assertion
@@ -52,10 +54,12 @@ check2 =
           [ Cue
               { start = Nothing
               , dur = 20
+              , nextAction = Just PlayLoop
               }
           , Cue
               { start = Nothing
               , dur = 10
+              , nextAction = Just PlayLoop
               }
           ]
       }
@@ -67,6 +71,7 @@ check2 =
         , start = 0
         , beatSize = 20
         , timeSize = 10
+        , nextAction = PlayLoop
         }
 
     clip2 =
@@ -76,6 +81,7 @@ check2 =
         , start = 10
         , beatSize = 10
         , timeSize = 5
+        , nextAction = PlayLoop
         }
 
 
@@ -91,10 +97,12 @@ check3 =
           [ Cue
               { start = Just 2
               , dur = 20
+              , nextAction = Just PlayLoop
               }
           , Cue
               { start = Just 4
               , dur = 10
+              , nextAction = Just PlayLoop
               }
           ]
       }
@@ -106,6 +114,7 @@ check3 =
         , start = 1
         , beatSize = 20
         , timeSize = 10
+        , nextAction = PlayLoop
         }
 
     clip2 =
@@ -115,6 +124,7 @@ check3 =
         , start = 13
         , beatSize = 10
         , timeSize = 5
+        , nextAction = PlayLoop
         }
 
 
@@ -130,10 +140,12 @@ check4 =
           [ Cue
               { start = Just 2
               , dur = 20
+              , nextAction = Just PlayLoop
               }
           , Cue
               { start = Just 4
               , dur = 10
+              , nextAction = Just PlayLoop
               }
           ]
       }
@@ -146,6 +158,7 @@ check4 =
           [ Cue
               { start = Just 2
               , dur = 20
+              , nextAction = Just PlayLoop
               }
           ]
       }
@@ -157,6 +170,7 @@ check4 =
         , start = 1
         , beatSize = 20
         , timeSize = 10
+        , nextAction = PlayLoop
         }
 
     clip2 =
@@ -166,6 +180,7 @@ check4 =
         , start = 13
         , beatSize = 10
         , timeSize = 5
+        , nextAction = PlayLoop
         }
 
     clip3 =
@@ -175,4 +190,5 @@ check4 =
         , start = 22
         , beatSize = 20
         , timeSize = 40
+        , nextAction = PlayLoop
         }

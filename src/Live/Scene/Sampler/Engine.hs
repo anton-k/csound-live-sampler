@@ -13,11 +13,14 @@
 module Live.Scene.Sampler.Engine
   ( Clip (..)
   , Part (..)
+  , ColumnId
   , ClipInstr
   , Engine (..)
   , newEngine
+  , ExtraClipSize
   ) where
 
+import Prelude hiding ((<*))
 import Data.Boolean
 import Csound.Core
 
@@ -60,18 +63,25 @@ instance Tuple Part where
       (\(a, b) -> Part a b)
       (\(Part a b) -> (a, b))
 
+type ColumnId = Sig
+
 data Engine = Engine
-  { setPart :: Part -> SE ()
+  { setTrackPart :: Part -> SE ()
+  , setExtraClipPart :: ColumnId -> Part -> SE ()
   , start :: SE ()
   , stop :: SE ()
   }
 
-newEngine :: GetNextPart -> SE Engine
-newEngine getNextPart = do
-  st <- initSt getNextPart
+-- | Number of columns in extra clips
+type ExtraClipSize = Int
+
+newEngine :: GetNextPart -> ExtraClipSize -> SE Engine
+newEngine getNextPart extraColumnSize = do
+  st <- initSt getNextPart extraColumnSize
   pure $
     Engine
-      { setPart = setPartSt st
+      { setTrackPart = setTrackPartSt st
+      , setExtraClipPart = setClipPartSt st
       , start = startSt st
       , stop = stopSt st
       }
@@ -81,24 +91,48 @@ newEngine getNextPart = do
 data St = St
   { main :: InstrRef ()
   , bpm :: Bpm
-  , current :: ClipSt
-  , next :: ClipSt
+  , current :: ClipRef
+  , next :: ClipRef
+  , mainBeat :: Counter Ref
+  , extraClips :: Maybe ExtraClips
   }
+
+data ExtraClips = ExtraClips
+  { currents :: ClipColumn
+  , nexts :: ClipColumn
+  , size :: Int
+  }
+
+initExtraClips :: ExtraClipSize -> SE ExtraClips
+initExtraClips size = do
+  currents <- initClipSt newColumn
+  nexts <- initClipSt newColumn
+  pure ExtraClips {..}
+  where
+    newColumn value = Column <$> fillGlobalCtrlArr [size] (replicate size value)
 
 newtype Bpm = Bpm (Ref Sig)
 
-data ClipSt = ClipSt
-  { track :: Ref Sig
-  , bpm :: Ref Sig
-  , startTime :: Ref Sig
-  , timeSize :: Ref Sig
-  , change :: Counter
-  , loop :: Counter
-  , nextAction :: Ref Sig
+type ClipRef = ClipSt Ref
+
+type ClipColumn = ClipSt Column
+
+data ClipSt f = ClipSt
+  { track :: f Sig
+  , bpm :: f Sig
+  , startTime :: f Sig
+  , timeSize :: f Sig
+  , change :: Counter f
+  , loop :: Counter f
+  , nextAction :: f Sig
   }
 
-copyClipTo :: ClipSt -> ClipSt -> SE ()
-copyClipTo from to =
+-- | Column of clips. All clips in single column can not be played at the same time
+-- so when next clip on given column starts previous one stops.
+newtype Column a = Column (Arr Sig a)
+
+copyClipTo :: Update f -> ClipSt f -> ClipSt f -> SE ()
+copyClipTo update from to =
   mapM_ copy
     [ (.track)
     , (.bpm)
@@ -111,122 +145,215 @@ copyClipTo from to =
     , (.nextAction)
     ]
   where
-    copy f = writeRef (f to) =<< readRef (f from)
+    copy f = update.write (f to) =<< update.read (f from)
 
-data Counter = Counter
-  { size :: Ref Sig
-  , step :: Ref Sig
+data Counter f = Counter
+  { size :: f Sig
+  , step :: f Sig
   }
 
-initCounter :: Sig -> SE Counter
-initCounter maxSize =
+initCounter :: (Sig -> SE (f Sig)) -> Sig -> SE (Counter f)
+initCounter cons maxSize =
   Counter
-    <$> newCtrlRef maxSize
-    <*> newCtrlRef maxSize
+    <$> cons maxSize
+    <*> cons maxSize
 
-nextCount :: Counter -> SE BoolSig
-nextCount counter = do
-  modifyRef counter.step (\x -> x - 1)
-  current <- readRef counter.step
+data Update f = Update
+  { read :: f Sig -> SE Sig
+  , write :: f Sig -> Sig -> SE ()
+  , modify :: f Sig -> (Sig -> Sig) -> SE ()
+  }
+
+refUpdate :: Update Ref
+refUpdate = Update
+  { read = readRef
+  , write = writeRef
+  , modify = modifyRef
+  }
+
+columnUpdate :: ColumnId -> Update Column
+columnUpdate columnId = Update
+  { read = \(Column arr) -> readArr arr columnId
+  , write = \(Column arr) value -> writeArr arr columnId value
+  , modify = \(Column arr) f -> modifyArr arr columnId f
+  }
+
+nextCount :: Update f -> Counter f -> SE BoolSig
+nextCount update counter = do
+  update.modify counter.step (\x -> x - 1)
+  current <- update.read counter.step
   when1 (current ==* 0) $
-    writeRef counter.step =<< readRef counter.size
+    update.write counter.step =<< update.read counter.size
   pure (current ==* 0)
 
-initSt :: GetNextPart -> SE St
-initSt getNextPart = do
+initSt :: GetNextPart -> ExtraClipSize -> SE St
+initSt getNextPart extraColumnSize = do
   bpm <- Bpm  <$> newCtrlRef 120
-  current <- initClipSt
-  next <- initClipSt
-  main <- newProc (\() -> mainInstr getNextPart bpm current next)
+  current <- initClipRef
+  next <- initClipRef
+  mainBeat <- initCounter newCtrlRef 1
+  extraClips <-
+    if extraColumnSize == 0
+      then pure Nothing
+      else Just <$> initExtraClips extraColumnSize
+  main <- newProc (\() -> mainInstr getNextPart bpm mainBeat current next extraClips)
   pure St {..}
 
-initClipSt :: SE ClipSt
-initClipSt = do
-  track <- newCtrlRef (-1)
-  bpm <- newCtrlRef 120
-  startTime <- newCtrlRef 0
-  timeSize <- newCtrlRef 0.5
-  change <- initCounter 1
-  loop <- initCounter 1
-  nextAction <- newCtrlRef (toSig playLoop)
+initClipRef :: SE ClipRef
+initClipRef = initClipSt newCtrlRef
+
+initClipSt :: (Sig -> SE (f Sig)) -> SE (ClipSt f)
+initClipSt cons = do
+  track <- cons (-1)
+  bpm <- cons 120
+  startTime <- cons 0
+  timeSize <- cons 0.5
+  change <- initCounter cons 1
+  loop <- initCounter cons 1
+  nextAction <- cons (toSig playLoop)
   pure ClipSt {..}
 
 type GetNextPart = SE Part
 
-mainInstr :: GetNextPart -> Bpm -> ClipSt -> ClipSt -> SE ()
-mainInstr getNextPart bpm current next =
+mainInstr :: GetNextPart -> Bpm -> Counter Ref -> ClipRef -> ClipRef -> Maybe ExtraClips -> SE ()
+mainInstr getNextPart bpm mainBeat current next extraClips =
   periodic bpm $ do
-    isBoundary <- updateCounters current
-    onChanges getNextPart isBoundary bpm current next
+    isMainBeat <- nextCount refUpdate mainBeat
+    updateMainClip getNextPart bpm current next
+    mapM_ (updateExtraClips bpm isMainBeat) extraClips
 
-onChanges :: GetNextPart -> IsBoundary -> Bpm -> ClipSt -> ClipSt -> SE ()
+updateMainClip :: GetNextPart -> Bpm -> ClipRef -> ClipRef -> SE ()
+updateMainClip getNextPart bpm current next = do
+  isBoundary <- updateCounters refUpdate current
+  onChanges getNextPart isBoundary bpm current next
+
+updateExtraClips :: Bpm -> BoolSig -> ExtraClips -> SE ()
+updateExtraClips bpm isMainBeat clips =
+  foreachExtraClip clips $ \update -> do
+    isBoundary <- updateCounters update clips.currents
+    onExtraClipChanges update isBoundary isMainBeat bpm clips.currents clips.nexts
+
+onExtraClipChanges :: Update Column -> IsBoundary -> BoolSig -> Bpm -> ClipColumn -> ClipColumn -> SE ()
+onExtraClipChanges update boundary isMainBeat bpm currents nexts = do
+  isClip <- isClipChange update currents nexts
+  whens
+    [ (boundary.isChange &&* isClip, onExtraClipChange update isMainBeat bpm currents nexts)
+    , (boundary.isLoop, onExtraClipLoop update bpm currents nexts)
+    ]
+    (pure ())
+
+onExtraClipChange :: Update Column -> BoolSig -> Bpm -> ClipColumn -> ClipColumn -> SE ()
+onExtraClipChange update isMainBeat bpm currents nexts = do
+  currentTrackId <- readTrackId update currents
+  nextTrackId <- readTrackId update nexts
+  let
+    isPlaying = currentTrackId.track >* 0
+
+  when1 (notB (equalTrackId currentTrackId nextTrackId) &&* (isPlaying ||* isMainBeat)) $ do
+    stopClip update currents
+    scheduleExtraClip bpm nextTrackId
+    copyClipTo update nexts currents
+
+scheduleExtraClip :: Bpm -> TrackId -> SE ()
+scheduleExtraClip (Bpm bpmRef) (TrackId track start dur bpm) = do
+  mainBpm <- readRef bpmRef
+  when1 (track >* 0) $ play (instrRefFromNum $ toD track) [Note 0 (toD $ dur * bpm / mainBpm) (toD mainBpm, toD start)]
+
+foreachExtraClip :: ExtraClips -> (Update Column -> SE ()) -> SE ()
+foreachExtraClip clips act = do
+  iter <- newLocalCtrlRef (0 :: Sig)
+  whileDo iter (\x -> x <* int clips.size) $ do
+    index <- readRef iter
+    act (columnUpdate index)
+    writeRef iter (index + 1)
+
+onExtraClipLoop :: Update Column -> Bpm -> ClipColumn -> ClipColumn -> SE ()
+onExtraClipLoop update bpm currents nexts = do
+  nextAction <- update.read currents.nextAction
+  whens
+    [ (isPlayLoop nextAction, onExtraClipPlayLoop update bpm currents)
+    , (isPlayNext nextAction, pure ())  -- next action is not supported by extra clips
+    , (isStopPlayback nextAction, onStopPlayback update currents nexts)
+    ]
+    (pure ())
+
+onExtraClipPlayLoop :: Update Column -> Bpm -> ClipColumn -> SE ()
+onExtraClipPlayLoop update (Bpm bpmRef) current = do
+  mainBpm <- readRef bpmRef
+  trackId <- readTrackId update current
+  when1 (trackId.track >* 0) $
+    play (instrRefFromNum $ toD trackId.track) [Note 0 (toD $ trackId.dur * trackId.bpm / mainBpm) (toD mainBpm, toD trackId.start)]
+
+onChanges :: GetNextPart -> IsBoundary -> Bpm -> ClipRef -> ClipRef -> SE ()
 onChanges getNextPart boundary bpm current next = do
-  isClip <- isClipChange current next
+  isClip <- isClipChange refUpdate current next
   whens
     [ (boundary.isChange &&* isClip, onChange bpm current next)
     , (boundary.isLoop, onLoop getNextPart bpm current next)
     ]
     (pure ())
 
-isClipChange :: ClipSt -> ClipSt -> SE BoolSig
-isClipChange current next = do
-  currentTrackId <- readTrackId current
-  nextTrackId <- readTrackId next
+isClipChange :: Update f -> ClipSt f -> ClipSt f -> SE BoolSig
+isClipChange update current next = do
+  currentTrackId <- readTrackId update current
+  nextTrackId <- readTrackId update next
   pure (notB $ equalTrackId currentTrackId nextTrackId)
 
-onChange :: Bpm -> ClipSt -> ClipSt -> SE ()
+onChange :: Bpm -> ClipRef -> ClipRef -> SE ()
 onChange bpm current next = do
-  currentTrackId <- readTrackId current
-  nextTrackId <- readTrackId next
+  currentTrackId <- readTrackId refUpdate current
+  nextTrackId <- readTrackId refUpdate next
 
   when1 (notB $ equalTrackId currentTrackId nextTrackId) $ do
-    stopClip current
+    stopClip refUpdate current
     scheduleClip bpm next
-    copyClipTo next current
+    copyClipTo refUpdate next current
 
-stopClip :: ClipSt -> SE ()
-stopClip clip = do
-  track <- readRef clip.track
+stopClip :: Update f -> ClipSt f -> SE ()
+stopClip update clip = do
+  track <- update.read clip.track
   when1 (track >=* 0) $
     turnoff2 (instrRefFromNum @D $ toD track) 0 0.05
 
-scheduleClip :: Bpm -> ClipSt -> SE ()
+scheduleClip :: Bpm -> ClipRef -> SE ()
 scheduleClip (Bpm bpmRef) clip = do
   writeRef bpmRef =<< readRef clip.bpm
-  TrackId track start dur <- readTrackId clip
-  play (instrRefFromNum $ toD track) [Note 0 (toD dur) (toD start)]
+  TrackId track start dur _bpm <- readTrackId refUpdate clip
+  when1 (track >=* 0) $ play (instrRefFromNum $ toD track) [Note 0 (toD dur) (toD start)]
 
 data TrackId = TrackId
   { track :: Sig
   , start :: Sig
   , dur :: Sig
+  , bpm :: Sig
   }
 
 equalTrackId :: TrackId -> TrackId -> BoolSig
-equalTrackId (TrackId a1 b1 c1) (TrackId a2 b2 c2) =
-  a1 ==* a2 &&* b1 ==* b2 &&* c1 ==* c2
+equalTrackId (TrackId a1 b1 c1 d1) (TrackId a2 b2 c2 d2) =
+  a1 ==* a2 &&* b1 ==* b2 &&* c1 ==* c2 &&* d1 ==* d2
 
-readTrackId :: ClipSt -> SE TrackId
-readTrackId clip =
+readTrackId :: Update f -> ClipSt f -> SE TrackId
+readTrackId update clip =
   TrackId
-    <$> readRef clip.track
-    <*> readRef clip.startTime
-    <*> readRef clip.timeSize
+    <$> update.read clip.track
+    <*> update.read clip.startTime
+    <*> update.read clip.timeSize
+    <*> update.read clip.bpm
 
-onLoop :: GetNextPart -> Bpm -> ClipSt -> ClipSt -> SE ()
+onLoop :: GetNextPart -> Bpm -> ClipRef -> ClipRef -> SE ()
 onLoop getNextPart bpm current next = do
   nextAction <- readRef current.nextAction
   whens
     [ (isPlayLoop nextAction, onPlayLoop current)
     , (isPlayNext nextAction, onPlayNext getNextPart bpm current next)
-    , (isStopPlayback nextAction, onStopPlayback current next)
+    , (isStopPlayback nextAction, onStopPlayback refUpdate current next)
     ]
     (pure ())
 
 isPlayLoop :: Sig -> BoolSig
 isPlayLoop x = x ==* toSig playLoop
 
-onPlayLoop :: ClipSt -> SE ()
+onPlayLoop :: ClipRef -> SE ()
 onPlayLoop current = do
   track <- readRef current.track
   startTime <- readRef current.startTime
@@ -236,31 +363,31 @@ onPlayLoop current = do
 isPlayNext :: Sig -> BoolSig
 isPlayNext x = x ==* toSig playNext
 
-onPlayNext :: GetNextPart -> Bpm -> ClipSt -> ClipSt -> SE ()
+onPlayNext :: GetNextPart -> Bpm -> ClipRef -> ClipRef -> SE ()
 onPlayNext getNextPart bpm current next = do
   part <- getNextPart
-  setNextPart next part
-  stopClip current
+  setNextPart writeRef next part
+  stopClip refUpdate current
   scheduleClip bpm next
-  copyClipTo next current
+  copyClipTo refUpdate next current
 
 isStopPlayback :: Sig -> BoolSig
 isStopPlayback x = x ==* toSig stopPlayback
 
-onStopPlayback :: ClipSt -> ClipSt -> SE ()
-onStopPlayback current next = do
-  writeRef current.track (-1)
-  writeRef next.track (-1)
+onStopPlayback :: Update f -> ClipSt f -> ClipSt f -> SE ()
+onStopPlayback update current next = do
+  update.write current.track (-1)
+  update.write next.track (-1)
 
 data IsBoundary = IsBoundary
   { isChange :: BoolSig
   , isLoop :: BoolSig
   }
 
-updateCounters :: ClipSt -> SE IsBoundary
-updateCounters clip = do
-  isChange <- nextCount clip.change
-  isLoop <- nextCount clip.loop
+updateCounters :: Update f -> ClipSt f -> SE IsBoundary
+updateCounters update clip = do
+  isChange <- nextCount update clip.change
+  isLoop <- nextCount update clip.loop
   pure IsBoundary {..}
 
 periodic :: Bpm -> SE () -> SE ()
@@ -269,12 +396,25 @@ periodic (Bpm bpmRef) onTick = do
   when1 (metro (toAbsTimeRate bpm 1) ==* 1)
     onTick
 
-setPartSt :: St -> Part -> SE ()
-setPartSt st part = do
-  setNextPart st.next part
+setTrackPartSt :: St -> Part -> SE ()
+setTrackPartSt st part = do
+  setNextPart writeRef st.next part
 
-setNextPart :: ClipSt -> Part -> SE ()
-setNextPart next part = do
+setClipPartSt :: St -> ColumnId -> Part -> SE ()
+setClipPartSt st columnId part = do
+  mapM_ (\clips -> setOnColumn clips.size clips.nexts) st.extraClips
+  where
+    setOnColumn :: ExtraClipSize -> ClipColumn -> SE ()
+    setOnColumn size nexts = do
+      when1 (columnId <* int size) $
+        setNextPart (writeColumn columnId) nexts part
+
+writeColumn :: Tuple a => ColumnId -> Column a -> a -> SE ()
+writeColumn columnId (Column arr) value =
+  writeArr arr columnId value
+
+setNextPart :: (f Sig -> Sig -> SE ()) -> ClipSt f -> Part -> SE ()
+setNextPart writeTo next part = do
   write (.track) part.track
   write (.bpm) part.clip.bpm
   write (.startTime) part.clip.start
@@ -285,7 +425,7 @@ setNextPart next part = do
   write (.loop.step) part.clip.beatSize
   write (.nextAction) part.clip.nextAction
   where
-    write f = writeRef (f next)
+    write f = writeTo (f next)
 
 startSt :: St -> SE ()
 startSt st =

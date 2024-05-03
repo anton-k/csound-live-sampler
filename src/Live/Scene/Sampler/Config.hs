@@ -4,8 +4,14 @@ module Live.Scene.Sampler.Config
   , StemConfig (..)
   , TimeSlot (..)
   , Cue (..)
+  , ClipsConfig (..)
+  , ClipColumnConfig (..)
+  , ClipName (..)
+  , ColumnName (..)
+  , ClipConfig (..)
+  , ClipGroupConfig (..)
+  , ClipMode (..)
   , NextAction (..)
-  , appendAbsPath
   ) where
 
 import Data.Aeson (ToJSON, FromJSON)
@@ -13,10 +19,10 @@ import Data.Aeson qualified as Json
 import GHC.Generics
 import Data.Text (Text)
 import Data.Text qualified as Text
-import System.FilePath
 
 data SamplerConfig = SamplerConfig
   { tracks :: [TrackConfig]
+  , clips :: Maybe ClipsConfig
   , dir :: Maybe FilePath
   }
   deriving (Generic, FromJSON, ToJSON)
@@ -56,6 +62,66 @@ data Cue = Cue
 data NextAction = PlayLoop | PlayNext | StopPlayback
   deriving (Show, Eq, Enum)
 
+data ClipsConfig = ClipsConfig
+  { columns :: [ClipColumnConfig]
+  , groups :: Maybe [ClipGroupConfig]
+  , dir :: Maybe FilePath
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data ClipColumnConfig = ClipColumnConfig
+  { name :: ColumnName
+  , clips :: [ClipConfig]
+  , dir :: Maybe FilePath
+  , channel :: Maybe Int
+  , gain :: Maybe Float
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+newtype ColumnName = ColumnName
+  { name :: Text
+  }
+  deriving newtype (FromJSON, ToJSON, Eq, Ord)
+
+newtype ClipName = ClipName
+  { name :: Text
+  }
+  deriving newtype (FromJSON, ToJSON, Eq, Ord)
+
+
+data ClipGroupConfig = ClipGroupConfig
+  { name :: Text
+  , group :: [(ColumnName, ClipName)]
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data ClipConfig = ClipConfig
+  { name :: ClipName
+  , file :: FilePath
+  , bpm :: Float
+  , changeRate :: Maybe Int
+  , start :: Maybe Int
+  , dur :: Int
+  , mode :: Maybe ClipMode
+  , nextAction :: Maybe NextAction
+  , channel :: Maybe Int
+  , gain :: Maybe Float
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data ClipMode = Diskin | Loscil -- TODO: Mincer
+
+instance ToJSON ClipMode where
+  toJSON = \case
+    Diskin -> "diskin"
+    Loscil -> "loscil"
+
+instance FromJSON ClipMode where
+  parseJSON = Json.withText "ClipMode" $ \case
+    "diskin" -> pure Diskin
+    "loscil" -> pure Loscil
+    other -> fail $ "Failed to parse: " <> Text.unpack other
+
 instance ToJSON NextAction where
   toJSON = \case
     PlayLoop -> "loop"
@@ -68,23 +134,4 @@ instance FromJSON NextAction where
     "next" -> pure PlayNext
     "stop" -> pure StopPlayback
     other -> fail $ Text.unpack ("Failed to parse: " <> other)
-
--- | makes path absolute for stems
-appendAbsPath :: SamplerConfig -> SamplerConfig
-appendAbsPath config =
-  config { tracks = fmap (appendTrack config.dir) config.tracks }
-  where
-    appendTrack mRootDir track =
-      track { stems = fmap (appendStem trackDir) track.stems }
-      where
-        trackDir =
-          case mRootDir of
-            Nothing -> track.dir
-            Just rootDir ->
-              Just $ case track.dir of
-                Nothing -> rootDir
-                Just dir -> rootDir </> dir
-
-    appendStem mTrackDir stem =
-      stem { file = maybe id (</>) mTrackDir stem.file }
 

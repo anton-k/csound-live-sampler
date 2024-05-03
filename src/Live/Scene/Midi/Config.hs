@@ -22,6 +22,7 @@ import GHC.Generics (Generic)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Map.Strict (Map)
+import Live.Scene.Sampler.Config (ColumnName (..), ClipName (..))
 
 data ControllerConfig = ControllerConfig
   { modifiers :: Map Text Int
@@ -88,6 +89,7 @@ data MidiAct
   | SetPart Int
   | ShiftTrack Int
   | ShiftPart Int
+  | PlayExtraClip ColumnName ClipName
 
 instance ToJSON MidiAct where
   toJSON = \case
@@ -96,17 +98,25 @@ instance ToJSON MidiAct where
     SetPart n -> Json.object ["part" .= n]
     ShiftTrack n -> Json.object ["shiftTrack" .= n]
     ShiftPart n -> Json.object ["shiftPart" .= n]
+    PlayExtraClip column clip -> Json.object [ "playClip" .= (column, clip)]
 
 instance FromJSON MidiAct where
   parseJSON = Json.withObject "MidiAct" $ \obj ->
     let
       getInt cons name = cons <$> (obj .: name)
+
+      getPair cons name =
+        (\x -> case x of
+            [a, b] -> pure $ cons a b
+            _ -> fail "Failed to read pair of values"
+        ) =<< (obj .: name)
     in
           getInt ToggleMute "mute"
       <|> getInt SetTrack "track"
       <|> getInt SetPart "part"
       <|> getInt ShiftPart "shiftTrack"
       <|> getInt ShiftPart "shiftPart"
+      <|> getPair (\a b -> PlayExtraClip (ColumnName a) (ClipName b)) "playClip"
       <|> fail "Failed to parse midi action"
 
 data ActLink = ActLink

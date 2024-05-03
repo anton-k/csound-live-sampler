@@ -26,23 +26,23 @@ prototypes:
 
     - [x] use mute buttons
 
-- [ ] add switch between several tracks. Igonre the cues so far
+- [x] add switch between several tracks. Igonre the cues so far
   Just switch on a new track and turn off previous one.
     - [x] with single button
 
     - [x] with shift button (shift is used to reuse the same buttons
       and also to not to swiitch tracks by accident)
 
-- [ ] add clips (track parts). ignore bpm sync.
+- [x] add clips (track parts). ignore bpm sync.
   Just switch imidiately to the track part in a loop
 
-- [ ] loop and play once options
+- [x] loop and play once options
 
-- [ ] use BPM sync (hard task)
+- [x] use BPM sync (hard task)
 
-    - with same BPM and measure
+    - [x] with same BPM and measure
 
-    - with changeable BPM and measure
+    - [x] with changeable BPM and measure
 
 - [ ] config validations
 
@@ -52,7 +52,7 @@ prototypes:
 
 - [ ] add FX sends
 
-   - configs for FXs: delay, reverb, stutter
+   - configs for FXs: delay, reverb, bbcuts
 
    - sends for channels
 

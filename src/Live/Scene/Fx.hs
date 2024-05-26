@@ -15,6 +15,7 @@ import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Maybe
+import Csound.Core.Opcodes.Fx (analogDelay)
 
 newtype Bpm = Bpm (SE Sig)
 
@@ -122,7 +123,7 @@ readParamMap name (FxParams nameMap) =
 unitToFun :: Bpm -> ParamMap -> FxUnit -> Sig2 -> SE Sig2
 unitToFun bpm params = \case
   ReverbFx _config -> reverbFx params
-  DelayFx config -> delayFx config
+  DelayFx _config -> delayFx bpm params
   PingPongFx config -> pingPongFx config
   MoogFx _config -> moogFx params
   KorgFx _config -> korgFx params
@@ -188,8 +189,8 @@ reverbFx params ins = do
 
 --   mixAt (float config.dryWet) (reverbsc (float config.size) (float config.dump)) ins
 
-delayFx :: DelayConfig -> Sig2 -> SE Sig2
-delayFx = undefined
+delayFx :: Bpm -> ParamMap -> Sig2 -> SE Sig2
+delayFx bpm params ins = undefined
 
 pingPongFx :: PingPongConfig -> Sig2 -> SE Sig2
 pingPongFx = undefined

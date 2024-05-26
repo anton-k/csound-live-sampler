@@ -10,6 +10,7 @@ module Live.Scene.Midi.Config
   , MidiNoteType (..)
   , NoteModifier (..)
   , MidiKnob (..)
+  , SetFxParamConfig (..)
   , MidiKnobAct (..)
   , KnobLink (..)
   , KnobWithRange (..)
@@ -146,19 +147,28 @@ data KnobWithRange = KnobWithRange
 data MidiKnobAct
   = SetChannelVolume Int
   | SetMasterVolume
+  | SetFxParam SetFxParamConfig
+
+data SetFxParamConfig = SetFxParamConfig
+  { name :: Text
+  , param :: Text
+  }
+  deriving (Generic, FromJSON, ToJSON)
 
 instance ToJSON MidiKnobAct where
   toJSON = \case
     SetChannelVolume n -> Json.object ["channelVolume" .= n]
     SetMasterVolume -> Json.String "masterVolume"
+    SetFxParam config -> Json.object ["fxParam" .= config]
 
 instance FromJSON MidiKnobAct where
   parseJSON = \case
     Json.String "masterVolume" -> pure SetMasterVolume
     Json.Object obj ->
       let
-        getInt cons name = cons <$> (obj .: name)
+        getValue cons name = cons <$> (obj .: name)
       in
-        getInt SetChannelVolume "channelVolume"
+            getValue SetChannelVolume "channelVolume"
+        <|> getValue SetFxParam "fxParam"
     _ -> fail "Failed to parse MidiKnobAct"
 

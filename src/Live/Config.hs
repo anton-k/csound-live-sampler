@@ -25,17 +25,15 @@ import Live.Scene.Sampler.Config qualified as StemConfig (StemConfig (..))
 import Live.Scene.Sampler.Config qualified as ClipConfig (ClipConfig (..))
 import Live.Scene.Sampler.Config qualified as ClipColumnConfig (ClipColumnConfig (..))
 import System.FilePath
+import Live.Scene.Fx.Config
 
 data Config = Config
   { mixer :: MixerConfig
-  , fxs :: [FxConfig] -- v2
+  , fxs :: [FxConfig]
   , sampler :: SamplerConfig
   , audio :: AudioConfig
   , controllers :: ControllerConfig
   }
-  deriving (Generic, FromJSON, ToJSON)
-
-data FxConfig = Reverb | Delay
   deriving (Generic, FromJSON, ToJSON)
 
 data AudioConfig = AudioConfig String

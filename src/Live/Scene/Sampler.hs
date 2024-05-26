@@ -28,6 +28,7 @@ data Sampler = Sampler
   , start :: SE ()
   , stop :: SE ()
   , getTrackIds :: [TrackId]
+  , readBpm :: SE Sig
   }
 
 newSampler :: SamplerConfig -> SE Sampler
@@ -46,6 +47,7 @@ newSampler config = do
     , stop = engine.stop
     , getTrackIds = allTrackIds config
     , playExtraClip = playExtraClipSt engine audio.extraClips
+    , readBpm = engine.readBpm
     }
 
 playExtraClipSt :: Engine -> ExtraClips -> ColumnName -> ClipName -> SE ()

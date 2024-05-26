@@ -25,6 +25,8 @@ library
   exposed-modules:
       Live.Config
       Live.Scene
+      Live.Scene.Fx
+      Live.Scene.Fx.Config
       Live.Scene.Gen
       Live.Scene.Midi
       Live.Scene.Midi.Config

@@ -10,7 +10,24 @@ mixer:
     - volume: 1
     - volume: 1
     - volume: 1
-fxs: []
+fxs:
+  - input: masterFx
+    chain:
+      - name: master-cuts
+        fx:
+          bbcut:
+            subdiv: 1
+            barlength: 2
+            phrasebars: 1
+            numrepeats: 8
+            dryWet: 1
+
+      - name: master-reverb
+        fx:
+          reverb:
+            size: 0.7
+            dump: 12000
+            dryWet: 0.2
 sampler:
   dir: "../tracks"
   tracks :
@@ -131,7 +148,7 @@ sampler:
           changeRate: 4
           cues:
             - dur: 16
-              nextAction: "stop"
+              nextAction: "next"
             - dur: 16
               nextAction: "next"
             - dur: 12

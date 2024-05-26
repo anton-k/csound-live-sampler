@@ -150,5 +150,9 @@ toKnobAct mixer note knob =
       const (gainslider (readKnobValue note))
     SetChannelVolume n -> mixer.modifyChannelVolume (ChannelId (n - 1)) $
       const (gainslider (readKnobValue note))
-
+    SetFxParam config -> mixer.modifyFxParam (toFxParamId config) $
+      const (readKnobValue note / 127)
+  where
+    toFxParamId :: SetFxParamConfig -> FxParamId
+    toFxParamId SetFxParamConfig{..} = FxParamId{..}
 

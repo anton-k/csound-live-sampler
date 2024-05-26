@@ -70,6 +70,7 @@ data Engine = Engine
   , setExtraClipPart :: ColumnId -> Part -> SE ()
   , start :: SE ()
   , stop :: SE ()
+  , readBpm :: SE Sig
   }
 
 -- | Number of columns in extra clips
@@ -84,6 +85,7 @@ newEngine getNextPart extraColumnSize = do
       , setExtraClipPart = setClipPartSt st
       , start = startSt st
       , stop = stopSt st
+      , readBpm = readBpmSt st
       }
 
 -- * internal state
@@ -438,3 +440,10 @@ stopSt st =
 -- | Converts beats to seconds
 toAbsTimeRate :: Sig -> Sig -> Sig
 toAbsTimeRate bpm beats = bpm / (60 * beats)
+
+readBpmSt :: St -> SE Sig
+readBpmSt st =
+  case st.bpm of
+    Bpm ref -> readRef ref
+
+

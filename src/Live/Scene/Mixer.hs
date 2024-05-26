@@ -17,6 +17,7 @@ module Live.Scene.Mixer
   , ChannelConfig (..)
   , newMixer
   , getChannelSize
+  , FxParamId (..)
   , module X
   ) where
 
@@ -25,6 +26,10 @@ import Csound.Core
 import Safe (atMay)
 import Live.Scene.Gen as X
 import Live.Scene.Mixer.Config as X
+import Live.Scene.Fx (FxDeps (..), newFxs, FxParams)
+import Live.Scene.Fx qualified as Fx (modifyFxParam)
+import Live.Scene.Fx.Config
+import Data.Text (Text)
 
 data Mixer = Mixer
   -- audio
@@ -33,15 +38,23 @@ data Mixer = Mixer
   , toggleChannelMute :: ChannelId -> SE ()
   , modifyChannelVolume :: ChannelId -> (Sig -> Sig) -> SE ()
   , modifyMasterVolume :: (Sig -> Sig) -> SE ()
+  , modifyFxParam :: FxParamId -> (Sig -> Sig) -> SE ()
+  }
+
+data FxParamId = FxParamId
+  { name :: Text
+  , param :: Text
   }
 
 getChannelSize :: Mixer -> Int
 getChannelSize mixer =
   length mixer.audio.inputs
 
-newMixer :: MixerConfig -> SE Mixer
-newMixer config = do
+newMixer :: MixerConfig -> [FxConfig] -> SE Sig -> SE Mixer
+newMixer config fxConfig readBpm = do
   st <- initSt config
+  updateMasterInstrRef <- newProc (\() -> writeChannelsToMaster st)
+  fxParams <- newFxs (initFxDeps st readBpm) fxConfig
   pure $ Mixer
     { audio =
         Gen
@@ -52,11 +65,12 @@ newMixer config = do
           , write = writeChannelSt st
           , inputs = ChannelId <$> [0 .. (length config.channels - 1)]
           , outputs = [ChannelId 0]
-          , update = pure ()
+          , update = play updateMasterInstrRef [Note 0 (-1) ()] -- writeChannelsToMaster st
           }
     , modifyChannelVolume = modifyChannelVolumeSt st
     , modifyMasterVolume = modifyMasterVolumeSt st
     , toggleChannelMute = toggleChannelMuteSt st
+    , modifyFxParam = modifyFxParamSt fxParams
     }
 
 -- * mixer internal state
@@ -70,12 +84,15 @@ data Master = Master
   { volume :: Ref Sig
   , audio :: Ref Sig2
   , gain :: Maybe Float
+  , fx :: Sig2 -> SE Sig2
   }
 
 data Channel = Channel
   { volume :: Ref Sig
   , mute :: Ref Sig
   , gain :: Maybe Float
+  , audio :: Ref Sig2
+  , fx :: Sig2 -> SE Sig2
   }
 
 initSt :: MixerConfig -> SE St
@@ -89,6 +106,7 @@ initSt config = do
         <$> newCtrlRef (float config.master.volume)
         <*> newRef 0
         <*> pure config.master.gain
+        <*> pure pure -- (toMasterFx fxConfigs)
 
     loadChannels =
       mapM initChannel config.channels
@@ -98,7 +116,38 @@ initSt config = do
       mute <- newCtrlRef 1
       let
         gain = channelConfig.gain
+        fx = pure -- toChannelFx (ChannelId channelId) fxConfigs
+      audio <- newRef 0
       pure Channel {..}
+
+{-
+toFx :: (FxConfig -> Bool) -> [FxConfig] -> Sig2 -> SE Sig2
+toFx hasInput fxConfigs ain =
+  List.foldl' (>=>) pure (fmap unitToFun masterFxs) ain
+  where
+    masterFxs :: [FxUnit]
+    masterFxs = do
+      fx <- filter hasInput fxConfigs
+      fmap (.fx) fx.chain
+
+toMasterFx :: [FxConfig] -> Sig2 -> SE Sig2
+toMasterFx = toFx isMasterFx
+  where
+    isMasterFx :: FxConfig -> Bool
+    isMasterFx config =
+      case config.input of
+        MasterFx -> True
+        _ -> False
+
+toChannelFx :: ChannelId -> [FxConfig] -> Sig2 -> SE Sig2
+toChannelFx (ChannelId n) = toFx isChannel
+  where
+    isChannel :: FxConfig -> Bool
+    isChannel config =
+      case config.input of
+        ChannelFx (ChannelFxConfig channelId) -> channelId == n
+        _ -> False
+-}
 
 readMixSt :: St -> SE Sig2
 readMixSt St{..} = do
@@ -110,11 +159,25 @@ readMixSt St{..} = do
 writeChannelSt :: St -> ChannelId -> Sig2 -> SE ()
 writeChannelSt st channelId audio =
   withChannel st channelId $ \channel -> do
-    volume <- readRef channel.volume
-    mute <- readRef channel.mute
-    let
-      channelAudio = withGain channel.gain $ mul (volume * mute) audio
-    modifyRef st.master.audio (+ channelAudio)
+    writeRef channel.audio audio
+
+writeChannelsToMaster :: St -> SE ()
+writeChannelsToMaster st = do
+  mapM_ writeToMaster st.channels
+  applyMasterFx
+  where
+    writeToMaster :: Channel -> SE ()
+    writeToMaster channel = do
+      volume <- readRef channel.volume
+      mute <- readRef channel.mute
+      audio <- readRef channel.audio
+      let
+        channelAudio = withGain channel.gain $ mul (volume * mute) audio
+      modifyRef st.master.audio (+ channelAudio)
+
+    applyMasterFx :: SE ()
+    applyMasterFx =
+      writeRef st.master.audio =<< st.master.fx =<< readRef st.master.audio
 
 getChannel :: St -> ChannelId -> Maybe Channel
 getChannel st (ChannelId n) = st.channels `atMay` n
@@ -142,3 +205,20 @@ withGain mValue audio =
   case mValue of
     Nothing -> audio
     Just value -> mul (float value) audio
+
+-------------------------------------------------------------------------------------
+-- FXs
+
+initFxDeps :: St -> SE Sig -> FxDeps
+initFxDeps st readBpm =
+  FxDeps
+    { readMaster = readRef st.master.audio
+    , writeMaster = writeRef st.master.audio
+    , readChannel = \n -> maybe (pure 0) (readRef . (.audio)) (st.channels `atMay` n)
+    , writeChannel = \n -> writeChannelSt st (ChannelId n)
+    , readBpm
+    }
+
+modifyFxParamSt :: FxParams -> FxParamId -> (Sig -> Sig) -> SE ()
+modifyFxParamSt fxParams paramId f =
+  Fx.modifyFxParam fxParams paramId.name paramId.param f

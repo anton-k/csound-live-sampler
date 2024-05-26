@@ -30,7 +30,7 @@ toAudio scene = do
 
 loadScene :: Config -> SE Scene
 loadScene config = do
-  mixer <- newMixer config.mixer
   sampler <- newSampler config.sampler
+  mixer <- newMixer config.mixer config.fxs sampler.readBpm
   setupMidi config mixer sampler
   pure $ Scene {..}

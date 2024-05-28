@@ -112,24 +112,24 @@ data NamedFx a = NamedFx
 
 data ReverbConfig = ReverbConfig
   { size :: Float
-  , dump :: Float
+  , damp :: Float
   , dryWet :: Float
   }
   deriving (Generic, FromJSON, ToJSON)
 
 data DelayConfig = DelayConfig
   { repeatTime :: Float
-  , dump :: Float
+  , damp :: Float
   , feedback :: Float
   , dryWet :: Float
   }
   deriving (Generic, FromJSON, ToJSON)
 
 data PingPongConfig = PingPongConfig
-  { repeatTime1 :: Float
-  , repeatTime2 :: Float
-  , dump :: Float
+  { repeatTime :: Float
+  , damp :: Float
   , feedback :: Float
+  , width :: Float
   , dryWet :: Float
   }
   deriving (Generic, FromJSON, ToJSON)

@@ -15,7 +15,7 @@ import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Maybe
-import Csound.Core.Opcodes.Fx (analogDelay)
+import Csound.Core.Opcodes.Fx (analogDelay, pingPongDelay)
 
 newtype Bpm = Bpm (SE Sig)
 
@@ -58,11 +58,11 @@ newFxParams configs =
     toParamMap :: FxUnit -> SE ParamMap
     toParamMap = \case
       ReverbFx config ->
-        params config [("size", (.size)), ("dump", (.dump)), ("dryWet", (.dryWet))]
+        params config [("size", (.size)), ("damp", (.damp)), ("dryWet", (.dryWet))]
       DelayFx config ->
-        params config [("repeatTime", (.repeatTime)), ("dump", (.dump)), ("feedback", (.feedback)), ("dryWet", (.dryWet))]
+        params config [("damp", (.damp)), ("feedback", (.feedback)), ("dryWet", (.dryWet))]
       PingPongFx config ->
-        params config [("repeatTime1", (.repeatTime1)), ("repeatTime2", (.repeatTime2)),("dump", (.dump)), ("feedback", (.feedback)), ("dryWet", (.dryWet))]
+        params config [("damp", (.damp)), ("feedback", (.feedback)), ("width", (.width)), ("dryWet", (.dryWet))]
       MoogFx config ->
         params config [("cutoff", (.cutoff)), ("resonance", (.resonance)), ("dryWet", (.dryWet))]
       KorgFx config ->
@@ -123,8 +123,8 @@ readParamMap name (FxParams nameMap) =
 unitToFun :: Bpm -> ParamMap -> FxUnit -> Sig2 -> SE Sig2
 unitToFun bpm params = \case
   ReverbFx _config -> reverbFx params
-  DelayFx _config -> delayFx bpm params
-  PingPongFx config -> pingPongFx config
+  DelayFx config -> delayFx bpm params config
+  PingPongFx config -> pingPongFx bpm params config
   MoogFx _config -> moogFx params
   KorgFx _config -> korgFx params
   BbcutFx config -> bbcutFx bpm params config
@@ -182,18 +182,41 @@ reverbFx :: ParamMap -> Sig2 -> SE Sig2
 reverbFx params ins = do
   dryWet <- param "dryWet"
   size <- param "size"
-  dump <- param "dump"
-  pure $ mixAt dryWet (reverbsc size dump) ins
+  damp <- rescaleDamp <$> param "damp"
+  pure $ mixAt dryWet (reverbsc size damp) ins
   where
     param = readParam params
 
---   mixAt (float config.dryWet) (reverbsc (float config.size) (float config.dump)) ins
+rescaleDamp :: Sig -> Sig
+rescaleDamp param = scale (expcurve param 4) 14000 100
 
-delayFx :: Bpm -> ParamMap -> Sig2 -> SE Sig2
-delayFx bpm params ins = undefined
+delayFx :: Bpm -> ParamMap -> DelayConfig -> Sig2 -> SE Sig2
+delayFx (Bpm readBpm) params config ins = do
+  bpm <- toD . ir <$> readBpm
+  dryWet <- param "dryWet"
+  feedback <- param "feedback"
+  damp <- param "damp"
+  let
+    time = toSig (toDelayTime bpm (float config.repeatTime))
+  pure $ at (analogDelay dryWet time feedback damp) ins
+  where
+    param = readParam params
 
-pingPongFx :: PingPongConfig -> Sig2 -> SE Sig2
-pingPongFx = undefined
+toDelayTime :: D -> D -> D
+toDelayTime bpm beats = beats * 60 / bpm
+
+pingPongFx :: Bpm -> ParamMap -> PingPongConfig -> Sig2 -> SE Sig2
+pingPongFx (Bpm readBpm) params config ins = do
+  bpm <- toD . ir <$> readBpm
+  dryWet <- param "dryWet"
+  feedback <- param "feedback"
+  width <- param "width"
+  damp <- param "damp"
+  let
+    time = toDelayTime bpm (float config.repeatTime)
+  pure $ pingPongDelay ins (toSig time) feedback dryWet width damp (time * 2)
+  where
+    param = readParam params
 
 moogFx :: ParamMap -> Sig2 -> SE Sig2
 moogFx params ins = do
@@ -203,8 +226,6 @@ moogFx params ins = do
   pure $ mixAt dryWet (moogvcf2 cutoff resonance) ins
   where
     param = readParam params
-
--- mixAt (float config.dryWet) (moogvcf2 (float config.cutoff) (float config.resonance)) ins
 
 korgFx :: ParamMap -> Sig2 -> SE Sig2
 korgFx params ins = do

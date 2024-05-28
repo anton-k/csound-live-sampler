@@ -11,23 +11,64 @@ mixer:
     - volume: 1
     - volume: 1
 fxs:
-  - input: masterFx
+  - input:
+      channelFx:
+        channel: 1
     chain:
-      - name: master-cuts
+      - name: drum-delay-1
         fx:
-          bbcut:
-            subdiv: 1
-            barlength: 2
-            phrasebars: 1
-            numrepeats: 8
-            dryWet: 1
+          delay:
+            repeatTime: 0.5
+            damp: 0.8
+            feedback: 0.2
+            dryWet: 0.0
+      - name: drum-delay-2
+        fx:
+          delay:
+            repeatTime: 1
+            damp: 0.6
+            feedback: 0.3
+            dryWet: 0.0
+      - name: drum-delay-3
+        fx:
+          delay:
+            repeatTime: 2
+            damp: 0.6
+            feedback: 0.3
+            dryWet: 0.0
+      # - name: drum-reverb
+      #  fx:
+      #    reverb:
+      #      size: 0.7
+      #      damp: 0.8
+      #      dryWet: 0.7
 
-      - name: master-reverb
-        fx:
-          reverb:
-            size: 0.7
-            dump: 12000
-            dryWet: 0.2
+              # - input: masterFx
+              # chain:
+      #      - name: master-cuts
+      #        fx:
+      #          bbcut:
+      #            subdiv: 1
+      #            barlength: 2
+      #            phrasebars: 1
+      #            numrepeats: 8
+      #            dryWet: 0
+      #
+      #      - name: master-delay
+      #        fx:
+      #          delay:
+      #            repeatTime: 0.5
+      #            damp: 0.8
+      #            feedback: 0.5
+      #            dryWet: 0.5
+      #      - name: master-reverb
+      #        fx:
+      #          reverb:
+      #            size: 0.7
+      #            damp: 0.8
+      #            dryWet: 0
+
+
 sampler:
   dir: "../tracks"
   tracks :
@@ -212,6 +253,30 @@ controllers:
       act:
         - on:
             channelVolume: 8
+
+    - when:
+        key: 18
+      act:
+        - on:
+            fxParam:
+              name: drum-delay-1
+              param: dryWet
+
+    - when:
+        key: 17
+      act:
+        - on:
+            fxParam:
+              name: drum-delay-2
+              param: dryWet
+
+    - when:
+        key: 16
+      act:
+        - on:
+            fxParam:
+              name: drum-delay-3
+              param: dryWet
 
   notes:
     - when:

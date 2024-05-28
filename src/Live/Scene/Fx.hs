@@ -3,7 +3,8 @@ module Live.Scene.Fx
   , FxDeps (..)
   , FxParams (..)
   , modifyFxParam
-  , newFxs
+  , newMasterFxs
+  , newChannelFxs
   , unitToFun
   ) where
 
@@ -35,6 +36,7 @@ type FxParamName = Text
 type ParamMap = Map FxParamName (Ref Sig)
 
 newtype FxParams = FxParams (Map FxName ParamMap)
+  deriving newtype (Semigroup, Monoid)
 
 modifyFxParam :: FxParams -> FxName -> FxParamName -> (Sig -> Sig) -> SE ()
 modifyFxParam (FxParams nameMap) name param f = do
@@ -78,6 +80,18 @@ newFxParams configs =
         param config (name, extract) = do
           ref <- newCtrlRef $ float (extract config)
           pure (name, ref)
+
+newMasterFxs :: FxDeps -> [FxConfig] -> SE FxParams
+newMasterFxs env configs = newFxs env (filter isMasterFx configs)
+
+newChannelFxs :: FxDeps -> [FxConfig] -> SE FxParams
+newChannelFxs env configs = newFxs env (filter (not . isMasterFx) configs)
+
+isMasterFx :: FxConfig -> Bool
+isMasterFx config =
+  case config.input of
+    MasterFx -> True
+    _ -> False
 
 newFxs :: FxDeps -> [FxConfig] -> SE FxParams
 newFxs env configs = do
@@ -198,12 +212,12 @@ delayFx (Bpm readBpm) params config ins = do
   damp <- param "damp"
   let
     time = toSig (toDelayTime bpm (float config.repeatTime))
-  pure $ at (analogDelay dryWet time feedback damp) ins
+  pure $ at (\x -> analogDelay x dryWet time feedback damp) ins
   where
     param = readParam params
 
 toDelayTime :: D -> D -> D
-toDelayTime bpm beats = beats * 60 / bpm
+toDelayTime bpm beats = 4 * beats * 60 / bpm
 
 pingPongFx :: Bpm -> ParamMap -> PingPongConfig -> Sig2 -> SE Sig2
 pingPongFx (Bpm readBpm) params config ins = do
@@ -235,8 +249,6 @@ korgFx params ins = do
   pure $ mixAt dryWet (k35_lpf cutoff resonance) ins
   where
     param = readParam params
-
---  mixAt (float config.dryWet) (k35_lpf (float config.cutoff) (float config.resonance)) ins
 
 bbcutFx :: Bpm -> ParamMap -> BbcutConfig -> Sig2 -> SE Sig2
 bbcutFx (Bpm readBpm) params config ain = do

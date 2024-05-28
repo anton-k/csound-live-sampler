@@ -26,7 +26,7 @@ import Csound.Core
 import Safe (atMay)
 import Live.Scene.Gen as X
 import Live.Scene.Mixer.Config as X
-import Live.Scene.Fx (FxDeps (..), newFxs, FxParams)
+import Live.Scene.Fx (FxDeps (..), newMasterFxs, newChannelFxs, FxParams)
 import Live.Scene.Fx qualified as Fx (modifyFxParam)
 import Live.Scene.Fx.Config
 import Data.Text (Text)
@@ -53,8 +53,13 @@ getChannelSize mixer =
 newMixer :: MixerConfig -> [FxConfig] -> SE Sig -> SE Mixer
 newMixer config fxConfig readBpm = do
   st <- initSt config
+  let
+    fxDeps = initFxDeps st readBpm
+  fxChannelParams <- newChannelFxs fxDeps fxConfig
   updateMasterInstrRef <- newProc (\() -> writeChannelsToMaster st)
-  fxParams <- newFxs (initFxDeps st readBpm) fxConfig
+  fxMasterParams <- newMasterFxs fxDeps fxConfig
+  let
+    fxParams = fxChannelParams <> fxMasterParams
   pure $ Mixer
     { audio =
         Gen
@@ -214,8 +219,8 @@ initFxDeps st readBpm =
   FxDeps
     { readMaster = readRef st.master.audio
     , writeMaster = writeRef st.master.audio
-    , readChannel = \n -> maybe (pure 0) (readRef . (.audio)) (st.channels `atMay` n)
-    , writeChannel = \n -> writeChannelSt st (ChannelId n)
+    , readChannel = \n -> maybe (pure 0) (readRef . (.audio)) (st.channels `atMay` (n - 1))
+    , writeChannel = \n -> writeChannelSt st (ChannelId (n - 1))
     , readBpm
     }
 

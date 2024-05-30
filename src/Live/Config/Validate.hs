@@ -4,17 +4,16 @@ module Live.Config.Validate
 
 import Control.Monad
 import Control.Monad.Writer.Strict
+import Data.Maybe
 import System.Directory
 import System.FilePath
 import Live.Config.Types
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Live.Scene.Sampler.Config
-  (SamplerConfig (..), StemConfig (..), TrackConfig (..),
-   ClipsConfig (..), ClipColumnConfig (..), ClipConfig (..),
-  )
-import Data.Foldable (asum)
 import GHC.Records
+import Live.Scene.Mixer.Config
+import Live.Scene.Fx.Config
 
 -- | Nothing if everythong is ok
 --
@@ -25,30 +24,35 @@ import GHC.Records
 -- * audio and controllers are valid
 -- * valid channels are used for stems
 validateConfig :: Config -> IO (Maybe Text)
-validateConfig config = do
-  files <- checkFiles config
-  vols <- checkVolumes config
-  audio <- checkAudio config
-  controls <- checkControllers config
-  chans <- checkChannels config
-  pure $ asum [files, vols, audio, controls, chans]
+validateConfig config = runValid $ do
+  checkFiles config
+  checkVolumes config
+  checkAudio config
+  checkControllers config
+  checkChannels config
   where
-    checkVolumes _ = pure Nothing -- TODO
-    checkAudio _ = pure Nothing -- TODO
-    checkControllers _ = pure Nothing -- TODO
-    checkChannels _ = pure Nothing -- TODO
+    checkAudio _ = pure () -- TODO
+    checkControllers _ = pure () -- TODO
 
-checkFiles :: Config -> IO (Maybe Text)
-checkFiles config = do
-  errs <- checkSamplerFiles config.sampler
-  pure $ if null errs
-    then Nothing
-    else Just (Text.unlines errs)
+-------------------------------------------------------------------------------------
+-- files
 
+checkFiles :: Config -> Valid ()
+checkFiles config =
+  checkSamplerFiles config.sampler
+
+-- | Validation monad (it accumulates error messages)
 type Valid a = WriterT [Text] IO a
 
-checkSamplerFiles :: SamplerConfig -> IO [Text]
-checkSamplerFiles config = fmap snd $ runWriterT $ do
+runValid :: Valid () -> IO (Maybe Text)
+runValid valid = do
+  errs <- execWriterT valid
+  pure $ if null errs
+    then Nothing
+    else Just (Text.unlines $ fmap (<> "\n") errs)
+
+checkSamplerFiles :: SamplerConfig -> Valid ()
+checkSamplerFiles config =
   withRoot config Nothing $ \root -> do
     mapM_ (checkTrack root) config.tracks
     mapM_ (checkClips root) config.clips
@@ -88,10 +92,10 @@ appendPath mPrefix = maybe id (</>)mPrefix
 checkClips :: Maybe FilePath -> ClipsConfig -> Valid ()
 checkClips mRoot config =
   withRoot config mRoot $ \root ->
-    mapM_ (checkClipColumn root) config.columns
+    mapM_ (checkClipColumnFiles root) config.columns
 
-checkClipColumn :: Maybe FilePath -> ClipColumnConfig -> Valid ()
-checkClipColumn mRoot config = do
+checkClipColumnFiles :: Maybe FilePath -> ClipColumnConfig -> Valid ()
+checkClipColumnFiles mRoot config = do
   withRoot config mRoot $ \root ->
     mapM_ (checkClipFile root) config.clips
 
@@ -115,3 +119,95 @@ fileDoesNotExist file =
 directoryDoesNotExist :: FilePath -> Valid ()
 directoryDoesNotExist file =
   tell $ ["Error: directory does not exist:\n    " <> Text.pack file]
+
+-------------------------------------------------------------------------------------
+-- volumes
+
+checkVolumes :: Config -> Valid ()
+checkVolumes config = do
+  checkMixerVolumes config.mixer
+  checkSamplerVolumes config.sampler
+
+checkMixerVolumes :: MixerConfig -> Valid ()
+checkMixerVolumes config = do
+  checkMasterVolume config.master
+  mapM_ checkChannelVolume config.channels
+  where
+    checkMasterVolume :: MasterConfig -> Valid ()
+    checkMasterVolume master = do
+      checkVolume master.volume
+      mapM_ checkVolume master.gain
+
+    checkChannelVolume :: ChannelConfig -> Valid ()
+    checkChannelVolume channel = do
+      checkVolume channel.volume
+      mapM_ checkVolume channel.gain
+
+checkSamplerVolumes :: SamplerConfig -> Valid ()
+checkSamplerVolumes config = do
+  mapM_ checkTrackVolume config.tracks
+  mapM_ checkClipsVolume config.clips
+  where
+    checkTrackVolume :: TrackConfig -> Valid ()
+    checkTrackVolume track = do
+      mapM_ checkVolume track.gain
+      mapM_ checkStemVolume track.stems
+
+    checkClipsVolume :: ClipsConfig -> Valid ()
+    checkClipsVolume clips = do
+      mapM_ checkClipColumnVolume clips.columns
+
+    checkStemVolume :: StemConfig -> Valid ()
+    checkStemVolume stem = do
+      mapM_ checkVolume stem.volume
+      mapM_ checkVolume stem.gain
+
+    checkClipColumnVolume :: ClipColumnConfig -> Valid ()
+    checkClipColumnVolume column = do
+      mapM_ checkVolume column.gain
+      mapM_ checkClipVolume column.clips
+
+    checkClipVolume :: ClipConfig -> Valid ()
+    checkClipVolume clip =
+      mapM_ checkVolume clip.gain
+
+checkVolume :: Float -> Valid ()
+checkVolume vol
+  | vol >= 0 && vol <= maxAllowedVolume = pure ()
+  | otherwise = tell ["Error: volume out of range: " <> Text.pack (show vol)]
+
+maxAllowedVolume :: Float
+maxAllowedVolume = 10
+
+-------------------------------------------------------------------------------------
+-- channels
+
+checkChannels :: Config -> Valid ()
+checkChannels config = do
+  checkSamplerChannels config.sampler
+  mapM_ checkFxChannels config.fxs
+
+checkSamplerChannels :: SamplerConfig -> Valid ()
+checkSamplerChannels config = do
+  mapM_ checkStem $ (.stems) =<< config.tracks
+  mapM_ (uncurry checkClipColumn) $ zip [1..] $ (.columns) =<< maybeToList config.clips
+  where
+    checkStem :: StemConfig -> Valid ()
+    checkStem stem =
+      checkChannel ("stem " <> Text.pack stem.file) stem.channel
+
+    checkClipColumn :: Int -> ClipColumnConfig -> Valid ()
+    checkClipColumn index column = do
+      mapM_ (checkChannel $ "Clip column at " <> Text.pack (show index)) column.channel
+      mapM_ checkClip column.clips
+
+    checkClip :: ClipConfig -> Valid ()
+    checkClip clip = do
+      mapM_ (checkChannel ("Clip " <> clip.name.name)) clip.channel
+
+checkFxChannels :: FxConfig -> Valid ()
+checkFxChannels = undefined
+
+checkChannel :: Text -> Int -> Valid ()
+checkChannel tag n =
+  unless (n > 0) $ tell ["Error: channel should be positive: " <> tag]

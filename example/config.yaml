@@ -131,11 +131,11 @@ sampler:
       stems:
         - file: "Arp.wav"
           channel: 4
-        - file: "MainSample.wav"
+        - file: "MainSample1.wav"
           channel: 4
         - file: "Atmo.wav"
           channel: 7
-        - file: "Percussion.wav"
+        - file: "Percussion2.wav"
           channel: 2
         - file: "Bass.wav"
           channel: 3

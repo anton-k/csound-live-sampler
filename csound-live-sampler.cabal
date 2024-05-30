@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -24,6 +24,8 @@ source-repository head
 library
   exposed-modules:
       Live.Config
+      Live.Config.Types
+      Live.Config.Validate
       Live.Scene
       Live.Scene.Fx
       Live.Scene.Fx.Config
@@ -53,6 +55,7 @@ library
       RecordWildCards
       DerivingStrategies
       StrictData
+      DataKinds
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       Boolean
@@ -61,7 +64,9 @@ library
     , bytestring
     , containers
     , csound-core
+    , directory
     , filepath
+    , mtl
     , safe
     , text
     , yaml
@@ -84,6 +89,7 @@ executable csound-live-sampler-exe
       RecordWildCards
       DerivingStrategies
       StrictData
+      DataKinds
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Boolean
@@ -93,7 +99,9 @@ executable csound-live-sampler-exe
     , containers
     , csound-core
     , csound-live-sampler
+    , directory
     , filepath
+    , mtl
     , safe
     , text
     , yaml
@@ -118,6 +126,7 @@ test-suite csound-live-sampler-test
       RecordWildCards
       DerivingStrategies
       StrictData
+      DataKinds
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Boolean
@@ -127,7 +136,9 @@ test-suite csound-live-sampler-test
     , containers
     , csound-core
     , csound-live-sampler
+    , directory
     , filepath
+    , mtl
     , safe
     , tasty
     , tasty-hunit

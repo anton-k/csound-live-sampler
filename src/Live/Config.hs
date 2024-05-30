@@ -8,11 +8,7 @@ module Live.Config
   , readConfig
   ) where
 
-import Data.Foldable (asum)
 import Data.Text (Text)
-import Data.Text qualified as Text
-import GHC.Generics (Generic)
-import Data.Aeson (ToJSON, FromJSON)
 import Data.Yaml qualified as Yaml
 import Live.Scene.Mixer.Config (MixerConfig (..))
 import Live.Scene.Midi.Config (ControllerConfig (..))
@@ -20,58 +16,24 @@ import Live.Scene.Sampler.Config
   (SamplerConfig (..), StemConfig (..), TrackConfig (..),
    ClipsConfig (..), ClipColumnConfig (..), ClipConfig (..),
   )
+import System.FilePath
+import Live.Scene.Fx.Config
 import Live.Scene.Sampler.Config qualified as SamplerConfig (SamplerConfig (..))
 import Live.Scene.Sampler.Config qualified as StemConfig (StemConfig (..))
 import Live.Scene.Sampler.Config qualified as ClipConfig (ClipConfig (..))
 import Live.Scene.Sampler.Config qualified as ClipColumnConfig (ClipColumnConfig (..))
-import System.FilePath
-import Live.Scene.Fx.Config
+import Live.Config.Types
+import Live.Config.Validate
 
-data Config = Config
-  { mixer :: MixerConfig
-  , fxs :: [FxConfig]
-  , sampler :: SamplerConfig
-  , audio :: AudioConfig
-  , controllers :: ControllerConfig
-  }
-  deriving (Generic, FromJSON, ToJSON)
-
-data AudioConfig = AudioConfig String
-  deriving (Generic, FromJSON, ToJSON)
-
-readConfig :: FilePath -> IO Config
-readConfig file = absPath <$> do
+readConfig :: FilePath -> IO (Either Text Config)
+readConfig file = fmap absPath <$> do
   config <- Yaml.decodeFileThrow file
   mErr <- validateConfig config
-  case mErr of
-    Nothing -> pure config
-    Just err -> error $ Text.unpack err
+  pure $ case mErr of
+    Nothing -> Right config
+    Just err -> Left err
   where
     absPath config = config { sampler = appendAbsPath config.sampler }
-
--- | Nothing if everythong is ok
---
--- Checks that
---
--- * all files for stems exist
--- * volumes are within useful range
--- * audio and controllers are valid
--- * valid channels are used for stems
-validateConfig :: Config -> IO (Maybe Text)
-validateConfig config = do
-  files <- checkFiles config
-  vols <- checkVolumes config
-  audio <- checkAudio config
-  controls <- checkControllers config
-  chans <- checkChannels config
-  pure $ asum [files, vols, audio, controls, chans]
-  where
-    checkFiles _ = pure Nothing -- TODO
-    checkVolumes _ = pure Nothing -- TODO
-    checkAudio _ = pure Nothing -- TODO
-    checkControllers _ = pure Nothing -- TODO
-    checkChannels _ = pure Nothing -- TODO
-
 
 appendAbsPath :: SamplerConfig -> SamplerConfig
 appendAbsPath = appendStemAbsPath . appendClipAbsPath

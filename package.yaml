@@ -29,6 +29,7 @@ default-extensions:
   - RecordWildCards
   - DerivingStrategies
   - StrictData
+  - DataKinds
 
 dependencies:
 - base >= 4.7 && < 5
@@ -41,6 +42,8 @@ dependencies:
 - safe
 - Boolean
 - containers
+- mtl
+- directory
 
 ghc-options:
 - -Wall

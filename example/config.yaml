@@ -36,6 +36,14 @@ fxs:
             damp: 0.6
             feedback: 0.3
             dryWet: 0.0
+
+      - name: drum-filter
+        fx:
+          moogFilter:
+            cutoff: 1
+            resonance: 0
+            dryWet: 1
+
       # - name: drum-reverb
       #  fx:
       #    reverb:
@@ -43,8 +51,12 @@ fxs:
       #      damp: 0.8
       #      dryWet: 0.7
 
-              # - input: masterFx
-              # chain:
+  - input: masterFx
+    chain:
+          - name: master-limiter
+            fx:
+              limiter:
+                maxVolume: 0.95
       #      - name: master-cuts
       #        fx:
       #          bbcut:
@@ -61,12 +73,12 @@ fxs:
       #            damp: 0.8
       #            feedback: 0.5
       #            dryWet: 0.5
-      #      - name: master-reverb
-      #        fx:
-      #          reverb:
-      #            size: 0.7
-      #            damp: 0.8
-      #            dryWet: 0
+          - name: master-reverb
+            fx:
+              reverb:
+                size: 0.7
+                damp: 0.8
+                dryWet: 0.3
 
 
 sampler:
@@ -277,6 +289,22 @@ controllers:
             fxParam:
               name: drum-delay-3
               param: dryWet
+
+    - when:
+        key: 22
+      act:
+        - on:
+            fxParam:
+              name: drum-filter
+              param: cutoff
+
+    - when:
+        key: 21
+      act:
+        - on:
+            fxParam:
+              name: drum-filter
+              param: resonance
 
   notes:
     - when:

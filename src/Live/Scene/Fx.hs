@@ -71,6 +71,7 @@ newFxParams configs =
         params config [("cutoff", (.cutoff)), ("resonance", (.resonance)), ("dryWet", (.dryWet))]
       BbcutFx config ->
         params config [("dryWet", (.dryWet))]
+      LimiterFx _config -> pure mempty
       where
         params :: config -> [(FxParamName, (config -> Float))] -> SE ParamMap
         params config args =
@@ -142,6 +143,7 @@ unitToFun bpm params = \case
   MoogFx _config -> moogFx params
   KorgFx _config -> korgFx params
   BbcutFx config -> bbcutFx bpm params config
+  LimiterFx config -> limiterFx config
 
 data FxRef = FxRef
   { write :: Sig2 -> SE ()
@@ -180,6 +182,7 @@ isBpmSensitive = \case
   MoogFx _ -> False
   KorgFx _ -> False
   BbcutFx _ -> True
+  LimiterFx _ -> False
 
 -------------------------------------------------------------------------------------
 -- FX units
@@ -196,13 +199,20 @@ reverbFx :: ParamMap -> Sig2 -> SE Sig2
 reverbFx params ins = do
   dryWet <- param "dryWet"
   size <- param "size"
-  damp <- rescaleDamp <$> param "damp"
+  damp <- dampParam <$> param "damp"
   pure $ mixAt dryWet (reverbsc size damp) ins
   where
     param = readParam params
 
-rescaleDamp :: Sig -> Sig
-rescaleDamp param = scale (expcurve param 4) 14000 100
+dampFrequencyRange :: Num a => (a, a)
+dampFrequencyRange = (100, 14000)
+
+dampParam :: Sig -> Sig
+dampParam = frequencyParam dampFrequencyRange
+
+frequencyParam :: (Sig, Sig) -> Sig -> Sig
+frequencyParam (minVal, maxVal) param =
+  scale (expcurve param 4) maxVal minVal
 
 delayFx :: Bpm -> ParamMap -> DelayConfig -> Sig2 -> SE Sig2
 delayFx (Bpm readBpm) params config ins = do
@@ -232,21 +242,27 @@ pingPongFx (Bpm readBpm) params config ins = do
   where
     param = readParam params
 
+cutoffFrequencyRange :: Num a => (a, a)
+cutoffFrequencyRange = (10, 20000)
+
+cutoffParam :: Sig -> Sig
+cutoffParam = frequencyParam cutoffFrequencyRange
+
 moogFx :: ParamMap -> Sig2 -> SE Sig2
 moogFx params ins = do
   dryWet <- param "dryWet"
-  cutoff <- param "cutoff"
+  cutoff <- cutoffParam <$> param "cutoff"
   resonance <- param "resonance"
-  pure $ mixAt dryWet (moogvcf2 cutoff resonance) ins
+  pure $ mixAt dryWet (\ain -> moogvcf2 ain cutoff resonance) ins
   where
     param = readParam params
 
 korgFx :: ParamMap -> Sig2 -> SE Sig2
 korgFx params ins = do
   dryWet <- param "dryWet"
-  cutoff <- param "cutoff"
+  cutoff <- cutoffParam <$> param "cutoff"
   resonance <- param "resonance"
-  pure $ mixAt dryWet (k35_lpf cutoff resonance) ins
+  pure $ mixAt dryWet (\ain -> k35_lpf ain cutoff resonance) ins
   where
     param = readParam params
 
@@ -261,3 +277,16 @@ bbcutFx (Bpm readBpm) params config ain = do
       (float config.phrasebars)
       (float config.numrepeats)
     ) ain
+
+limiterFx :: LimiterConfig -> Sig2 -> SE Sig2
+limiterFx config ins =
+  pure $ mul (float config.maxVolume) $
+    at (\ain -> compress ain ain kthresh kloknee khiknee kratio katt krel ilook) ins
+  where
+    kthresh = 0
+    kloknee = 95
+    khiknee = 95
+    kratio = 100
+    katt = 0.005
+    krel = 0.005
+    ilook = 0

@@ -50,11 +50,11 @@ prototypes:
 
 ### v2
 
-- [ ] add FX sends
+- [x] add FX sends
 
-   - configs for FXs: delay, reverb, bbcuts
+   - [x] configs for FXs: delay, reverb, bbcuts
 
-   - sends for channels
+   - [x] sends for channels
 
 - [ ] add master chain:
  
@@ -64,14 +64,18 @@ prototypes:
 
    - Limiter
 
-   - Reverb
+   - [x] Reverb
 
-   - Delay
+   - [x] Delay
 
 - [ ] add channel tools:
     - EQ
 
     - Compressor
+
+- [] pre-bar play in loops
+
+- [] midi channels
 
 ### v3
 
@@ -82,4 +86,10 @@ channel extras:
     - play stutter
 
     - PAD smooth transitions
+
+    - play random cuts
+
+    - play long samples unBPM (for PADs)
+
+    - play random snippets in style of music for airports (for PADs and ambience)
 

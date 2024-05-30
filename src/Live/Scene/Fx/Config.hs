@@ -12,6 +12,7 @@ module Live.Scene.Fx.Config
   , KorgConfig
   , ResonantFilterConfig (..)
   , BbcutConfig (..)
+  , LimiterConfig (..)
   , GroupFxConfig (..)
   , ChannelFxConfig (..)
   ) where
@@ -82,6 +83,7 @@ data FxUnit
   | MoogFx MoogConfig
   | KorgFx KorgConfig
   | BbcutFx BbcutConfig
+  | LimiterFx LimiterConfig
 
 instance ToJSON FxUnit where
   toJSON = \case
@@ -91,6 +93,7 @@ instance ToJSON FxUnit where
     MoogFx config -> object [ "moogFilter" .= config ]
     KorgFx config -> object [ "korgFilter" .= config ]
     BbcutFx config -> object [ "bbcut" .= config ]
+    LimiterFx config -> object [ "limiter" .= config ]
 
 instance FromJSON FxUnit where
   parseJSON = withObject "FxUnit" $ \obj ->
@@ -103,6 +106,7 @@ instance FromJSON FxUnit where
       <|> parseBy MoogFx "moogFilter"
       <|> parseBy KorgFx "korgFilter"
       <|> parseBy BbcutFx "bbcut"
+      <|> parseBy LimiterFx "limiter"
 
 data NamedFx a = NamedFx
   { name :: Text
@@ -141,7 +145,6 @@ type KorgConfig = ResonantFilterConfig
 data ResonantFilterConfig = ResonantFilterConfig
   { cutoff :: Float
   , resonance :: Float
-  , drive :: Float
   , dryWet :: Float
   }
   deriving (Generic, FromJSON, ToJSON)
@@ -154,3 +157,9 @@ data BbcutConfig = BbcutConfig
   , dryWet :: Float
   }
   deriving (Generic, FromJSON, ToJSON)
+
+data LimiterConfig = LimiterConfig
+  { maxVolume :: Float -- in range (0, 1), maximum volume, recommended 0.95
+  }
+  deriving (Generic, FromJSON, ToJSON)
+

@@ -127,6 +127,7 @@ checkVolumes :: Config -> Valid ()
 checkVolumes config = do
   checkMixerVolumes config.mixer
   checkSamplerVolumes config.sampler
+  mapM_ checkFxVolumes config.fxs
 
 checkMixerVolumes :: MixerConfig -> Valid ()
 checkMixerVolumes config = do
@@ -171,10 +172,19 @@ checkSamplerVolumes config = do
     checkClipVolume clip =
       mapM_ checkVolume clip.gain
 
+checkFxVolumes :: FxConfig -> Valid ()
+checkFxVolumes config =
+  case config.input of
+    GroupFx fx -> mapM_ checkFxInput fx.inputChannels
+    _ -> pure ()
+  where
+    checkFxInput :: FxChannelInput -> Valid ()
+    checkFxInput input = checkVolume input.gain
+
 checkVolume :: Float -> Valid ()
-checkVolume vol
-  | vol >= 0 && vol <= maxAllowedVolume = pure ()
-  | otherwise = tell ["Error: volume out of range: " <> Text.pack (show vol)]
+checkVolume vol =
+  unless (vol >= 0 && vol <= maxAllowedVolume) $
+    tell ["Error: volume out of range: " <> Text.pack (show vol)]
 
 maxAllowedVolume :: Float
 maxAllowedVolume = 10
@@ -206,7 +216,17 @@ checkSamplerChannels config = do
       mapM_ (checkChannel ("Clip " <> clip.name.name)) clip.channel
 
 checkFxChannels :: FxConfig -> Valid ()
-checkFxChannels = undefined
+checkFxChannels config =
+  case config.input of
+    MasterFx -> pure ()
+    ChannelFx (ChannelFxConfig channel) -> checkChannel "Fx channel" channel
+    GroupFx (GroupFxConfig ins out) -> do
+      mapM_ checkFxChannelInput ins
+      checkChannel "Group Fx output" out
+  where
+    checkFxChannelInput :: FxChannelInput -> Valid ()
+    checkFxChannelInput input =
+      checkChannel "Group Fx input" input.channel
 
 checkChannel :: Text -> Int -> Valid ()
 checkChannel tag n =

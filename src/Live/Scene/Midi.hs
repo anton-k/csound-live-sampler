@@ -2,6 +2,7 @@ module Live.Scene.Midi
   ( setupMidi
   ) where
 
+import Data.Bifunctor
 import Live.Config
 import Live.Scene.Midi.Config
 import Csound.Core hiding (Note)
@@ -156,12 +157,18 @@ toKnobAct :: Mixer -> Note -> KnobWithRange -> SE ()
 toKnobAct mixer note knob =
   case knob.on of
     SetMasterVolume -> mixer.modifyMasterVolume $
-      const (gainslider (readKnobValue note))
+      const (applyRange $ gainslider (readKnobValue note))
     SetChannelVolume n -> mixer.modifyChannelVolume (ChannelId (n - 1)) $
-      const (gainslider (readKnobValue note))
+      const (applyRange $ gainslider (readKnobValue note))
     SetFxParam config -> mixer.modifyFxParam (toFxParamId config) $
-      const (readKnobValue note / 127)
+      const (applyRange $ readKnobValue note / 127)
   where
     toFxParamId :: SetFxParamConfig -> FxParamId
     toFxParamId SetFxParamConfig{..} = FxParamId{..}
 
+    applyRange :: Sig -> Sig
+    applyRange = maybe id (rescaleUnitRangeTo . bimap float float) knob.range
+
+rescaleUnitRangeTo :: (Sig, Sig) -> Sig -> Sig
+rescaleUnitRangeTo (minVal, maxVal) x =
+  minVal + (maxVal - minVal) * x

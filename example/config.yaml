@@ -218,7 +218,8 @@ controllers:
   # mutes: [1, 4, 7, 10, 13, 16, 19, 22]
   # trackChanges: [3, 6, 9, 12, 15, 18, 21, 24]
   modifiers:
-    shift: 27
+    shift:
+      key: 27
 
   knobs:
     - when:

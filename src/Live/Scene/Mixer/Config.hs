@@ -4,23 +4,25 @@ module Live.Scene.Mixer.Config
   , ChannelConfig (..)
   ) where
 
-import Data.Aeson (FromJSON, ToJSON)
-import GHC.Generics
+import Data.Aeson.TH qualified as Json
 
 data MixerConfig = MixerConfig
   { channels :: [ChannelConfig]
   , master :: MasterConfig
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data MasterConfig = MasterConfig
   { volume :: Float
   , gain :: Maybe Float
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data ChannelConfig = ChannelConfig
   { volume :: Float
   , gain :: Maybe Float
   }
-  deriving (Generic, FromJSON, ToJSON)
+
+-- JSON instances
+
+$(Json.deriveJSON Json.defaultOptions ''ChannelConfig)
+$(Json.deriveJSON Json.defaultOptions ''MasterConfig)
+$(Json.deriveJSON Json.defaultOptions ''MixerConfig)

@@ -21,30 +21,28 @@ module Live.Scene.Midi.Config
 import Control.Applicative (Alternative (..))
 import Data.Aeson (ToJSON, FromJSON, (.=), (.:))
 import Data.Aeson qualified as Json
-import GHC.Generics (Generic)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Map.Strict (Map)
 import Live.Scene.Sampler.Config (ColumnName (..), ClipName (..))
+import Data.Aeson.TH qualified as Json
 
 data ControllerConfig = ControllerConfig
   { modifiers :: Map Text MidiModifier
   , notes :: [ActLink]
   , knobs :: [KnobLink]
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data MidiModifier = MidiModifier
   { key :: Int
   , channel :: Maybe MidiChannel
   }
-  deriving (Generic, FromJSON, ToJSON, Eq, Ord)
+  deriving (Eq, Ord)
 
 data FadersMidiConfig = FadersMidiConfig
   { master :: Int
   , channels :: [Int]
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 -- | Note numbers for the mutes
 newtype MutesMidiConfig = MutesMidiConfig [Int]
@@ -63,7 +61,6 @@ data MidiNote = MidiNote
   , press :: Maybe MidiNoteType
   , channel :: Maybe MidiChannel
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data MidiNoteType = MidiNoteOn | MidiNoteOff
 
@@ -133,13 +130,11 @@ data ActLink = ActLink
   { when :: MidiNote
   , act :: [MidiAct]
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data KnobLink = KnobLink
   { when :: MidiKnob
   , act :: [KnobWithRange]
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 newtype MidiChannel = MidiChannel Int
   deriving newtype (FromJSON, ToJSON, Eq, Ord)
@@ -149,13 +144,11 @@ data MidiKnob = MidiKnob
   , modifier :: Maybe NoteModifier
   , channel :: Maybe MidiChannel
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data KnobWithRange = KnobWithRange
   { on :: MidiKnobAct
   , range :: Maybe (Float, Float)
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data MidiKnobAct
   = SetChannelVolume Int
@@ -166,7 +159,12 @@ data SetFxParamConfig = SetFxParamConfig
   { name :: Text
   , param :: Text
   }
-  deriving (Generic, FromJSON, ToJSON)
+
+-- JSON instances
+
+$(Json.deriveJSON Json.defaultOptions ''MidiModifier)
+$(Json.deriveJSON Json.defaultOptions ''SetFxParamConfig)
+$(Json.deriveJSON Json.defaultOptions ''MidiNote)
 
 instance ToJSON MidiKnobAct where
   toJSON = \case
@@ -185,3 +183,8 @@ instance FromJSON MidiKnobAct where
         <|> getValue SetFxParam "fxParam"
     _ -> fail "Failed to parse MidiKnobAct"
 
+$(Json.deriveJSON Json.defaultOptions ''KnobWithRange)
+$(Json.deriveJSON Json.defaultOptions ''MidiKnob)
+$(Json.deriveJSON Json.defaultOptions ''KnobLink)
+$(Json.deriveJSON Json.defaultOptions ''ActLink)
+$(Json.deriveJSON Json.defaultOptions ''ControllerConfig)

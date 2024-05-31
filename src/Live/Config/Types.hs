@@ -7,8 +7,11 @@ import Live.Scene.Fx.Config
 import Live.Scene.Sampler.Config
 import Live.Scene.Mixer.Config (MixerConfig (..))
 import Live.Scene.Midi.Config (ControllerConfig (..))
-import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson.TH qualified as Json
+
+newtype AudioConfig = AudioConfig String
+  deriving newtype (FromJSON, ToJSON)
 
 data Config = Config
   { mixer :: MixerConfig
@@ -17,9 +20,7 @@ data Config = Config
   , audio :: AudioConfig
   , controllers :: ControllerConfig
   }
-  deriving (Generic, FromJSON, ToJSON)
 
-data AudioConfig = AudioConfig String
-  deriving (Generic, FromJSON, ToJSON)
+$(Json.deriveJSON Json.defaultOptions ''Config)
 
 

@@ -7,8 +7,6 @@ import Live.Scene.Midi.Config
 import Csound.Core hiding (Note)
 import Csound.Core qualified as Core
 import Data.Boolean
-import Data.IntMap.Strict (IntMap)
-import Data.IntMap.Strict qualified as IntMap
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe
@@ -16,7 +14,6 @@ import Live.Scene.Mixer
 import Live.Scene.Sampler
 import Live.Scene.Sampler.Playlist qualified as Playlist
 import Safe (atMay)
-import Control.Monad
 import Data.Containers.ListUtils qualified as List
 import Data.Text (Text)
 
@@ -36,11 +33,12 @@ setMidiActions mixer sampler config = do
       mapM_ (setMidiActLink mixer sampler config.modifiers mods note) config.notes
       mapM_ (setMidiKnobLink mixer config.modifiers mods note) config.knobs
 
-    modifierKeys :: [Int]
-    modifierKeys = List.nubOrd $ mapMaybe (fromModifier <=< (.when.modifier)) config.notes
+    modifierKeys :: [MidiModifier]
+    modifierKeys = List.nubOrd $ mapMaybe (\x -> fromModifier x.when.channel =<< x.when.modifier) config.notes
 
-    fromModifier = \case
-      NoteModifierKey n -> Just n
+    fromModifier :: Maybe MidiChannel -> NoteModifier -> Maybe MidiModifier
+    fromModifier chan = \case
+      NoteModifierKey n -> Just (MidiModifier n chan)
       NoteModifierName name -> Map.lookup name config.modifiers
 
 setMidiActLink :: Mixer -> Sampler -> ModifierNames -> ModifierMap -> Note -> ActLink -> SE ()
@@ -66,22 +64,25 @@ data Note = Note
   , data2 :: Sig
   }
 
-newtype ModifierMap = ModifierMap (IntMap BoolSig)
+newtype ModifierMap = ModifierMap (Map MidiModifier BoolSig)
 
-noModifiersPressed :: ModifierMap -> BoolSig
-noModifiersPressed (ModifierMap mods) = notB (foldr (||*) false (IntMap.elems mods))
+noModifiersPressed :: Maybe MidiChannel -> ModifierMap -> BoolSig
+noModifiersPressed mChan (ModifierMap mods) =
+  notB (foldr (||*) false (Map.elems $ Map.filterWithKey modifierIsOnChannel mods))
+  where
+    modifierIsOnChannel modifier _ = modifier.channel == mChan
 
-setModifiers :: Note -> [Int] -> SE ModifierMap
+setModifiers :: Note -> [MidiModifier] -> SE ModifierMap
 setModifiers note keys = do
   refs <- mapM (initModifier note) keys
   sigs <- mapM (fmap (==* 1) . readRef) refs
-  pure $ ModifierMap (IntMap.fromList $ zip keys sigs)
+  pure $ ModifierMap (Map.fromList $ zip keys sigs)
 
-initModifier :: Note -> Int -> SE (Ref Sig)
-initModifier note key = do
+initModifier :: Note -> MidiModifier -> SE (Ref Sig)
+initModifier note modifier = do
   ref <- newCtrlRef 0
-  when1 (note.isChange &&* hasKey note key &&* isNoteOn note) (writeRef ref 1)
-  when1 (note.isChange &&* hasKey note key &&* isNoteOff note) (writeRef ref 0)
+  when1 (note.isChange &&* withChan note modifier.channel (hasKey note modifier.key &&* isNoteOn note)) (writeRef ref 1)
+  when1 (note.isChange &&* withChan note modifier.channel (hasKey note modifier.key &&* isNoteOff note)) (writeRef ref 0)
   pure ref
 
 hasKey :: Note -> Int -> BoolSig
@@ -93,16 +94,23 @@ readKnobValue note = note.data2
 isNoteOn :: Note -> BoolSig
 isNoteOn note = note.status ==* 144
 
+withChan :: Note -> Maybe MidiChannel -> BoolSig -> BoolSig
+withChan note mChan = maybe id (\chan x -> hasChan note chan &&* x) mChan
+
+hasChan :: Note -> MidiChannel -> BoolSig
+hasChan note (MidiChannel channel) = note.chan ==* int channel
+
 isNoteOff :: Note -> BoolSig
 isNoteOff note = note.status ==* 128
 
-type ModifierNames = Map Text Int
+type ModifierNames = Map Text MidiModifier
 
 toCond :: ModifierNames -> ModifierMap -> Note -> MidiNote -> BoolSig
 toCond modNames mods actualNote expectedNote =
+  withChan actualNote expectedNote.channel $
       hasKey actualNote expectedNote.key
   &&* hasNoteType
-  &&* hasModifier modNames mods expectedNote.modifier
+  &&* hasModifier expectedNote.channel modNames mods expectedNote.modifier
   where
     hasNoteType =
       case expectedNote.press of
@@ -110,14 +118,14 @@ toCond modNames mods actualNote expectedNote =
         Just MidiNoteOn -> isNoteOn actualNote
         Just MidiNoteOff -> isNoteOff actualNote
 
-hasModifier :: ModifierNames -> ModifierMap -> Maybe NoteModifier -> BoolSig
-hasModifier modNames (ModifierMap mods) mModifier =
+hasModifier :: Maybe MidiChannel -> ModifierNames -> ModifierMap -> Maybe NoteModifier -> BoolSig
+hasModifier mChan modNames (ModifierMap mods) mModifier =
   case mModifier of
-    Nothing -> noModifiersPressed (ModifierMap mods)
-    Just (NoteModifierKey n) -> fromMaybe false (IntMap.lookup n mods)
+    Nothing -> noModifiersPressed mChan (ModifierMap mods)
+    Just (NoteModifierKey n) -> fromMaybe false (Map.lookup (MidiModifier n mChan) mods)
     Just (NoteModifierName name) -> fromMaybe false $ do
-      key <- Map.lookup name modNames
-      IntMap.lookup key mods
+      modifier <- Map.lookup name modNames
+      Map.lookup modifier mods
 
 
 toAct :: Mixer -> Sampler -> MidiAct -> SE ()
@@ -136,8 +144,9 @@ toAct mixer sampler = \case
 
 toKnobCond :: ModifierNames -> ModifierMap -> Note -> MidiKnob -> BoolSig
 toKnobCond modNames mods actualNote expectedNote =
+  withChan actualNote expectedNote.channel $
       hasKey actualNote expectedNote.key
-  &&* hasModifier modNames mods expectedNote.modifier
+  &&* hasModifier expectedNote.channel modNames mods expectedNote.modifier
   &&* isKnobStatus actualNote
 
 isKnobStatus :: Note -> BoolSig

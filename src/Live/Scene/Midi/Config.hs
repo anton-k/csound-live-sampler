@@ -9,11 +9,13 @@ module Live.Scene.Midi.Config
   , MidiNote (..)
   , MidiNoteType (..)
   , NoteModifier (..)
+  , MidiModifier (..)
   , MidiKnob (..)
   , SetFxParamConfig (..)
   , MidiKnobAct (..)
   , KnobLink (..)
   , KnobWithRange (..)
+  , MidiChannel (..)
   ) where
 
 import Control.Applicative (Alternative (..))
@@ -26,11 +28,17 @@ import Data.Map.Strict (Map)
 import Live.Scene.Sampler.Config (ColumnName (..), ClipName (..))
 
 data ControllerConfig = ControllerConfig
-  { modifiers :: Map Text Int
+  { modifiers :: Map Text MidiModifier
   , notes :: [ActLink]
   , knobs :: [KnobLink]
   }
   deriving (Generic, FromJSON, ToJSON)
+
+data MidiModifier = MidiModifier
+  { key :: Int
+  , channel :: Maybe MidiChannel
+  }
+  deriving (Generic, FromJSON, ToJSON, Eq, Ord)
 
 data FadersMidiConfig = FadersMidiConfig
   { master :: Int
@@ -53,6 +61,7 @@ data MidiNote = MidiNote
   { key :: Int
   , modifier :: Maybe NoteModifier
   , press :: Maybe MidiNoteType
+  , channel :: Maybe MidiChannel
   }
   deriving (Generic, FromJSON, ToJSON)
 
@@ -132,9 +141,13 @@ data KnobLink = KnobLink
   }
   deriving (Generic, FromJSON, ToJSON)
 
+newtype MidiChannel = MidiChannel Int
+  deriving newtype (FromJSON, ToJSON, Eq, Ord)
+
 data MidiKnob = MidiKnob
   { key :: Int
   , modifier :: Maybe NoteModifier
+  , channel :: Maybe MidiChannel
   }
   deriving (Generic, FromJSON, ToJSON)
 

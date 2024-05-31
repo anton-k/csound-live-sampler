@@ -21,14 +21,13 @@ import Data.Text (Text)
 import Control.Applicative (Alternative (..))
 import Control.Monad
 import Data.Aeson
-import GHC.Generics (Generic)
+import Data.Aeson.TH qualified as Json
 
 data FxConfig =
   FxConfig
     { input :: FxInputType
     , chain :: FxChain
     }
-  deriving (Generic, FromJSON, ToJSON)
 
 data FxInputType
   = MasterFx
@@ -42,36 +41,16 @@ data FxInputType
 data ChannelFxConfig =
   ChannelFxConfig
     { channel :: Int }
-  deriving (Generic, FromJSON, ToJSON)
 
 data GroupFxConfig = GroupFxConfig
   { inputChannels :: [FxChannelInput]
   , outputChannel :: Int
   }
-  deriving (Generic, FromJSON, ToJSON)
-
-instance ToJSON FxInputType where
-  toJSON = \case
-    MasterFx -> "masterFx"
-    ChannelFx config -> object [ "channelFx" .= config ]
-    GroupFx config -> object [ "groupFx" .= config ]
-
-instance FromJSON FxInputType where
-  parseJSON v =
-        withText "FxInputType" (\case
-          "masterFx" -> pure MasterFx
-          _ -> mzero
-        ) v
-    <|> withObject "FxInputType" (\obj ->
-              fmap ChannelFx (obj .: "channelFx")
-          <|> fmap GroupFx (obj .: "groupFx")
-        ) v
 
 data FxChannelInput = FxChannelInput
   { channel :: Int
   , gain :: Float
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 -- | Chain of effect processors
 type FxChain = [NamedFx FxUnit]
@@ -84,6 +63,65 @@ data FxUnit
   | KorgFx KorgConfig
   | BbcutFx BbcutConfig
   | LimiterFx LimiterConfig
+
+data NamedFx a = NamedFx
+  { name :: Text
+  , fx :: a
+  }
+
+data ReverbConfig = ReverbConfig
+  { size :: Float
+  , damp :: Float
+  , dryWet :: Float
+  }
+
+data DelayConfig = DelayConfig
+  { repeatTime :: Float
+  , damp :: Float
+  , feedback :: Float
+  , dryWet :: Float
+  }
+
+data PingPongConfig = PingPongConfig
+  { repeatTime :: Float
+  , damp :: Float
+  , feedback :: Float
+  , width :: Float
+  , dryWet :: Float
+  }
+
+type MoogConfig = ResonantFilterConfig
+
+type KorgConfig = ResonantFilterConfig
+
+data ResonantFilterConfig = ResonantFilterConfig
+  { cutoff :: Float
+  , resonance :: Float
+  , dryWet :: Float
+  }
+
+data BbcutConfig = BbcutConfig
+  { subdiv :: Float
+  , barlength :: Float
+  , phrasebars :: Float
+  , numrepeats :: Float
+  , dryWet :: Float
+  }
+
+data LimiterConfig = LimiterConfig
+  { maxVolume :: Float -- in range (0, 1), maximum volume, recommended 0.95
+  }
+
+-- JSON instances
+
+$(Json.deriveJSON Json.defaultOptions ''FxChannelInput)
+$(Json.deriveJSON Json.defaultOptions ''NamedFx)
+$(Json.deriveJSON Json.defaultOptions ''ReverbConfig)
+$(Json.deriveJSON Json.defaultOptions ''DelayConfig)
+$(Json.deriveJSON Json.defaultOptions ''PingPongConfig)
+$(Json.deriveJSON Json.defaultOptions ''LimiterConfig)
+$(Json.deriveJSON Json.defaultOptions ''ResonantFilterConfig)
+$(Json.deriveJSON Json.defaultOptions ''BbcutConfig)
 
 instance ToJSON FxUnit where
   toJSON = \case
@@ -108,58 +146,24 @@ instance FromJSON FxUnit where
       <|> parseBy BbcutFx "bbcut"
       <|> parseBy LimiterFx "limiter"
 
-data NamedFx a = NamedFx
-  { name :: Text
-  , fx :: a
-  }
-  deriving (Generic, FromJSON, ToJSON)
+$(Json.deriveJSON Json.defaultOptions ''ChannelFxConfig)
+$(Json.deriveJSON Json.defaultOptions ''GroupFxConfig)
 
-data ReverbConfig = ReverbConfig
-  { size :: Float
-  , damp :: Float
-  , dryWet :: Float
-  }
-  deriving (Generic, FromJSON, ToJSON)
+instance ToJSON FxInputType where
+  toJSON = \case
+    MasterFx -> "masterFx"
+    ChannelFx config -> object [ "channelFx" .= config ]
+    GroupFx config -> object [ "groupFx" .= config ]
 
-data DelayConfig = DelayConfig
-  { repeatTime :: Float
-  , damp :: Float
-  , feedback :: Float
-  , dryWet :: Float
-  }
-  deriving (Generic, FromJSON, ToJSON)
+instance FromJSON FxInputType where
+  parseJSON v =
+        withText "FxInputType" (\case
+          "masterFx" -> pure MasterFx
+          _ -> mzero
+        ) v
+    <|> withObject "FxInputType" (\obj ->
+              fmap ChannelFx (obj .: "channelFx")
+          <|> fmap GroupFx (obj .: "groupFx")
+        ) v
 
-data PingPongConfig = PingPongConfig
-  { repeatTime :: Float
-  , damp :: Float
-  , feedback :: Float
-  , width :: Float
-  , dryWet :: Float
-  }
-  deriving (Generic, FromJSON, ToJSON)
-
-type MoogConfig = ResonantFilterConfig
-
-type KorgConfig = ResonantFilterConfig
-
-data ResonantFilterConfig = ResonantFilterConfig
-  { cutoff :: Float
-  , resonance :: Float
-  , dryWet :: Float
-  }
-  deriving (Generic, FromJSON, ToJSON)
-
-data BbcutConfig = BbcutConfig
-  { subdiv :: Float
-  , barlength :: Float
-  , phrasebars :: Float
-  , numrepeats :: Float
-  , dryWet :: Float
-  }
-  deriving (Generic, FromJSON, ToJSON)
-
-data LimiterConfig = LimiterConfig
-  { maxVolume :: Float -- in range (0, 1), maximum volume, recommended 0.95
-  }
-  deriving (Generic, FromJSON, ToJSON)
-
+$(Json.deriveJSON Json.defaultOptions ''FxConfig)

@@ -30,6 +30,7 @@ default-extensions:
   - DerivingStrategies
   - StrictData
   - DataKinds
+  - TemplateHaskell
 
 dependencies:
 - base >= 4.7 && < 5

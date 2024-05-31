@@ -16,16 +16,15 @@ module Live.Scene.Sampler.Config
 
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Aeson qualified as Json
-import GHC.Generics
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Aeson.TH qualified as Json
 
 data SamplerConfig = SamplerConfig
   { tracks :: [TrackConfig]
   , clips :: Maybe ClipsConfig
   , dir :: Maybe FilePath
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data TrackConfig = TrackConfig
   { dir :: Maybe FilePath
@@ -34,7 +33,6 @@ data TrackConfig = TrackConfig
   , slots :: [TimeSlot]
   , gain :: Maybe Float
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data StemConfig = StemConfig
   { volume :: Maybe Float
@@ -42,7 +40,6 @@ data StemConfig = StemConfig
   , channel :: Int
   , gain :: Maybe Float
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data TimeSlot = TimeSlot
   { bpm :: Float
@@ -50,14 +47,12 @@ data TimeSlot = TimeSlot
   , changeRate :: Maybe Int
   , cues :: [Cue]
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data Cue = Cue
   { start :: Maybe Int
   , dur :: Int
   , nextAction :: Maybe NextAction
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data NextAction = PlayLoop | PlayNext | StopPlayback
   deriving (Show, Eq, Enum)
@@ -67,7 +62,6 @@ data ClipsConfig = ClipsConfig
   , groups :: Maybe [ClipGroupConfig]
   , dir :: Maybe FilePath
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data ClipColumnConfig = ClipColumnConfig
   { name :: ColumnName
@@ -76,7 +70,6 @@ data ClipColumnConfig = ClipColumnConfig
   , channel :: Maybe Int
   , gain :: Maybe Float
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 newtype ColumnName = ColumnName
   { name :: Text
@@ -93,7 +86,6 @@ data ClipGroupConfig = ClipGroupConfig
   { name :: Text
   , group :: [(ColumnName, ClipName)]
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data ClipConfig = ClipConfig
   { name :: ClipName
@@ -107,9 +99,10 @@ data ClipConfig = ClipConfig
   , channel :: Maybe Int
   , gain :: Maybe Float
   }
-  deriving (Generic, FromJSON, ToJSON)
 
 data ClipMode = Diskin | Loscil -- TODO: Mincer
+
+-- JSON instances
 
 instance ToJSON ClipMode where
   toJSON = \case
@@ -134,4 +127,16 @@ instance FromJSON NextAction where
     "next" -> pure PlayNext
     "stop" -> pure StopPlayback
     other -> fail $ Text.unpack ("Failed to parse: " <> other)
+
+
+$(Json.deriveJSON Json.defaultOptions ''ClipConfig)
+$(Json.deriveJSON Json.defaultOptions ''ClipGroupConfig)
+$(Json.deriveJSON Json.defaultOptions ''ClipColumnConfig)
+$(Json.deriveJSON Json.defaultOptions ''ClipsConfig)
+$(Json.deriveJSON Json.defaultOptions ''Cue)
+$(Json.deriveJSON Json.defaultOptions ''TimeSlot)
+$(Json.deriveJSON Json.defaultOptions ''StemConfig)
+$(Json.deriveJSON Json.defaultOptions ''TrackConfig)
+$(Json.deriveJSON Json.defaultOptions ''SamplerConfig)
+
 

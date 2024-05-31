@@ -56,6 +56,7 @@ library
       DerivingStrategies
       StrictData
       DataKinds
+      TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       Boolean
@@ -90,6 +91,7 @@ executable csound-live-sampler-exe
       DerivingStrategies
       StrictData
       DataKinds
+      TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Boolean
@@ -127,6 +129,7 @@ test-suite csound-live-sampler-test
       DerivingStrategies
       StrictData
       DataKinds
+      TemplateHaskell
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Boolean

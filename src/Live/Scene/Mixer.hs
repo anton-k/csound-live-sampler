@@ -26,7 +26,7 @@ import Csound.Core
 import Safe (atMay)
 import Live.Scene.Gen as X
 import Live.Scene.Mixer.Config as X
-import Live.Scene.Fx (FxDeps (..), newMasterFxs, newChannelFxs, FxParams)
+import Live.Scene.Fx (FxDeps (..), newMasterFxs, newChannelFxs, FxParams, FxName (..))
 import Live.Scene.Fx qualified as Fx (modifyFxParam)
 import Live.Scene.Fx.Config
 import Data.Text (Text)
@@ -226,4 +226,4 @@ initFxDeps st readBpm =
 
 modifyFxParamSt :: FxParams -> FxParamId -> (Sig -> Sig) -> SE ()
 modifyFxParamSt fxParams paramId f =
-  Fx.modifyFxParam fxParams paramId.name paramId.param f
+  Fx.modifyFxParam fxParams (FxName paramId.name) paramId.param f

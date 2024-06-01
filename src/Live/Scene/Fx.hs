@@ -1,6 +1,7 @@
 module Live.Scene.Fx
   ( Fx (..)
   , FxDeps (..)
+  , FxName (..)
   , FxParams (..)
   , modifyFxParam
   , newMasterFxs
@@ -35,7 +36,8 @@ data FxDeps = FxDeps
   , readBpm :: SE Sig
   }
 
-type FxName = Text
+newtype FxName = FxName { text :: Text }
+  deriving newtype (Eq, Ord, Show)
 
 newtype FxParams = FxParams (Map FxName ParamMap)
   deriving newtype (Semigroup, Monoid)
@@ -57,7 +59,7 @@ newFxParams configs =
 
     toNameMapItem :: NamedFx FxUnit -> SE (FxName, ParamMap)
     toNameMapItem unit =
-      (unit.name, ) <$> toParamMap unit.fx
+      (FxName unit.name, ) <$> toParamMap unit.fx
 
     toParamMap :: FxUnit -> SE ParamMap
     toParamMap = \case
@@ -115,7 +117,7 @@ launchFx :: FxParams -> Bpm -> FxRef -> NamedFx FxUnit -> SE (InstrRef ())
 launchFx params bpm ref unit = do
   instrId <- newProc $ \() -> do
     ins <- ref.read
-    outs <- unitToFun bpm (readParamMap unit.name params) unit.fx ins
+    outs <- unitToFun bpm (readParamMap (FxName unit.name) params) unit.fx ins
     ref.write outs
   play instrId [Note 0 (-1) ()]
   pure instrId
@@ -124,7 +126,7 @@ readParamMap :: FxName -> FxParams -> ParamMap
 readParamMap name (FxParams nameMap) =
   fromMaybe (error errMessage) (Map.lookup name nameMap)
   where
-    errMessage = "No FX unit is named with: " <> Text.unpack name
+    errMessage = "No FX unit is named with: " <> Text.unpack name.text
 
 unitToFun :: Bpm -> ParamMap -> FxUnit -> Sig2 -> SE Sig2
 unitToFun bpm params = \case

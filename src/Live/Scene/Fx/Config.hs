@@ -18,6 +18,7 @@ module Live.Scene.Fx.Config
   , EqConfig (..)
   , EqPoint (..)
   , EqMode (..)
+  , MixerEqConfig (..)
   ) where
 
 import Data.Text (Text)
@@ -67,6 +68,7 @@ data FxUnit
   | BbcutFx BbcutConfig
   | LimiterFx LimiterConfig
   | EqFx EqConfig
+  | MixerEqFx MixerEqConfig
 
 data NamedFx a = NamedFx
   { name :: Text
@@ -135,6 +137,10 @@ data EqMode
   | LowShelfEq
   | HighShelfEq
 
+data MixerEqConfig = MixerEqConfig
+  { gains :: [Float]
+  }
+
 -- JSON instances
 
 $(Json.deriveJSON Json.defaultOptions ''FxChannelInput)
@@ -148,6 +154,7 @@ $(Json.deriveJSON Json.defaultOptions ''BbcutConfig)
 $(Json.deriveJSON Json.defaultOptions ''EqMode)
 $(Json.deriveJSON Json.defaultOptions ''EqPoint)
 $(Json.deriveJSON Json.defaultOptions ''EqConfig)
+$(Json.deriveJSON Json.defaultOptions ''MixerEqConfig)
 
 instance ToJSON FxUnit where
   toJSON = \case
@@ -159,6 +166,7 @@ instance ToJSON FxUnit where
     BbcutFx config -> object [ "bbcut" .= config ]
     LimiterFx config -> object [ "limiter" .= config ]
     EqFx config -> object [ "eq" .= config ]
+    MixerEqFx config -> object [ "mixerEq" .= config ]
 
 instance FromJSON FxUnit where
   parseJSON = withObject "FxUnit" $ \obj ->
@@ -173,6 +181,7 @@ instance FromJSON FxUnit where
       <|> parseBy BbcutFx "bbcut"
       <|> parseBy LimiterFx "limiter"
       <|> parseBy EqFx "eq"
+      <|> parseBy MixerEqFx "mixerEq"
 
 $(Json.deriveJSON Json.defaultOptions ''ChannelFxConfig)
 $(Json.deriveJSON Json.defaultOptions ''GroupFxConfig)

@@ -29,6 +29,13 @@ library
       Live.Scene
       Live.Scene.Fx
       Live.Scene.Fx.Config
+      Live.Scene.Fx.Unit
+      Live.Scene.Fx.Unit.Bbcuts
+      Live.Scene.Fx.Unit.Compress
+      Live.Scene.Fx.Unit.Delay
+      Live.Scene.Fx.Unit.Eq
+      Live.Scene.Fx.Unit.Filter
+      Live.Scene.Fx.Unit.Reverb
       Live.Scene.Gen
       Live.Scene.Midi
       Live.Scene.Midi.Config

@@ -73,12 +73,12 @@ fxs:
       #            damp: 0.8
       #            feedback: 0.5
       #            dryWet: 0.5
-          - name: master-reverb
-            fx:
-              reverb:
-                size: 0.7
-                damp: 0.8
-                dryWet: 0.3
+      #    - name: master-reverb
+      #      fx:
+      #        reverb:
+      #          size: 0.7
+      #          damp: 0.8
+      #          dryWet: 0.3
 
 
 sampler:

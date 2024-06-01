@@ -1,5 +1,5 @@
 module Live.Config.Validate
-  ( validateConfig
+  ( checkConfig
   ) where
 
 import Control.Monad
@@ -15,14 +15,19 @@ import GHC.Records
 import Live.Scene.Mixer.Config
 import Live.Scene.Fx.Config
 
--- | Nothing if everythong is ok
---
--- Checks that
+-- | Checks that
 --
 -- * all files for stems exist
 -- * volumes are within useful range
 -- * audio and controllers are valid
 -- * valid channels are used for stems
+checkConfig :: Config -> IO (Either Text Config)
+checkConfig config = do
+  mErr <- validateConfig config
+  pure $ case mErr of
+    Nothing -> Right config
+    Just err -> Left err
+
 validateConfig :: Config -> IO (Maybe Text)
 validateConfig config = runValid $ do
   checkFiles config

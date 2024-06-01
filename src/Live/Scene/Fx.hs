@@ -8,6 +8,7 @@ module Live.Scene.Fx
   , unitToFun
   ) where
 
+import Control.Monad
 import Live.Scene.Fx.Config
 import Data.Boolean ((==*))
 import Csound.Core
@@ -72,6 +73,8 @@ newFxParams configs =
       BbcutFx config ->
         params config [("dryWet", (.dryWet))]
       LimiterFx _config -> pure mempty
+      EqFx config ->
+        params config $ eqPointParams =<< [0..]
       where
         params :: config -> [(FxParamName, (config -> Float))] -> SE ParamMap
         params config args =
@@ -82,11 +85,22 @@ newFxParams configs =
           ref <- newCtrlRef $ float (extract config)
           pure (name, ref)
 
+        eqPointParams :: Int -> [(FxParamName, (EqConfig -> Float))]
+        eqPointParams index =
+          [ (nameIndex "frequency", \config -> (config.points !! index).frequency)
+          , (nameIndex "gain", \config -> (config.points !! index).gain)
+          , (nameIndex "width", \config -> fromMaybe 0 (config.points !! index).width)
+          ]
+          where
+            nameIndex name = name <> Text.pack (show (index + 1))
+
 newMasterFxs :: FxDeps -> [FxConfig] -> SE FxParams
-newMasterFxs env configs = newFxs env (filter isMasterFx configs)
+newMasterFxs env configs =
+  newFxs env (filter isMasterFx configs)
 
 newChannelFxs :: FxDeps -> [FxConfig] -> SE FxParams
-newChannelFxs env configs = newFxs env (filter (not . isMasterFx) configs)
+newChannelFxs env configs =
+  newFxs env (filter (not . isMasterFx) configs)
 
 isMasterFx :: FxConfig -> Bool
 isMasterFx config =
@@ -144,6 +158,7 @@ unitToFun bpm params = \case
   KorgFx _config -> korgFx params
   BbcutFx config -> bbcutFx bpm params config
   LimiterFx config -> limiterFx config
+  EqFx config -> eqFx params config
 
 data FxRef = FxRef
   { write :: Sig2 -> SE ()
@@ -183,6 +198,7 @@ isBpmSensitive = \case
   KorgFx _ -> False
   BbcutFx _ -> True
   LimiterFx _ -> False
+  EqFx _ -> False
 
 -------------------------------------------------------------------------------------
 -- FX units
@@ -290,3 +306,33 @@ limiterFx config ins =
     katt = 0.005
     krel = 0.005
     ilook = 0
+
+eqFx :: ParamMap -> EqConfig -> Sig2 -> SE Sig2
+eqFx params config inputs =
+  at eqUnit inputs
+  where
+    eqUnit :: Sig -> SE Sig
+    eqUnit = foldr (>=>) pure $ zipWith applyPoint [1..] config.points
+
+    applyPoint :: Int -> EqPoint -> Sig -> SE Sig
+    applyPoint index point ain = do
+      args <- readEqPointSig params index
+      pure $ applyEq point.mode args ain
+
+data EqPointSig = EqPointSig
+  { frequency :: Sig
+  , gain :: Sig
+  , width :: Sig
+  }
+
+readEqPointSig :: ParamMap -> Int -> SE EqPointSig
+readEqPointSig params index = do
+  frequency <- param "frequency"
+  gain <- param "gain"
+  width <- param "width"
+  pure EqPointSig { frequency, gain, width }
+  where
+    param name = readParam params (name <> Text.pack (show index))
+
+applyEq :: EqMode -> EqPointSig -> Sig -> Sig
+applyEq = undefined

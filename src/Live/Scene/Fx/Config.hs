@@ -15,6 +15,9 @@ module Live.Scene.Fx.Config
   , LimiterConfig (..)
   , GroupFxConfig (..)
   , ChannelFxConfig (..)
+  , EqConfig (..)
+  , EqPoint (..)
+  , EqMode (..)
   ) where
 
 import Data.Text (Text)
@@ -63,6 +66,7 @@ data FxUnit
   | KorgFx KorgConfig
   | BbcutFx BbcutConfig
   | LimiterFx LimiterConfig
+  | EqFx EqConfig
 
 data NamedFx a = NamedFx
   { name :: Text
@@ -112,6 +116,25 @@ data LimiterConfig = LimiterConfig
   { maxVolume :: Float -- in range (0, 1), maximum volume, recommended 0.95
   }
 
+newtype EqConfig = EqConfig
+  { points :: [EqPoint]
+  }
+
+data EqPoint = EqPoint
+  { mode :: EqMode
+  , frequency :: Float
+  , gain :: Float
+  , width :: Maybe Float
+  }
+
+data EqMode
+  = LowPassEq
+  | HighPassEq
+  | BandPassEq
+  | NotchEq
+  | LowShelfEq
+  | HighShelfEq
+
 -- JSON instances
 
 $(Json.deriveJSON Json.defaultOptions ''FxChannelInput)
@@ -122,6 +145,9 @@ $(Json.deriveJSON Json.defaultOptions ''PingPongConfig)
 $(Json.deriveJSON Json.defaultOptions ''LimiterConfig)
 $(Json.deriveJSON Json.defaultOptions ''ResonantFilterConfig)
 $(Json.deriveJSON Json.defaultOptions ''BbcutConfig)
+$(Json.deriveJSON Json.defaultOptions ''EqMode)
+$(Json.deriveJSON Json.defaultOptions ''EqPoint)
+$(Json.deriveJSON Json.defaultOptions ''EqConfig)
 
 instance ToJSON FxUnit where
   toJSON = \case
@@ -132,6 +158,7 @@ instance ToJSON FxUnit where
     KorgFx config -> object [ "korgFilter" .= config ]
     BbcutFx config -> object [ "bbcut" .= config ]
     LimiterFx config -> object [ "limiter" .= config ]
+    EqFx config -> object [ "eq" .= config ]
 
 instance FromJSON FxUnit where
   parseJSON = withObject "FxUnit" $ \obj ->
@@ -145,6 +172,7 @@ instance FromJSON FxUnit where
       <|> parseBy KorgFx "korgFilter"
       <|> parseBy BbcutFx "bbcut"
       <|> parseBy LimiterFx "limiter"
+      <|> parseBy EqFx "eq"
 
 $(Json.deriveJSON Json.defaultOptions ''ChannelFxConfig)
 $(Json.deriveJSON Json.defaultOptions ''GroupFxConfig)

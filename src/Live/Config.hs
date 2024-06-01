@@ -28,10 +28,7 @@ import Live.Config.Validate
 readConfig :: FilePath -> IO (Either Text Config)
 readConfig file = fmap absPath <$> do
   config <- Yaml.decodeFileThrow file
-  mErr <- validateConfig config
-  pure $ case mErr of
-    Nothing -> Right config
-    Just err -> Left err
+  checkConfig config
   where
     absPath config = config { sampler = appendAbsPath config.sampler }
 

@@ -118,8 +118,9 @@ data LimiterConfig = LimiterConfig
   { maxVolume :: Float -- in range (0, 1), maximum volume, recommended 0.95
   }
 
-newtype EqConfig = EqConfig
+data EqConfig = EqConfig
   { points :: [EqPoint]
+  , maxGainDb:: Maybe Float -- if nothing then 12 dB
   }
 
 data EqPoint = EqPoint
@@ -130,15 +131,14 @@ data EqPoint = EqPoint
   }
 
 data EqMode
-  = LowPassEq
-  | HighPassEq
-  | BandPassEq
-  | NotchEq
+  = BandPassEq
   | LowShelfEq
   | HighShelfEq
 
 data MixerEqConfig = MixerEqConfig
   { gains :: [Float]
+  , frequencies :: [Float]
+  , maxGainDb :: Maybe Float
   }
 
 -- JSON instances

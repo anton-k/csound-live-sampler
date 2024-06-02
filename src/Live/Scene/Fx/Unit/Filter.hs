@@ -1,6 +1,7 @@
 module Live.Scene.Fx.Unit.Filter
   ( moogUnit
   , korgUnit
+  , cutoffParam
   ) where
 
 import Live.Scene.Fx.Unit

@@ -11,6 +11,7 @@ import Data.List qualified as List
 import Data.Monoid (Endo (..))
 import Control.Monad
 import Data.Maybe
+import Live.Scene.Fx.Unit.Filter (cutoffParam)
 
 -- * Parametric EQ
 
@@ -37,8 +38,10 @@ eqParams config =
 
 eqFx :: ParamMap -> EqConfig -> Sig2 -> SE Sig2
 eqFx params config inputs = do
-  args <- zipWithM (\index point -> readEqPointSig point.mode params index) [1..] config.points
+  args <- zipWithM (\index point -> readEqPointSig maxGainDb point.mode params index) [1..] config.points
   pure $ at (applyEqs args) inputs
+  where
+    maxGainDb = float $ fromMaybe defMaxGainDb config.maxGainDb
 
 -- * Mixer EQ
 
@@ -67,21 +70,38 @@ data EqArgs = EqArgs
   , width :: Sig
   }
 
-readEqPointSig :: EqMode -> ParamMap -> Int -> SE EqArgs
-readEqPointSig mode params index = do
-  frequency <- param "frequency"
-  gain <- param "gain"
+readEqPointSig :: Sig -> EqMode -> ParamMap -> Int -> SE EqArgs
+readEqPointSig maxGainDb mode params index = do
+  frequency <- cutoffParam <$> param "frequency"
+  gain <- scaleEqGain maxGainDb <$> param "gain"
   width <- param "width"
   pure EqArgs { frequency, gain, width, mode }
   where
     param name = readParam params (name <> Text.pack (show index))
 
 applyEq :: EqArgs -> Sig -> Sig
-applyEq = undefined
+applyEq args input =
+  pareq input args.frequency args.gain args.width `withD` imode
+    where
+    imode =
+      case args.mode of
+        BandPassEq -> 0
+        LowShelfEq -> 1
+        HighShelfEq -> 2
+
+defMaxGainDb :: Float
+defMaxGainDb = 12
+
+-- | Rescale from unit range to pareq gain
+scaleEqGain :: Sig -> Sig -> Sig
+scaleEqGain maxGainDb unit =
+  ampdb (bipolar * maxGainDb)
+  where
+    bipolar = 2 * unit - 1
 
 mixerEqFx :: ParamMap -> MixerEqConfig -> Sig2 -> SE Sig2
 mixerEqFx params config input = do
-  gains <- mapM (param "gain") [1..size]
+  gains <- fmap (scaleEqGain maxGainDb) <$> mapM (param "gain") [1..size]
   let
     args = List.zipWith4
       (\frequency width gain mode ->
@@ -96,7 +116,9 @@ mixerEqFx params config input = do
   where
     size = length config.gains
 
-    frequencies = mixerEqFrequencies size
+    maxGainDb = float $ fromMaybe defMaxGainDb config.maxGainDb
+
+    frequencies = config.frequencies
 
     widths = mixerEqWidths size
 
@@ -108,11 +130,8 @@ applyEqs :: [EqArgs] -> Sig -> Sig
 applyEqs args =
   appEndo $ foldMap (Endo . applyEq) args
 
-mixerEqFrequencies :: Int -> [Float]
-mixerEqFrequencies = undefined
-
 mixerEqWidths :: Int -> [Float]
-mixerEqWidths = undefined
+mixerEqWidths n = replicate n (sqrt 0.5)
 
 -- | Produces shelves on the sides and band passes inside the interval
 mixerEqModes :: Int -> [EqMode]
@@ -120,4 +139,4 @@ mixerEqModes size =
   case size of
     n | n <= 0 -> []
     1 -> [BandPassEq]
-    _ -> LowShelfEq : replicate (size - 2) BandPassEq <> [HighPassEq]
+    _ -> LowShelfEq : replicate (size - 2) BandPassEq <> [HighShelfEq]

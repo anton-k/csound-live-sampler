@@ -2,9 +2,11 @@ module Live.Scene.Mixer.Config
   ( MixerConfig (..)
   , MasterConfig (..)
   , ChannelConfig (..)
+  , SendConfig (..)
   ) where
 
 import Data.Aeson.TH qualified as Json
+import Live.Scene.Fx.Config
 
 data MixerConfig = MixerConfig
   { channels :: [ChannelConfig]
@@ -14,15 +16,25 @@ data MixerConfig = MixerConfig
 data MasterConfig = MasterConfig
   { volume :: Float
   , gain :: Maybe Float
+  , fxs :: Maybe [FxChain]
   }
 
 data ChannelConfig = ChannelConfig
   { volume :: Float
   , gain :: Maybe Float
+  , output :: Maybe Int -- if Nothing then output to master
+  , sends :: Maybe [SendConfig]
+  , fxs :: Maybe [FxChain]
+  }
+
+data SendConfig = SendConfig
+  { channel :: Int
+  , gain :: Float
   }
 
 -- JSON instances
 
+$(Json.deriveJSON Json.defaultOptions ''SendConfig)
 $(Json.deriveJSON Json.defaultOptions ''ChannelConfig)
 $(Json.deriveJSON Json.defaultOptions ''MasterConfig)
 $(Json.deriveJSON Json.defaultOptions ''MixerConfig)

@@ -41,6 +41,7 @@ library
       Live.Scene.Midi.Config
       Live.Scene.Mixer
       Live.Scene.Mixer.Config
+      Live.Scene.Mixer.Route
       Live.Scene.Sampler
       Live.Scene.Sampler.Audio
       Live.Scene.Sampler.Config
@@ -68,6 +69,7 @@ library
   build-depends:
       Boolean
     , aeson
+    , array
     , base >=4.7 && <5
     , bytestring
     , containers
@@ -103,6 +105,7 @@ executable csound-live-sampler-exe
   build-depends:
       Boolean
     , aeson
+    , array
     , base >=4.7 && <5
     , bytestring
     , containers
@@ -141,6 +144,7 @@ test-suite csound-live-sampler-test
   build-depends:
       Boolean
     , aeson
+    , array
     , base >=4.7 && <5
     , bytestring
     , containers

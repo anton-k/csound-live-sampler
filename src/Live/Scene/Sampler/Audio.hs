@@ -188,12 +188,18 @@ toExtraClipInstrBody :: (Sig2 -> SE ()) -> ClipConfig -> (D, D) -> SE ()
 toExtraClipInstrBody writeOut config =
   case fromMaybe Diskin config.mode of
     Diskin -> diskinInstr
-    Loscil -> loscilInstr
+    Flooper -> flooperInstr
     where
       diskinInstr :: (D, D) -> SE ()
       diskinInstr (mainBpm, skipStartTime) = do
         writeOut $ withGain config.gain $
           (diskin2 (fromString config.file) `withDs` [mainBpm / float config.bpm, skipStartTime])
 
-      loscilInstr :: (D, D) -> SE ()
-      loscilInstr = undefined -- TODO
+      flooperInstr :: (D, D) -> SE ()
+      flooperInstr (mainBpm, skipStartTime) =
+        writeOut $ withGain config.gain $
+          flooper 1 (toSig icps) skipStartTime (skipStartTime + idur / icps) 0.05 itab
+        where
+          icps = mainBpm / float config.bpm
+          itab = wavs config.file 0 WavAll
+

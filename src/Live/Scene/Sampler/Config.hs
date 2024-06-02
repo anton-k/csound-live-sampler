@@ -100,19 +100,19 @@ data ClipConfig = ClipConfig
   , gain :: Maybe Float
   }
 
-data ClipMode = Diskin | Loscil -- TODO: Mincer
+data ClipMode = Diskin | Flooper -- TODO: Mincer
 
 -- JSON instances
 
 instance ToJSON ClipMode where
   toJSON = \case
     Diskin -> "diskin"
-    Loscil -> "loscil"
+    Flooper -> "flooper"
 
 instance FromJSON ClipMode where
   parseJSON = Json.withText "ClipMode" $ \case
     "diskin" -> pure Diskin
-    "loscil" -> pure Loscil
+    "flooper" -> pure Flooper
     other -> fail $ "Failed to parse: " <> Text.unpack other
 
 instance ToJSON NextAction where

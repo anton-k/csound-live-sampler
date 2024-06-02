@@ -123,6 +123,7 @@ test-suite csound-live-sampler-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Test.Route
       Test.Timing
       Paths_csound_live_sampler
   autogen-modules:

@@ -24,7 +24,7 @@ data ChannelConfig = ChannelConfig
   , gain :: Maybe Float
   , output :: Maybe Int -- if Nothing then output to master
   , sends :: Maybe [SendConfig]
-  , fxs :: Maybe [FxChain]
+  , fxs :: Maybe FxChain
   }
 
 data SendConfig = SendConfig

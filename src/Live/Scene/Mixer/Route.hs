@@ -24,6 +24,36 @@ import Data.Maybe
 import Data.List qualified as List
 import Data.Array qualified as Array
 
+data RouteGraph = RouteGraph
+  { graph :: Graph
+  , content :: IntMap RouteAct
+  }
+  deriving (Show, Eq)
+
+newtype Route = Route [GroupAct]
+  deriving (Show, Eq)
+
+newtype GroupAct = GroupAct [RouteAct]
+  deriving (Show, Eq)
+
+data RouteAct = RouteAct
+  { type_ :: RouteActType
+  , isActive :: Bool
+  , channel :: Int
+  }
+  deriving (Show, Eq)
+
+data RouteActType
+  = CopyOutput ChannelOutput
+  | ApplyFx
+  | CopySends
+  deriving (Show, Eq)
+
+data ChannelOutput
+  = ChannelOutput Int
+  | MasterOutput
+  deriving (Show, Eq)
+
 route :: MixerConfig -> Route
 route config = Route $ toGroupActs sortedActs
   where
@@ -49,7 +79,7 @@ toGroupActs acts =
 toRouteGraph :: MixerConfig -> RouteGraph
 toRouteGraph config =
   RouteGraph
-    { graph = Array.array (0, length config.channels * 3) $ fmap (second snd) $ List.sortOn fst vertices
+    { graph = Array.array (0, length config.channels * 3 - 1) $ fmap (second snd) $ List.sortOn fst vertices
     , content = fst <$> IntMap.fromList vertices
     }
   where
@@ -122,28 +152,4 @@ channelToVertices channelIndex config =
     toCopyOutpIndex :: Int -> Int
     toCopyOutpIndex channel = 3 * channel + 2
 
-data RouteGraph = RouteGraph
-  { graph :: Graph
-  , content :: IntMap RouteAct
-  }
 
-newtype Route = Route [GroupAct]
-
-newtype GroupAct = GroupAct [RouteAct]
-
-data RouteAct = RouteAct
-  { type_ :: RouteActType
-  , isActive :: Bool
-  , channel :: Int
-  }
-
-data RouteActType
-  = CopyOutput ChannelOutput
-  | ApplyFx
-  | CopySends
-  deriving (Eq)
-
-data ChannelOutput
-  = ChannelOutput Int
-  | MasterOutput
-  deriving (Eq)

@@ -3,10 +3,12 @@ module Live.Scene.Fx
   , FxDeps (..)
   , FxName (..)
   , FxParams (..)
+  , readParamMap
   , modifyFxParam
   , newMasterFxs
   , newChannelFxs
   , unitToFun
+  , Bpm (..)
   ) where
 
 import Live.Scene.Fx.Config

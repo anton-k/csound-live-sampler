@@ -4,11 +4,10 @@ module Test.Route
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Live.Scene.Mixer.Route
+import Live.Scene.Mixer.Route.DependencyGraph
 import Live.Scene.Mixer.Config
 import Live.Scene.Mixer.Config qualified as Channel (ChannelConfig (..))
 import Live.Scene.Fx.Config
-
 
 tests :: TestTree
 tests = testGroup "Routes"
@@ -20,17 +19,19 @@ tests = testGroup "Routes"
   , testCase "Group" groupChannels
   , testCase "Group two layers" groupTwoLayers
   , testCase "Group two layers and FXs and sends" groupTwoLayersSends
-  -- * sends
-  -- * groups
-  -- * groups + sends
-  -- * FXs on groups + sends
-  -- * 2-layer groups
-  -- * 2-layer groups + FXs + sends
   ]
+
+-- FX test example
+reverb :: NamedFx FxUnit
+reverb =
+  NamedFx
+    { name = "reverb"
+    , fx = ReverbFx (ReverbConfig 1 1 1)
+    }
 
 simpleChannels :: Assertion
 simpleChannels =
-  route config @?= routes
+  orderDependencies config @?= routes
   where
     config =
       MixerConfig
@@ -80,7 +81,7 @@ simpleChannels =
 
 simpleChannelsWithFx :: Assertion
 simpleChannelsWithFx =
-  route config @?= routes
+  orderDependencies config @?= routes
   where
     config =
       MixerConfig
@@ -143,7 +144,7 @@ simpleChannelsWithFx =
 
 simpleChannelsWithSends :: Assertion
 simpleChannelsWithSends =
-  route config @?= routes
+  orderDependencies config @?= routes
   where
     config =
       MixerConfig
@@ -203,7 +204,7 @@ simpleChannelsWithSends =
 
 fxBus :: Assertion
 fxBus =
-  route config @?= routes
+  orderDependencies config @?= routes
   where
     config =
       MixerConfig
@@ -277,7 +278,7 @@ fxBus =
 
 fxBus2 :: Assertion
 fxBus2 =
-  route config @?= routes
+  orderDependencies config @?= routes
   where
     config =
       MixerConfig
@@ -364,7 +365,7 @@ fxBus2 =
 
 groupChannels :: Assertion
 groupChannels =
-  route config @?= routes
+  orderDependencies config @?= routes
   where
     config =
       MixerConfig
@@ -464,7 +465,7 @@ groupChannels =
 
 groupTwoLayers :: Assertion
 groupTwoLayers =
-  route config @?= routes
+  orderDependencies config @?= routes
   where
     config =
       MixerConfig
@@ -533,7 +534,7 @@ groupTwoLayers =
 
 groupTwoLayersSends :: Assertion
 groupTwoLayersSends =
-  route config @?= routes
+  orderDependencies config @?= routes
   where
     config =
       MixerConfig
@@ -636,10 +637,3 @@ groupTwoLayersSends =
                 }
             ]
         ]
-
-reverb :: NamedFx FxUnit
-reverb =
-  NamedFx
-    { name = "reverb"
-    , fx = ReverbFx (ReverbConfig 1 1 1)
-    }

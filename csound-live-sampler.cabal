@@ -42,6 +42,7 @@ library
       Live.Scene.Mixer
       Live.Scene.Mixer.Config
       Live.Scene.Mixer.Route
+      Live.Scene.Mixer.Route.DependencyGraph
       Live.Scene.Sampler
       Live.Scene.Sampler.Audio
       Live.Scene.Sampler.Config

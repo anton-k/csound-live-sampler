@@ -1,155 +1,101 @@
--- | Orders flow of signals for channels on mixer
---
--- We need to respect this flow for each channel:
---
--- * first apply FXs
--- * second copy sends to subsequent channels
--- * third copy outputs
 module Live.Scene.Mixer.Route
-  ( Route (..)
-  , GroupAct (..)
-  , RouteAct (..)
-  , RouteActType (..)
-  , ChannelOutput (..)
-  , route
+  ( RouteCtx (..)
+  , Channel
+  , toRouteInstrBodies
   ) where
 
-import Data.Bifunctor (second)
-import Live.Scene.Mixer.Config
-import Data.Graph (Graph, Vertex)
-import Data.Graph qualified as Graph
+import Csound.Core
+import Data.Maybe
 import Data.IntMap.Strict (IntMap)
 import Data.IntMap.Strict qualified as IntMap
-import Data.Maybe
-import Data.List qualified as List
-import Data.Array qualified as Array
+import Live.Scene.Mixer.Route.DependencyGraph
+import Live.Scene.Mixer.Config
+import Live.Scene.Fx.Config
+import Live.Scene.Fx (FxName (..), FxParams, Bpm, readParamMap, unitToFun)
 
-data RouteGraph = RouteGraph
-  { graph :: Graph
-  , content :: IntMap RouteAct
+type InstrBody = SE ()
+type Channel = Int
+
+data RouteDeps = RouteDeps
+  { readChannel :: Channel -> SE Sig2
+  , readChannelGain :: Channel -> SE Sig
+  , readChannelSendGain :: Channel -> Channel -> SE Sig
+  , writeChannel :: Channel -> Sig2 -> SE ()
+  , appendChannel :: Channel -> Sig2 -> SE ()
+  , appendMaster :: Sig2 -> SE ()
   }
-  deriving (Show, Eq)
 
-newtype Route = Route [GroupAct]
-  deriving (Show, Eq)
+newtype ChannelConfigMap = ChannelConfigMap (IntMap ChannelConfig)
 
-newtype GroupAct = GroupAct [RouteAct]
-  deriving (Show, Eq)
+getConfig :: ChannelConfigMap -> Channel -> Maybe ChannelConfig
+getConfig (ChannelConfigMap configs) channel =
+  IntMap.lookup channel configs
 
-data RouteAct = RouteAct
-  { type_ :: RouteActType
-  , isActive :: Bool
-  , channel :: Int
+withConfig :: ChannelConfigMap -> Channel -> (ChannelConfig -> SE ()) -> SE ()
+withConfig configs channel cont =
+  maybe (pure ()) cont $ getConfig configs channel
+
+data RouteCtx = RouteCtx
+  { deps :: RouteDeps
+  , configs :: ChannelConfigMap
+  , bpm :: Bpm
+  , fxParams :: FxParams
   }
-  deriving (Show, Eq)
 
-data RouteActType
-  = CopyOutput ChannelOutput
-  | ApplyFx
-  | CopySends
-  deriving (Show, Eq)
-
-data ChannelOutput
-  = ChannelOutput Int
-  | MasterOutput
-  deriving (Show, Eq)
-
-route :: MixerConfig -> Route
-route config = Route $ toGroupActs sortedActs
+toRouteInstrBodies :: RouteCtx -> Route -> [InstrBody]
+toRouteInstrBodies ctx (Route groupActs) = do
+  groupAct <- groupActs
+  case extractFxAct groupAct of
+    Right channel -> applyFx ctx channel
+    Left acts -> pure $ mapM_ routeActToInstrBody acts
   where
-    routeGraph = toRouteGraph config
+    routeActToInstrBody :: RouteAct -> SE ()
+    routeActToInstrBody act =
+      case act.type_ of
+        CopyOutput _output -> copyOutputInstrBody ctx act.channel
+        CopySends -> copySends ctx act.channel
+        ApplyFx -> sequence_ $ applyFx ctx act.channel
 
-    sortedVertices = Graph.topSort routeGraph.graph
+extractFxAct :: GroupAct -> Either [RouteAct] Int
+extractFxAct (GroupAct acts) =
+  case acts of
+    [act] | act.type_ == ApplyFx -> Right act.channel
+    _ -> Left acts
 
-    sortedActs = mapMaybe (flip IntMap.lookup routeGraph.content) sortedVertices
+copyOutputInstrBody :: RouteCtx -> Channel -> SE ()
+copyOutputInstrBody ctx channel = withConfig ctx.configs channel $ \config -> do
+  gain <- ctx.deps.readChannelGain channel
+  asig <- mul gain <$> ctx.deps.readChannel channel
+  maybe
+    (ctx.deps.appendMaster asig)
+    (\output -> ctx.deps.appendChannel output asig)
+    config.output
 
--- | We can group in one procedure all actions that does not contain application
--- of FXs as each FX should be executed in it's own instrument.
-toGroupActs :: [RouteAct] -> [GroupAct]
-toGroupActs acts =
-  GroupAct <$> List.groupBy sameActs (filter (.isActive) acts)
+applyFx :: RouteCtx -> Channel -> [SE ()]
+applyFx ctx channel =
+  case getConfig ctx.configs channel of
+    Nothing -> []
+    Just config -> do
+      fx <- concat $ maybeToList config.fxs
+      let
+        fxFun = unitToFun ctx.bpm (readParamMap (FxName fx.name) ctx.fxParams) fx.fx
+      pure $ fxInstrBody ctx.deps channel fxFun
+
+fxInstrBody :: RouteDeps -> Channel -> (Sig2 -> SE Sig2) -> SE ()
+fxInstrBody RouteDeps{..} channel fun = do
+  ins <- readChannel channel
+  writeChannel channel =<< fun ins
+
+copySends :: RouteCtx -> Channel -> SE ()
+copySends ctx channel = withConfig ctx.configs channel $ \config -> do
+  maybe
+    (pure ())
+    (\sends -> do
+        asig <- ctx.deps.readChannel channel
+        mapM_ (\send -> writeSend asig send.channel) sends)
+    config.sends
   where
-    sameActs :: RouteAct -> RouteAct -> Bool
-    sameActs actA actB =
-      not (isFxAct actA || isFxAct actB)
-
-    isFxAct :: RouteAct -> Bool
-    isFxAct act = act.type_ == ApplyFx
-
-toRouteGraph :: MixerConfig -> RouteGraph
-toRouteGraph config =
-  RouteGraph
-    { graph = Array.array (0, length config.channels * 3 - 1) $ fmap (second snd) $ List.sortOn fst vertices
-    , content = fst <$> IntMap.fromList vertices
-    }
-  where
-    vertices = concat $ zipWith channelToVertices [0..] config.channels
-
--- | For every channel we produce 3 vertices:
---
--- * 1: apply fxs
--- * 2: copy sends
--- * 3: copy output
---
--- those stages are implemented in line. We add additional successors
--- for send destination channels and output channels.
---
--- Output to master produce no successor.
-channelToVertices :: Int -> ChannelConfig -> [(Vertex, (RouteAct, [Vertex]))]
-channelToVertices channelIndex config =
-  [ applyFx, copySends, copyOutput ]
-  where
-    applyFx =
-      ( toApplyFxIndex channelIndex
-      , ( RouteAct
-            { type_ = ApplyFx
-            , isActive = isJust config.fxs
-            , channel = channelIndex
-            }
-        , applyFxSuccessors
-        )
-      )
-
-    copySends =
-      ( toCopySendsIndex channelIndex
-      , ( RouteAct
-            { type_ = CopySends
-            , isActive = isJust config.sends
-            , channel = channelIndex
-            }
-        , copySendsSuccessors
-        )
-      )
-
-    copyOutput =
-      ( toCopyOutpIndex channelIndex
-      , ( RouteAct
-            { type_ = CopyOutput $ maybe MasterOutput ChannelOutput config.output
-            , isActive = True
-            , channel = channelIndex
-            }
-        , copyOutputSuccessors
-        )
-      )
-
-    applyFxSuccessors = [toCopySendsIndex channelIndex]
-
-    copySendsSuccessors =
-      toCopyOutpIndex channelIndex : fmap toApplyFxIndex sends
-      where
-        sends = fmap (.channel) $ fromMaybe [] config.sends
-
-    copyOutputSuccessors = fmap toApplyFxIndex outputs
-      where
-        outputs = maybe [] pure config.output
-
-    toApplyFxIndex :: Int -> Int
-    toApplyFxIndex channel = 3 * channel
-
-    toCopySendsIndex :: Int -> Int
-    toCopySendsIndex channel = 3 * channel + 1
-
-    toCopyOutpIndex :: Int -> Int
-    toCopyOutpIndex channel = 3 * channel + 2
-
-
+    writeSend :: Sig2 -> Channel -> SE ()
+    writeSend channelOutput send = do
+      gain <- ctx.deps.readChannelSendGain channel send
+      ctx.deps.appendChannel send (mul gain channelOutput)

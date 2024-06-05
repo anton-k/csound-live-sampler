@@ -83,7 +83,7 @@ library
     , yaml
   default-language: GHC2021
 
-executable csound-live-sampler-exe
+executable csound-live-sampler
   main-is: Main.hs
   other-modules:
       Paths_csound_live_sampler

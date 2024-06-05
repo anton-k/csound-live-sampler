@@ -33,3 +33,56 @@ The features:
    and controlled in real-time: reverb, delays, limiter, equalizer
 
 * Very efficient and low on CPU and memory usage
+
+## Installation 
+
+Top install and use this app we need to install two things:
+
+* [stack](https://docs.haskellstack.org/en/stable/#how-to-install-stack) - haskell build tool
+* [csound](https://csound.com/) - audio programming language that we use to play performance live
+
+Often those tools are available in the package manager of your system.
+After installation of the dependencies we can clone the repo
+navigate to it andbuild from sources:
+
+```
+> git clone https://github.com/anton-k/csound-live-sampler.git
+> cd csound-live-sampler
+> stack build
+> stack install
+```
+
+If you have not used haskell before for the first time it can take
+quite some time to install because it will download and install haskell compiler
+and all the dependencies. But on second run build is going to be very fast.
+
+## Usage
+
+The app expects yaml config file as input. Config file describes
+the audio scene, mixer and sampler setup which files to use etc.
+
+We can run in two modes:
+
+* render csound file and run performance:
+
+    ```
+    csound-live-sampler run --config my-config.yaml 
+    ```
+
+* just render to csound file
+
+    ```
+    csound-live-sampler write-csd --config my-config.yaml --output live.csd
+    ```
+
+The latter option is useful if we want to run the performance on another 
+computer without the need to rerender it. If the config file does not change
+we can just run generated file with csound:
+
+```
+csound live.csd
+```
+
+in the following sections we will look at how to describe live performance
+with config file. We can also find some examples at the examples directory of this repo.
+

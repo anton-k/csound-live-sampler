@@ -62,7 +62,7 @@ library:
   source-dirs: src
 
 executables:
-  csound-live-sampler-exe:
+  csound-live-sampler:
     main:                Main.hs
     source-dirs:         app
     ghc-options:

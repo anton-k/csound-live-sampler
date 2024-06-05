@@ -1,85 +1,50 @@
 mixer:
   master:
     volume: 1
+    fxs:
+      - name: master-limiter
+        fx:
+          limiter:
+            maxVolume: 0.95
   channels:
     - volume: 1
-    - volume: 1
-    - volume: 1
-    - volume: 1
-    - volume: 1
-    - volume: 1
-    - volume: 1
-    - volume: 1
-fxs:
-  - input:
-      channelFx:
-        channel: 1
-    chain:
-      - name: drum-delay-1
-        fx:
-          delay:
-            repeatTime: 0.5
-            damp: 0.8
-            feedback: 0.2
-            dryWet: 0.0
-      - name: drum-delay-2
-        fx:
-          delay:
-            repeatTime: 1
-            damp: 0.6
-            feedback: 0.3
-            dryWet: 0.0
-      - name: drum-delay-3
-        fx:
-          delay:
-            repeatTime: 2
-            damp: 0.6
-            feedback: 0.3
-            dryWet: 0.0
+      fxs:
+        - name: drum-delay-1
+          fx:
+            delay:
+              repeatTime: 0.5
+              damp: 0.8
+              feedback: 0.2
+              dryWet: 0.0
+        - name: drum-delay-2
+          fx:
+            delay:
+              repeatTime: 1
+              damp: 0.6
+              feedback: 0.3
+              dryWet: 0.0
+        - name: drum-delay-3
+          fx:
+            delay:
+              repeatTime: 2
+              damp: 0.6
+              feedback: 0.3
+              dryWet: 0.0
 
-      - name: drum-filter
-        fx:
-          moogFilter:
-            cutoff: 1
-            resonance: 0
-            dryWet: 1
+        - name: drum-filter
+          fx:
+            moogFilter:
+              cutoff: 1
+              resonance: 0
+              dryWet: 1
 
-      # - name: drum-reverb
-      #  fx:
-      #    reverb:
-      #      size: 0.7
-      #      damp: 0.8
-      #      dryWet: 0.7
-
-  - input: masterFx
-    chain:
-          - name: master-limiter
-            fx:
-              limiter:
-                maxVolume: 0.95
-      #      - name: master-cuts
-      #        fx:
-      #          bbcut:
-      #            subdiv: 1
-      #            barlength: 2
-      #            phrasebars: 1
-      #            numrepeats: 8
-      #            dryWet: 0
-      #
-      #      - name: master-delay
-      #        fx:
-      #          delay:
-      #            repeatTime: 0.5
-      #            damp: 0.8
-      #            feedback: 0.5
-      #            dryWet: 0.5
-      #    - name: master-reverb
-      #      fx:
-      #        reverb:
-      #          size: 0.7
-      #          damp: 0.8
-      #          dryWet: 0.3
-
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
 
 sampler:
   dir: "../tracks"

@@ -4,7 +4,6 @@ module Live.Config.Types
   ) where
 
 import Live.Scene.Sampler.Config
-import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Config (MixerConfig (..))
 import Live.Scene.Midi.Config (ControllerConfig (..))
 import Data.Aeson (ToJSON, FromJSON)

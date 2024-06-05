@@ -13,7 +13,6 @@ import Data.Text qualified as Text
 import Live.Scene.Sampler.Config
 import GHC.Records
 import Live.Scene.Mixer.Config
-import Live.Scene.Mixer.Fx.Config
 
 -- | Checks that
 --

@@ -7,6 +7,7 @@ module Live.Scene.Mixer.Config
 
 import Data.Aeson.TH qualified as Json
 import Live.Scene.Mixer.Fx.Config
+import Data.Text (Text)
 
 data MixerConfig = MixerConfig
   { channels :: [ChannelConfig]
@@ -25,6 +26,7 @@ data ChannelConfig = ChannelConfig
   , output :: Maybe Int -- if Nothing then output to master
   , sends :: Maybe [SendConfig]
   , fxs :: Maybe FxChain
+  , name :: Maybe Text
   }
 
 data SendConfig = SendConfig

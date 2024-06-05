@@ -54,7 +54,7 @@ navigate to it andbuild from sources:
 
 If you have not used haskell before for the first time it can take
 quite some time to install because it will download and install haskell compiler
-and all the dependencies. But on second run build is going to be very fast.
+and all the dependencies. But on second run the build is going to be very fast.
 
 ## Usage
 
@@ -83,6 +83,34 @@ we can just run generated file with csound:
 csound live.csd
 ```
 
-in the following sections we will look at how to describe live performance
+in the following sections we will look at how to describe live performances
 with config file. We can also find some examples at the examples directory of this repo.
 
+## Live performance
+
+Top-level contains configuration of several main parts of the app:
+
+```yaml
+mixer: "..."
+sampler: "..."
+controllers: "..."
+```
+
+* mixer - is an audio mixer which has channels that control balance
+   of some parts of the song (we can put on separate channels: drums, pads, voices, guitars and so on).
+   We can control volumes of the parts in real time and the result is summed
+   up to master channel which sends audio to speakers.
+
+* sampler - describes the tracks of the performance and what bpm each track has
+   and which sections we can loop and play in sequence.
+
+* controllers describes mappings from MIDI-controller of our chice
+  to parameters of performance
+
+Let's discuss confir for each of this section.
+
+### Mixer 
+
+### Sampler
+
+### Controllers

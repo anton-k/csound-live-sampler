@@ -118,7 +118,7 @@ And master channel feeds audio to speaker.
 
 Mixer config is:
 
-```
+```yaml
 mixer:
   master: "..."
   channels:

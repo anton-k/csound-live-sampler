@@ -1,9 +1,9 @@
-module Live.Scene.Fx.Unit.Compress
+module Live.Scene.Mixer.Fx.Unit.Compress
   ( limiterUnit
   ) where
 
-import Live.Scene.Fx.Unit
-import Live.Scene.Fx.Config (LimiterConfig (..))
+import Live.Scene.Mixer.Fx.Unit
+import Live.Scene.Mixer.Fx.Config (LimiterConfig (..))
 import Csound.Core
 
 limiterUnit :: Unit LimiterConfig

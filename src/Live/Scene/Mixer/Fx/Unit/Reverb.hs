@@ -1,9 +1,9 @@
-module Live.Scene.Fx.Unit.Reverb
+module Live.Scene.Mixer.Fx.Unit.Reverb
   ( reverbUnit
   ) where
 
-import Live.Scene.Fx.Unit
-import Live.Scene.Fx.Config (ReverbConfig (..))
+import Live.Scene.Mixer.Fx.Unit
+import Live.Scene.Mixer.Fx.Config (ReverbConfig (..))
 import Csound.Core
 
 reverbUnit :: Unit ReverbConfig

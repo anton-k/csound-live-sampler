@@ -1,9 +1,9 @@
-module Live.Scene.Fx.Unit.Bbcuts
+module Live.Scene.Mixer.Fx.Unit.Bbcuts
   ( bbcutUnit
   ) where
 
-import Live.Scene.Fx.Unit
-import Live.Scene.Fx.Config (BbcutConfig (..))
+import Live.Scene.Mixer.Fx.Unit
+import Live.Scene.Mixer.Fx.Config (BbcutConfig (..))
 import Csound.Core
 
 bbcutUnit :: Unit BbcutConfig

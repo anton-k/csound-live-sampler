@@ -1,11 +1,11 @@
-module Live.Scene.Fx.Unit.Delay
+module Live.Scene.Mixer.Fx.Unit.Delay
   ( delayUnit
   , pingPongUnit
   , toDelayTime
   ) where
 
-import Live.Scene.Fx.Unit
-import Live.Scene.Fx.Config (DelayConfig (..), PingPongConfig (..))
+import Live.Scene.Mixer.Fx.Unit
+import Live.Scene.Mixer.Fx.Config (DelayConfig (..), PingPongConfig (..))
 import Csound.Core
 import Csound.Core.Opcodes.Fx
 

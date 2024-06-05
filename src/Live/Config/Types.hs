@@ -3,8 +3,8 @@ module Live.Config.Types
   , AudioConfig (..)
   ) where
 
-import Live.Scene.Fx.Config
 import Live.Scene.Sampler.Config
+import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Config (MixerConfig (..))
 import Live.Scene.Midi.Config (ControllerConfig (..))
 import Data.Aeson (ToJSON, FromJSON)
@@ -15,7 +15,6 @@ newtype AudioConfig = AudioConfig String
 
 data Config = Config
   { mixer :: MixerConfig
-  , fxs :: [FxConfig]
   , sampler :: SamplerConfig
   , audio :: AudioConfig
   , controllers :: ControllerConfig

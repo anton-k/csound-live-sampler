@@ -13,7 +13,7 @@ import Data.Text qualified as Text
 import Live.Scene.Sampler.Config
 import GHC.Records
 import Live.Scene.Mixer.Config
-import Live.Scene.Fx.Config
+import Live.Scene.Mixer.Fx.Config
 
 -- | Checks that
 --
@@ -132,7 +132,6 @@ checkVolumes :: Config -> Valid ()
 checkVolumes config = do
   checkMixerVolumes config.mixer
   checkSamplerVolumes config.sampler
-  mapM_ checkFxVolumes config.fxs
 
 checkMixerVolumes :: MixerConfig -> Valid ()
 checkMixerVolumes config = do
@@ -177,15 +176,6 @@ checkSamplerVolumes config = do
     checkClipVolume clip =
       mapM_ checkVolume clip.gain
 
-checkFxVolumes :: FxConfig -> Valid ()
-checkFxVolumes config =
-  case config.input of
-    GroupFx fx -> mapM_ checkFxInput fx.inputChannels
-    _ -> pure ()
-  where
-    checkFxInput :: FxChannelInput -> Valid ()
-    checkFxInput input = checkVolume input.gain
-
 checkVolume :: Float -> Valid ()
 checkVolume vol =
   unless (vol >= 0 && vol <= maxAllowedVolume) $
@@ -200,7 +190,6 @@ maxAllowedVolume = 10
 checkChannels :: Config -> Valid ()
 checkChannels config = do
   checkSamplerChannels config.sampler
-  mapM_ checkFxChannels config.fxs
 
 checkSamplerChannels :: SamplerConfig -> Valid ()
 checkSamplerChannels config = do
@@ -219,19 +208,6 @@ checkSamplerChannels config = do
     checkClip :: ClipConfig -> Valid ()
     checkClip clip = do
       mapM_ (checkChannel ("Clip " <> clip.name.name)) clip.channel
-
-checkFxChannels :: FxConfig -> Valid ()
-checkFxChannels config =
-  case config.input of
-    MasterFx -> pure ()
-    ChannelFx (ChannelFxConfig channel) -> checkChannel "Fx channel" channel
-    GroupFx (GroupFxConfig ins out) -> do
-      mapM_ checkFxChannelInput ins
-      checkChannel "Group Fx output" out
-  where
-    checkFxChannelInput :: FxChannelInput -> Valid ()
-    checkFxChannelInput input =
-      checkChannel "Group Fx input" input.channel
 
 checkChannel :: Text -> Int -> Valid ()
 checkChannel tag n =

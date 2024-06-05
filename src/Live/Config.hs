@@ -3,7 +3,6 @@ module Live.Config
   , MixerConfig (..)
   , SamplerConfig (..)
   , ControllerConfig (..)
-  , FxConfig (..)
   , AudioConfig (..)
   , readConfig
   ) where
@@ -17,7 +16,7 @@ import Live.Scene.Sampler.Config
    ClipsConfig (..), ClipColumnConfig (..), ClipConfig (..),
   )
 import System.FilePath
-import Live.Scene.Fx.Config
+import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Sampler.Config qualified as SamplerConfig (SamplerConfig (..))
 import Live.Scene.Sampler.Config qualified as StemConfig (StemConfig (..))
 import Live.Scene.Sampler.Config qualified as ClipConfig (ClipConfig (..))

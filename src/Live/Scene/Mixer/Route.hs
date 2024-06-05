@@ -8,6 +8,7 @@ module Live.Scene.Mixer.Route
   , MixerInstrIds
   ) where
 
+import Prelude hiding (read)
 import Data.Boolean ((==*))
 import Data.Text (Text)
 import Csound.Core
@@ -18,9 +19,9 @@ import Data.IntMap.Strict (IntMap)
 import Data.IntMap.Strict qualified as IntMap
 import Live.Scene.Mixer.Route.DependencyGraph
 import Live.Scene.Mixer.Config
-import Live.Scene.Fx.Config
-import Live.Scene.Fx (FxName (..), FxParams, Bpm (..), readParamMap, unitToFun)
-import Live.Scene.Fx qualified as Fx
+import Live.Scene.Mixer.Fx.Config
+import Live.Scene.Mixer.Fx (FxName (..), FxParams, Bpm (..), readParamMap, unitToFun)
+import Live.Scene.Mixer.Fx qualified as Fx
 
 toMixerRoute :: RouteDeps -> Bpm -> MixerConfig -> SE MixerRoute
 toMixerRoute deps bpm config = do

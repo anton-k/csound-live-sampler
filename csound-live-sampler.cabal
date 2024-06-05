@@ -27,20 +27,20 @@ library
       Live.Config.Types
       Live.Config.Validate
       Live.Scene
-      Live.Scene.Fx
-      Live.Scene.Fx.Config
-      Live.Scene.Fx.Unit
-      Live.Scene.Fx.Unit.Bbcuts
-      Live.Scene.Fx.Unit.Compress
-      Live.Scene.Fx.Unit.Delay
-      Live.Scene.Fx.Unit.Eq
-      Live.Scene.Fx.Unit.Filter
-      Live.Scene.Fx.Unit.Reverb
       Live.Scene.Gen
       Live.Scene.Midi
       Live.Scene.Midi.Config
       Live.Scene.Mixer
       Live.Scene.Mixer.Config
+      Live.Scene.Mixer.Fx
+      Live.Scene.Mixer.Fx.Config
+      Live.Scene.Mixer.Fx.Unit
+      Live.Scene.Mixer.Fx.Unit.Bbcuts
+      Live.Scene.Mixer.Fx.Unit.Compress
+      Live.Scene.Mixer.Fx.Unit.Delay
+      Live.Scene.Mixer.Fx.Unit.Eq
+      Live.Scene.Mixer.Fx.Unit.Filter
+      Live.Scene.Mixer.Fx.Unit.Reverb
       Live.Scene.Mixer.Route
       Live.Scene.Mixer.Route.DependencyGraph
       Live.Scene.Sampler

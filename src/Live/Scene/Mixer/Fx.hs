@@ -1,7 +1,5 @@
-module Live.Scene.Fx
-  ( Fx (..)
-  , FxDeps (..)
-  , FxName (..)
+module Live.Scene.Mixer.Fx
+  ( FxName (..)
   , FxParams (..)
   , readParamMap
   , modifyFxParam
@@ -12,32 +10,21 @@ module Live.Scene.Fx
   , newFxParams
   ) where
 
-import Live.Scene.Fx.Config
-import Data.Boolean ((==*))
+import Prelude hiding (read)
+import Live.Scene.Mixer.Fx.Config
 import Csound.Core
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Maybe
-import Live.Scene.Fx.Unit
-import Live.Scene.Fx.Unit.Reverb (reverbUnit)
-import Live.Scene.Fx.Unit.Delay (delayUnit, pingPongUnit)
-import Live.Scene.Fx.Unit.Filter (moogUnit, korgUnit)
-import Live.Scene.Fx.Unit.Eq (eqUnit, mixerEqUnit)
-import Live.Scene.Fx.Unit.Compress (limiterUnit)
-import Live.Scene.Fx.Unit.Bbcuts (bbcutUnit)
-
-data Fx = Fx FxConfig
-
--- | Connects FX-processor with the mixer
-data FxDeps = FxDeps
-  { readChannel :: Int -> SE Sig2
-  , writeChannel :: Int -> Sig2 -> SE ()
-  , readMaster :: SE Sig2
-  , writeMaster :: Sig2 -> SE ()
-  , readBpm :: SE Sig
-  }
+import Live.Scene.Mixer.Fx.Unit
+import Live.Scene.Mixer.Fx.Unit.Reverb (reverbUnit)
+import Live.Scene.Mixer.Fx.Unit.Delay (delayUnit, pingPongUnit)
+import Live.Scene.Mixer.Fx.Unit.Filter (moogUnit, korgUnit)
+import Live.Scene.Mixer.Fx.Unit.Eq (eqUnit, mixerEqUnit)
+import Live.Scene.Mixer.Fx.Unit.Compress (limiterUnit)
+import Live.Scene.Mixer.Fx.Unit.Bbcuts (bbcutUnit)
 
 newtype FxName = FxName { text :: Text }
   deriving newtype (Eq, Ord, Show)
@@ -73,35 +60,6 @@ toFxParamMap = \case
   EqFx config -> eqUnit.getParams config
   MixerEqFx config -> mixerEqUnit.getParams config
 
-
-reloadOnBpmChange :: FxDeps -> [InstrRef ()] -> SE ()
-reloadOnBpmChange env instrRefs = do
-  bpm <- env.readBpm
-  when1 (changed [bpm] ==* 1) $
-    mapM_ restartFxInstr instrRefs
-
-restartFxInstr :: InstrRef () -> SE ()
-restartFxInstr instrId = do
-  turnoff2 instrId 0 0.25
-  play instrId [Note 0 (-1) ()]
-
--- | It returns instrument ids which should be reloaded on change of the global BPM
-newFx :: FxParams -> FxDeps -> FxConfig -> SE [InstrRef ()]
-newFx params env config = do
-  let
-    ref = newFxRef env config.input
-  instrIds <- mapM (\x -> (x.fx, ) <$> launchFx params (Bpm env.readBpm) ref x) config.chain
-  pure $ fmap snd $ filter (isBpmSensitive . fst) instrIds
-
-launchFx :: FxParams -> Bpm -> FxRef -> NamedFx FxUnit -> SE (InstrRef ())
-launchFx params bpm ref unit = do
-  instrId <- newProc $ \() -> do
-    ins <- ref.read
-    outs <- unitToFun bpm (readParamMap (FxName unit.name) params) unit.fx ins
-    ref.write outs
-  play instrId [Note 0 (-1) ()]
-  pure instrId
-
 readParamMap :: FxName -> FxParams -> ParamMap
 readParamMap name (FxParams nameMap) =
   fromMaybe (error errMessage) (Map.lookup name nameMap)
@@ -119,35 +77,6 @@ unitToFun bpm params = \case
   LimiterFx config -> limiterUnit.apply bpm params config
   EqFx config -> eqUnit.apply bpm params config
   MixerEqFx config -> mixerEqUnit.apply bpm params config
-
-data FxRef = FxRef
-  { write :: Sig2 -> SE ()
-  , read :: SE Sig2
-  }
-
-newFxRef :: FxDeps -> FxInputType -> FxRef
-newFxRef env = \case
-  MasterFx ->
-    FxRef
-      { write = env.writeMaster
-      , read = env.readMaster
-      }
-
-  ChannelFx (ChannelFxConfig channelId) ->
-    FxRef
-      { write = env.writeChannel channelId
-      , read = env.readChannel channelId
-      }
-
-  GroupFx (GroupFxConfig ins out) ->
-    FxRef
-      { write = env.writeChannel out
-      , read = fmap sum $ mapM (readFxGroupInput env) ins
-      }
-
-readFxGroupInput :: FxDeps -> FxChannelInput -> SE Sig2
-readFxGroupInput env input =
-  fmap (mul $ float @Sig input.gain) $ env.readChannel input.channel
 
 isBpmSensitive :: FxUnit -> Bool
 isBpmSensitive = \case

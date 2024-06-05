@@ -1,11 +1,11 @@
-module Live.Scene.Fx.Unit.Filter
+module Live.Scene.Mixer.Fx.Unit.Filter
   ( moogUnit
   , korgUnit
   , cutoffParam
   ) where
 
-import Live.Scene.Fx.Unit
-import Live.Scene.Fx.Config (MoogConfig, KorgConfig, ResonantFilterConfig (..))
+import Live.Scene.Mixer.Fx.Unit
+import Live.Scene.Mixer.Fx.Config (MoogConfig, KorgConfig, ResonantFilterConfig (..))
 import Csound.Core
 
 moogUnit :: Unit MoogConfig

@@ -1,4 +1,4 @@
-module Live.Scene.Fx.Unit
+module Live.Scene.Mixer.Fx.Unit
   ( Unit (..)
   , FxParamName
   , ParamMap

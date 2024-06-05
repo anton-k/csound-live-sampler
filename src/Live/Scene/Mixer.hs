@@ -26,7 +26,7 @@ import Csound.Core
 import Safe (atMay)
 import Live.Scene.Gen as X
 import Live.Scene.Mixer.Config as X
-import Live.Scene.Fx (Bpm (..))
+import Live.Scene.Mixer.Fx (Bpm (..))
 import Live.Scene.Mixer.Route
   ( FxParamId (..)
   , RouteDeps (..)

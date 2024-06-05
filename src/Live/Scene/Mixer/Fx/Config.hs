@@ -1,8 +1,5 @@
-module Live.Scene.Fx.Config
-  ( FxConfig (..)
-  , FxInputType (..)
-  , FxChannelInput (..)
-  , FxChain
+module Live.Scene.Mixer.Fx.Config
+  ( FxChain
   , FxUnit (..)
   , NamedFx (..)
   , ReverbConfig (..)
@@ -13,8 +10,6 @@ module Live.Scene.Fx.Config
   , ResonantFilterConfig (..)
   , BbcutConfig (..)
   , LimiterConfig (..)
-  , GroupFxConfig (..)
-  , ChannelFxConfig (..)
   , EqConfig (..)
   , EqPoint (..)
   , EqMode (..)
@@ -23,38 +18,8 @@ module Live.Scene.Fx.Config
 
 import Data.Text (Text)
 import Control.Applicative (Alternative (..))
-import Control.Monad
 import Data.Aeson
 import Data.Aeson.TH qualified as Json
-
-data FxConfig =
-  FxConfig
-    { input :: FxInputType
-    , chain :: FxChain
-    }
-
-data FxInputType
-  = MasterFx
-    -- ^ FX is applied to master channel
-  | ChannelFx ChannelFxConfig
-    -- ^ FX is applied to a single channel
-  | GroupFx GroupFxConfig
-    -- ^ FX reads several channels with gain inputs and produces result
-    -- on separate channel
-
-data ChannelFxConfig =
-  ChannelFxConfig
-    { channel :: Int }
-
-data GroupFxConfig = GroupFxConfig
-  { inputChannels :: [FxChannelInput]
-  , outputChannel :: Int
-  }
-
-data FxChannelInput = FxChannelInput
-  { channel :: Int
-  , gain :: Float
-  }
 
 -- | Chain of effect processors
 type FxChain = [NamedFx FxUnit]
@@ -143,7 +108,6 @@ data MixerEqConfig = MixerEqConfig
 
 -- JSON instances
 
-$(Json.deriveJSON Json.defaultOptions ''FxChannelInput)
 $(Json.deriveJSON Json.defaultOptions ''NamedFx)
 $(Json.deriveJSON Json.defaultOptions ''ReverbConfig)
 $(Json.deriveJSON Json.defaultOptions ''DelayConfig)
@@ -182,25 +146,3 @@ instance FromJSON FxUnit where
       <|> parseBy LimiterFx "limiter"
       <|> parseBy EqFx "eq"
       <|> parseBy MixerEqFx "mixerEq"
-
-$(Json.deriveJSON Json.defaultOptions ''ChannelFxConfig)
-$(Json.deriveJSON Json.defaultOptions ''GroupFxConfig)
-
-instance ToJSON FxInputType where
-  toJSON = \case
-    MasterFx -> "masterFx"
-    ChannelFx config -> object [ "channelFx" .= config ]
-    GroupFx config -> object [ "groupFx" .= config ]
-
-instance FromJSON FxInputType where
-  parseJSON v =
-        withText "FxInputType" (\case
-          "masterFx" -> pure MasterFx
-          _ -> mzero
-        ) v
-    <|> withObject "FxInputType" (\obj ->
-              fmap ChannelFx (obj .: "channelFx")
-          <|> fmap GroupFx (obj .: "groupFx")
-        ) v
-
-$(Json.deriveJSON Json.defaultOptions ''FxConfig)

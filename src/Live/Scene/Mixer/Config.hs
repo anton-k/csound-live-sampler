@@ -6,7 +6,7 @@ module Live.Scene.Mixer.Config
   ) where
 
 import Data.Aeson.TH qualified as Json
-import Live.Scene.Fx.Config
+import Live.Scene.Mixer.Fx.Config
 
 data MixerConfig = MixerConfig
   { channels :: [ChannelConfig]

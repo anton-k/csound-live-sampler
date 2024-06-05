@@ -1,17 +1,17 @@
-module Live.Scene.Fx.Unit.Eq
+module Live.Scene.Mixer.Fx.Unit.Eq
   ( eqUnit
   , mixerEqUnit
   ) where
 
-import Live.Scene.Fx.Unit
-import Live.Scene.Fx.Config (EqConfig (..), MixerEqConfig (..), EqPoint (..), EqMode (..))
+import Live.Scene.Mixer.Fx.Unit
+import Live.Scene.Mixer.Fx.Config (EqConfig (..), MixerEqConfig (..), EqPoint (..), EqMode (..))
 import Csound.Core hiding (mode)
 import Data.Text qualified as Text
 import Data.List qualified as List
 import Data.Monoid (Endo (..))
 import Control.Monad
 import Data.Maybe
-import Live.Scene.Fx.Unit.Filter (cutoffParam)
+import Live.Scene.Mixer.Fx.Unit.Filter (cutoffParam)
 
 -- * Parametric EQ
 

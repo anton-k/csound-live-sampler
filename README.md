@@ -139,7 +139,7 @@ Let's create audio performance to play those tracks live.
 ### Mixer section
 
 First we will describe the mixer. We would like to be able
-to control the volume of individual parts and be able to silence
+to control the volumes of the individual parts and be able to silence
 or make some parts louder in climax points.
 We will have 4 channels dedicated to each instrument group:
 
@@ -148,17 +148,17 @@ mixer:
   master:
     volume: 1
   channels:
-    - volume: 1
-      name: drums
+    - name: drums
+      volume: 1
 
-    - volume: 1
-      name: bass
+    - name: bass
+      volume: 1
 
-    - volume: 1
-      name: guitars
+    - name: guitars
+      volume: 1
 
-    - volume: 1
-      name: vocals
+    - name: vocals
+      volume: 1
 ```
 
 We will route instrument groups to individual channels.

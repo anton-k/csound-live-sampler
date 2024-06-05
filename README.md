@@ -109,6 +109,207 @@ controllers: "..."
 
 Let's discuss confir for each of this section.
 
+### Quick start
+
+Let's consider that we have two mixed tracks. And we have individual stems (parts of the track played by same instruments)
+the stems are: drums, bass, guitars, vocals.
+
+The first track "Pony on the moon" has 3 parts: intro, chorus, versus.
+The second track "Last dance" has 4 parts: chorus-A, versus, chorus-B, versus.
+The first track is 4/4 with 105 bpm and the second track is 3/4 with 135 bpm.
+
+After mixing we have two directories with tracks:
+
+```
+tracks/
+    pony-on-the-moon/
+        * drums.wav
+        * bass.wav
+        * guitars.wav
+        * vocals.wav
+    last-dance/
+        * drums.wav
+        * bass.wav
+        * guitars.wav
+        * vocals.wav
+```
+
+Let's create audio performance to play those tracks live.
+
+### Mixer section
+
+First we will describe the mixer. We would like to be able
+to control the volume of individual parts and be able to silence
+or make some parts louder in climax points.
+We will have 4 channels dedicated to each instrument group:
+
+```yaml
+mixer:
+  master:
+    volume: 1
+  channels:
+    - volume: 1
+      name: drums
+
+    - volume: 1
+      name: bass
+
+    - volume: 1
+      name: guitars
+
+    - volume: 1
+      name: vocals
+```
+
+We will route instrument groups to individual channels.
+
+### Sampler section
+
+Let's define how to play the tracks and loop over sections. 
+For the task at hand we use sampler. Sampler can play audio files
+and change sections syncronized on BPM. It means that when we request the 
+next section the switch will happen not right away but when the section
+will end up. This is useful to keep music on tempo.
+
+Let's look at the config for the two tracks:
+
+```yaml
+sampler:
+  dir: "../tracks"
+  tracks :
+    - name: "Pony on the moon"
+      dir: "pony-on-the-moon"
+      stems:
+        - file: "drums.wav"
+          channel: 1
+        - file: "bass.wav"
+          channel: 2
+        - file: "guitars.wav"
+          channel: 3
+        - file: "vocals.wav"
+          channel: 4
+      slots:
+        - bpm: 105
+          measure: [4, 4]
+          changeRate: 4
+          cues:
+            - dur: 16
+            - dur: 32
+            - dur: 32
+
+    - name: "Last dance"
+      dir: "last-dance"
+      stems:
+        - file: "drums.wav"
+          channel: 1
+        - file: "bass.wav"
+          channel: 2
+        - file: "guitars.wav"
+          channel: 3
+        - file: "vocals.wav"
+          channel: 4
+      slots:
+        - bpm: 135
+          measure: [3, 4]
+          changeRate: 12
+          cues:
+            - dur: 24
+            - dur: 12
+            - dur: 24
+            - dur: 12
+```
+
+The sampler defines a sequence of **tracks** also we define
+a directory where all tracks are placed (this parameter is optional).
+Each track has it's own directory (`dir`), a name a list of stems 
+(files which contain individual instrument parts of the track)
+and list of slots with cues. Slots define the division of the track on sections.
+
+regarding stems both tracks has the same structure. we have 4 instruments
+at play: drums, bass, guitars and vocals. Each instrument is directed
+to dedicated channel:
+
+```yaml
+      stems:
+        - file: "drums.wav"
+          channel: 1
+        - file: "bass.wav"
+          channel: 2
+        - file: "guitars.wav"
+          channel: 3
+        - file: "vocals.wav"
+          channel: 4
+```
+
+The sections of the songs are different. The first track has 3 parts:
+
+```yaml
+      slots:
+        - bpm: 105
+          measure: [4, 4]
+          changeRate: 4
+          cues:
+            - dur: 16
+            - dur: 32
+            - dur: 32
+```
+
+The cues contain the sizes in beats for the sections.
+
+The second track has 4 parts:
+
+```yaml
+      slots:
+        - bpm: 135
+          measure: [3, 4]
+          changeRate: 12
+          cues:
+            - dur: 24
+            - dur: 12
+            - dur: 24
+            - dur: 12
+```
+
+Why do we need slots and cues? The slots are useful when measure or
+bpm chanes between the parts. What if the first two sections are in 3/4 and 130 bpm
+and the second two sections are in 4/4 and 100 bpm. we can describe it 
+with this config:
+
+```yaml
+      slots:
+        - bpm: 135
+          measure: [3, 4]
+          changeRate: 12
+          cues:
+            - dur: 24
+            - dur: 12
+            - dur: 16
+            - dur: 8
+        - bpm: 100
+          measure: [4, 4]
+          changeRate: 12
+          cues:
+            - dur: 16
+            - dur: 8
+```
+
+The sampler let's us trigger songs or various parts of the track.
+With this config each seaction is played in loop until the next one is requested.
+Also we can make it automatically switch to the next section if it reaches
+an end of the current section or stop. So each seaction can be played in loop
+or reach for the next one or reach the stop at the end.
+
+### Midi controllers
+
+So far we have descrbed the structure of the tracks.
+Let's make it interactive and play it live with a midi controller.
+
+Each midi controller is different so we are going to describe the mapping
+for a given midi controller to parameters of the performance.
+
+I'm going to take Akai MIDIMIX controller as an example. But we 
+can adapt it to any other controller.
+
 ### Mixer 
 
 The mixer has several channels that control volumes of 

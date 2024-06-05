@@ -26,10 +26,16 @@ import Csound.Core
 import Safe (atMay)
 import Live.Scene.Gen as X
 import Live.Scene.Mixer.Config as X
-import Live.Scene.Fx (FxDeps (..), newMasterFxs, newChannelFxs, FxParams, FxName (..))
-import Live.Scene.Fx qualified as Fx (modifyFxParam)
-import Live.Scene.Fx.Config
-import Data.Text (Text)
+import Live.Scene.Fx (Bpm (..))
+import Live.Scene.Mixer.Route
+  ( FxParamId (..)
+  , RouteDeps (..)
+  , toMixerRoute
+  , MixerRoute (..)
+  , MixerRouteFx (..)
+  )
+import Data.IntMap.Strict (IntMap)
+import Data.IntMap.Strict qualified as IntMap
 
 data Mixer = Mixer
   -- audio
@@ -41,25 +47,19 @@ data Mixer = Mixer
   , modifyFxParam :: FxParamId -> (Sig -> Sig) -> SE ()
   }
 
-data FxParamId = FxParamId
-  { name :: Text
-  , param :: Text
-  }
-
 getChannelSize :: Mixer -> Int
 getChannelSize mixer =
   length mixer.audio.inputs
 
-newMixer :: MixerConfig -> [FxConfig] -> SE Sig -> SE Mixer
-newMixer config fxConfig readBpm = do
+newMixer :: MixerConfig -> SE Sig -> SE Mixer
+newMixer config readBpm = do
   st <- initSt config
   let
-    fxDeps = initFxDeps st readBpm
-  fxChannelParams <- newChannelFxs fxDeps fxConfig
-  updateMasterInstrRef <- newProc (\() -> writeChannelsToMaster st)
-  fxMasterParams <- newMasterFxs fxDeps fxConfig
+    routeDeps = initRouteDeps st
+  route <- toMixerRoute routeDeps (Bpm readBpm) config
+  instrIds <- route.setupInstr
   let
-    fxParams = fxChannelParams <> fxMasterParams
+    fxControls = route.fxControls instrIds
   pure $ Mixer
     { audio =
         Gen
@@ -70,12 +70,12 @@ newMixer config fxConfig readBpm = do
           , write = writeChannelSt st
           , inputs = ChannelId <$> [0 .. (length config.channels - 1)]
           , outputs = [ChannelId 0]
-          , update = play updateMasterInstrRef [Note 0 (-1) ()] -- writeChannelsToMaster st
+          , update = route.launchInstr instrIds
           }
     , modifyChannelVolume = modifyChannelVolumeSt st
     , modifyMasterVolume = modifyMasterVolumeSt st
     , toggleChannelMute = toggleChannelMuteSt st
-    , modifyFxParam = modifyFxParamSt fxParams
+    , modifyFxParam = fxControls.modifyFxParam
     }
 
 -- * mixer internal state
@@ -89,7 +89,7 @@ data Master = Master
   { volume :: Ref Sig
   , audio :: Ref Sig2
   , gain :: Maybe Float
-  , fx :: Sig2 -> SE Sig2
+  , _fx :: Sig2 -> SE Sig2 -- TODO
   }
 
 data Channel = Channel
@@ -98,7 +98,14 @@ data Channel = Channel
   , gain :: Maybe Float
   , audio :: Ref Sig2
   , fx :: Sig2 -> SE Sig2
+  , sendGains :: SendMap
   }
+
+newtype SendMap = SendMap (IntMap (Ref Sig))
+
+lookupSend :: Int -> SendMap -> Maybe (Ref Sig)
+lookupSend channelId (SendMap refs) =
+  IntMap.lookup channelId refs
 
 initSt :: MixerConfig -> SE St
 initSt config = do
@@ -123,36 +130,18 @@ initSt config = do
         gain = channelConfig.gain
         fx = pure -- toChannelFx (ChannelId channelId) fxConfigs
       audio <- newRef 0
+      sendGains <- initSends channelConfig
       pure Channel {..}
 
-{-
-toFx :: (FxConfig -> Bool) -> [FxConfig] -> Sig2 -> SE Sig2
-toFx hasInput fxConfigs ain =
-  List.foldl' (>=>) pure (fmap unitToFun masterFxs) ain
-  where
-    masterFxs :: [FxUnit]
-    masterFxs = do
-      fx <- filter hasInput fxConfigs
-      fmap (.fx) fx.chain
+    initSends :: ChannelConfig -> SE SendMap
+    initSends channelConfig =
+      case channelConfig.sends of
+        Just sends -> SendMap . IntMap.fromList <$> mapM toSendMapItem sends
+        Nothing -> pure $ SendMap mempty
 
-toMasterFx :: [FxConfig] -> Sig2 -> SE Sig2
-toMasterFx = toFx isMasterFx
-  where
-    isMasterFx :: FxConfig -> Bool
-    isMasterFx config =
-      case config.input of
-        MasterFx -> True
-        _ -> False
-
-toChannelFx :: ChannelId -> [FxConfig] -> Sig2 -> SE Sig2
-toChannelFx (ChannelId n) = toFx isChannel
-  where
-    isChannel :: FxConfig -> Bool
-    isChannel config =
-      case config.input of
-        ChannelFx (ChannelFxConfig channelId) -> channelId == n
-        _ -> False
--}
+    toSendMapItem :: SendConfig -> SE (Int, Ref Sig)
+    toSendMapItem send =
+      fmap (send.channel, ) $ newCtrlRef (float send.gain)
 
 readMixSt :: St -> SE Sig2
 readMixSt St{..} = do
@@ -166,30 +155,16 @@ writeChannelSt st channelId audio =
   withChannel st channelId $ \channel -> do
     writeRef channel.audio audio
 
-writeChannelsToMaster :: St -> SE ()
-writeChannelsToMaster st = do
-  mapM_ writeToMaster st.channels
-  applyMasterFx
-  where
-    writeToMaster :: Channel -> SE ()
-    writeToMaster channel = do
-      volume <- readRef channel.volume
-      mute <- readRef channel.mute
-      audio <- readRef channel.audio
-      let
-        channelAudio = withGain channel.gain $ mul (volume * mute) audio
-      modifyRef st.master.audio (+ channelAudio)
-
-    applyMasterFx :: SE ()
-    applyMasterFx =
-      writeRef st.master.audio =<< st.master.fx =<< readRef st.master.audio
-
 getChannel :: St -> ChannelId -> Maybe Channel
 getChannel st (ChannelId n) = st.channels `atMay` n
 
 withChannel :: St -> ChannelId -> (Channel -> SE ()) -> SE ()
 withChannel st channelId f =
   mapM_ f (getChannel st channelId)
+
+withChannelDef :: St -> ChannelId -> a -> (Channel -> SE a) -> SE a
+withChannelDef st channelId defValue f =
+  maybe (pure defValue) f (getChannel st channelId)
 
 toggleChannelMuteSt :: St -> ChannelId -> SE ()
 toggleChannelMuteSt st channelId =
@@ -205,25 +180,45 @@ modifyMasterVolumeSt :: St -> (Sig -> Sig) -> SE ()
 modifyMasterVolumeSt st f =
   modifyRef st.master.volume f
 
-withGain :: Maybe Float -> Sig2 -> Sig2
+withGain :: SigSpace a => Maybe Float -> a -> a
 withGain mValue audio =
   case mValue of
     Nothing -> audio
     Just value -> mul (float value) audio
 
 -------------------------------------------------------------------------------------
--- FXs
+-- Routes
 
-initFxDeps :: St -> SE Sig -> FxDeps
-initFxDeps st readBpm =
-  FxDeps
-    { readMaster = readRef st.master.audio
-    , writeMaster = writeRef st.master.audio
-    , readChannel = \n -> maybe (pure 0) (readRef . (.audio)) (st.channels `atMay` (n - 1))
-    , writeChannel = \n -> writeChannelSt st (ChannelId (n - 1))
-    , readBpm
+initRouteDeps :: St -> RouteDeps
+initRouteDeps st =
+  RouteDeps
+    { readChannel = \n -> withChannelDef st (ChannelId n) 0 (readRef . (.audio))
+    , readChannelVolume = \n -> withChannelDef st (ChannelId n) 1 (\channel -> withGain channel.gain <$> (readRef channel.volume))
+    , readChannelSendGain = readChannelSendGainSt
+    , writeChannel = \n -> writeChannelSt st (ChannelId n)
+    , appendChannel = \n -> appendChannelSt (ChannelId n)
+    , readMaster = readMasterSt
+    , writeMaster = writeMasterSt
+    , appendMaster = appendMasterSt
     }
+    where
+      appendChannelSt channel input = do
+        val <- withChannelDef st channel 0 (readRef . (.audio))
+        writeChannelSt st channel (val + input)
 
-modifyFxParamSt :: FxParams -> FxParamId -> (Sig -> Sig) -> SE ()
-modifyFxParamSt fxParams paramId f =
-  Fx.modifyFxParam fxParams (FxName paramId.name) paramId.param f
+      appendMasterSt input = do
+        val <- readRef st.master.audio
+        writeRef st.master.audio (val + input)
+
+      readMasterSt =
+        readRef st.master.audio
+
+      writeMasterSt input =
+        writeRef st.master.audio input
+
+      readChannelSendGainSt channelId sendId =
+        withChannelDef st (ChannelId channelId) 1 $ \channel ->
+          case lookupSend sendId channel.sendGains of
+            Just sendRef -> readRef sendRef
+            Nothing -> pure 0
+

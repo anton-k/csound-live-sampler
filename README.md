@@ -20,7 +20,7 @@ The features:
 
 * Mixer with individual channels for various parts of the Scene
     * in the mixer we can group channels to buses
-    * apply effects to channels
+    * apply effects to channels and busses
 
 * Sampler that can play parts of the tracks in loops
   synchornised on bpm, also it can launch audio clips rescaled
@@ -29,6 +29,7 @@ The features:
 * Playlist which organizes tracks in sequence for easy switching
    with midi controller
 
-* Useful set of effects which can be applied to channels: reverb, delays, limiter, equalizer
+* Useful set of effects which can be applied to channels
+   and controlled in real-time: reverb, delays, limiter, equalizer
 
-
+* Very efficient and low on CPU and memory usage

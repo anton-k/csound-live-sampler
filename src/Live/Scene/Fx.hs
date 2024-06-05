@@ -5,10 +5,11 @@ module Live.Scene.Fx
   , FxParams (..)
   , readParamMap
   , modifyFxParam
-  , newMasterFxs
-  , newChannelFxs
   , unitToFun
   , Bpm (..)
+  , toFxParamMap
+  , isBpmSensitive
+  , newFxParams
   ) where
 
 import Live.Scene.Fx.Config
@@ -52,49 +53,26 @@ modifyFxParam (FxParams nameMap) name param f = do
       paramMap <- Map.lookup name nameMap
       Map.lookup param paramMap
 
-newFxParams :: [FxConfig] -> SE FxParams
-newFxParams configs =
+newFxParams :: [NamedFx FxUnit] -> SE FxParams
+newFxParams allUnits =
   FxParams . Map.fromList <$> mapM toNameMapItem allUnits
   where
-    allUnits :: [NamedFx FxUnit]
-    allUnits = (.chain) =<< configs
-
     toNameMapItem :: NamedFx FxUnit -> SE (FxName, ParamMap)
     toNameMapItem unit =
-      (FxName unit.name, ) <$> toParamMap unit.fx
+      (FxName unit.name, ) <$> toFxParamMap unit.fx
 
-    toParamMap :: FxUnit -> SE ParamMap
-    toParamMap = \case
-      ReverbFx config -> reverbUnit.getParams config
-      DelayFx config -> delayUnit.getParams config
-      PingPongFx config -> pingPongUnit.getParams config
-      MoogFx config -> moogUnit.getParams config
-      KorgFx config -> korgUnit.getParams config
-      BbcutFx config -> bbcutUnit.getParams config
-      LimiterFx config -> limiterUnit.getParams config
-      EqFx config -> eqUnit.getParams config
-      MixerEqFx config -> mixerEqUnit.getParams config
+toFxParamMap :: FxUnit -> SE ParamMap
+toFxParamMap = \case
+  ReverbFx config -> reverbUnit.getParams config
+  DelayFx config -> delayUnit.getParams config
+  PingPongFx config -> pingPongUnit.getParams config
+  MoogFx config -> moogUnit.getParams config
+  KorgFx config -> korgUnit.getParams config
+  BbcutFx config -> bbcutUnit.getParams config
+  LimiterFx config -> limiterUnit.getParams config
+  EqFx config -> eqUnit.getParams config
+  MixerEqFx config -> mixerEqUnit.getParams config
 
-newMasterFxs :: FxDeps -> [FxConfig] -> SE FxParams
-newMasterFxs env configs =
-  newFxs env (filter isMasterFx configs)
-
-newChannelFxs :: FxDeps -> [FxConfig] -> SE FxParams
-newChannelFxs env configs =
-  newFxs env (filter (not . isMasterFx) configs)
-
-isMasterFx :: FxConfig -> Bool
-isMasterFx config =
-  case config.input of
-    MasterFx -> True
-    _ -> False
-
-newFxs :: FxDeps -> [FxConfig] -> SE FxParams
-newFxs env configs = do
-  params <- newFxParams configs
-  instrBpmIds <- fmap concat $ mapM (newFx params env) configs
-  reloadOnBpmChange env instrBpmIds
-  pure params
 
 reloadOnBpmChange :: FxDeps -> [InstrRef ()] -> SE ()
 reloadOnBpmChange env instrRefs = do

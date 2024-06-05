@@ -16,7 +16,7 @@ data MixerConfig = MixerConfig
 data MasterConfig = MasterConfig
   { volume :: Float
   , gain :: Maybe Float
-  , fxs :: Maybe [FxChain]
+  , fxs :: Maybe FxChain
   }
 
 data ChannelConfig = ChannelConfig

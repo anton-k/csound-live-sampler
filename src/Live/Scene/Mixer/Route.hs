@@ -12,6 +12,7 @@ import Prelude hiding (read)
 import Data.Boolean ((==*))
 import Data.Text (Text)
 import Csound.Core
+import Data.Default
 import Data.Maybe
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
@@ -93,7 +94,7 @@ modifyFxParamSt fxParams paramId f =
 newRouteCtx :: RouteDeps -> MixerConfig -> Bpm -> SE RouteCtx
 newRouteCtx deps config bpm = do
   fxParams <- initFxParams config
-  pure $ RouteCtx { deps, configs = configMap, masterConfig = config.master, bpm, fxParams }
+  pure $ RouteCtx { deps, configs = configMap, masterConfig = fromMaybe def config.master, bpm, fxParams }
   where
     configMap = initConfigMap config
 
@@ -106,7 +107,7 @@ initFxParams config =
   Fx.newFxParams allFxs
   where
     allFxs = do
-      mUnits <- config.master.fxs : fmap (.fxs) config.channels
+      mUnits <- (fromMaybe def config.master).fxs : fmap (.fxs) config.channels
       concat $ maybeToList mUnits
 
 reloadOnBpmChange :: Bpm -> [InstrRef ()] -> SE ()

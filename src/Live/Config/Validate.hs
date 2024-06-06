@@ -134,7 +134,7 @@ checkVolumes config = do
 
 checkMixerVolumes :: MixerConfig -> Valid ()
 checkMixerVolumes config = do
-  checkMasterVolume config.master
+  mapM_ checkMasterVolume config.master
   mapM_ checkChannelVolume config.channels
   where
     checkMasterVolume :: MasterConfig -> Valid ()

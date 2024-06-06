@@ -76,6 +76,7 @@ library
     , bytestring
     , containers
     , csound-core
+    , data-default
     , directory
     , filepath
     , mtl
@@ -113,6 +114,7 @@ executable csound-live-sampler
     , containers
     , csound-core
     , csound-live-sampler
+    , data-default
     , directory
     , filepath
     , mtl
@@ -153,6 +155,7 @@ test-suite csound-live-sampler-test
     , containers
     , csound-core
     , csound-live-sampler
+    , data-default
     , directory
     , filepath
     , mtl

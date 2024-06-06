@@ -8,10 +8,11 @@ module Live.Scene.Mixer.Config
 import Data.Aeson.TH qualified as Json
 import Live.Scene.Mixer.Fx.Config
 import Data.Text (Text)
+import Data.Default
 
 data MixerConfig = MixerConfig
   { channels :: [ChannelConfig]
-  , master :: MasterConfig
+  , master :: Maybe MasterConfig
   }
 
 data MasterConfig = MasterConfig
@@ -19,6 +20,9 @@ data MasterConfig = MasterConfig
   , gain :: Maybe Float
   , fxs :: Maybe FxChain
   }
+
+instance Default MasterConfig where
+  def = MasterConfig 1 Nothing Nothing
 
 data ChannelConfig = ChannelConfig
   { volume :: Float

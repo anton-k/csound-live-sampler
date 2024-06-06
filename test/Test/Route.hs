@@ -7,7 +7,7 @@ import Test.Tasty.HUnit
 import Live.Scene.Mixer.Route.DependencyGraph
 import Live.Scene.Mixer.Config
 import Live.Scene.Mixer.Config qualified as Channel (ChannelConfig (..))
-import Live.Scene.Fx.Config
+import Live.Scene.Mixer.Fx.Config
 
 tests :: TestTree
 tests = testGroup "Routes"
@@ -35,12 +35,7 @@ simpleChannels =
   where
     config =
       MixerConfig
-        { master =
-            MasterConfig
-              { volume = 1
-              , gain = Nothing
-              , fxs = Nothing
-              }
+        { master = Nothing
         , channels = replicate 4 channel
         }
 
@@ -51,6 +46,7 @@ simpleChannels =
         , output = Nothing
         , sends = Nothing
         , fxs = Nothing
+        , name = Nothing
         }
 
     routes =
@@ -85,12 +81,7 @@ simpleChannelsWithFx =
   where
     config =
       MixerConfig
-        { master =
-            MasterConfig
-              { volume = 1
-              , gain = Nothing
-              , fxs = Nothing
-              }
+        { master = Nothing
         , channels = [channel, channelFx, channel]
         }
 
@@ -101,6 +92,7 @@ simpleChannelsWithFx =
         , output = Nothing
         , sends = Nothing
         , fxs = Nothing
+        , name = Nothing
         }
 
     channelFx =
@@ -110,6 +102,7 @@ simpleChannelsWithFx =
         , output = Nothing
         , sends = Nothing
         , fxs = Just [reverb]
+        , name = Nothing
         }
 
     routes =
@@ -148,12 +141,7 @@ simpleChannelsWithSends =
   where
     config =
       MixerConfig
-        { master =
-            MasterConfig
-              { volume = 1
-              , gain = Nothing
-              , fxs = Nothing
-              }
+        { master = Nothing
         , channels = [channelSend 1, channel, channelSend 1]
         }
 
@@ -164,6 +152,7 @@ simpleChannelsWithSends =
         , output = Nothing
         , sends = Nothing
         , fxs = Nothing
+        , name = Nothing
         }
 
     channelSend n =
@@ -208,12 +197,7 @@ fxBus =
   where
     config =
       MixerConfig
-        { master =
-            MasterConfig
-              { volume = 1
-              , gain = Nothing
-              , fxs = Nothing
-              }
+        { master = Nothing
         , channels = [bus, channel, channel]
         }
 
@@ -224,6 +208,7 @@ fxBus =
         , output = Nothing
         , sends = Just [SendConfig 0 0.5]
         , fxs = Nothing
+        , name = Nothing
         }
 
     bus =
@@ -233,6 +218,7 @@ fxBus =
         , output = Nothing
         , sends = Nothing
         , fxs = Just [reverb]
+        , name = Nothing
         }
 
     routes =
@@ -282,12 +268,7 @@ fxBus2 =
   where
     config =
       MixerConfig
-        { master =
-            MasterConfig
-              { volume = 1
-              , gain = Nothing
-              , fxs = Nothing
-              }
+        { master = Nothing
         , channels = [bus, channelSendTo 0, bus, channelSendTo 2]
         }
 
@@ -298,6 +279,7 @@ fxBus2 =
         , output = Nothing
         , sends = Just [SendConfig n 0.5]
         , fxs = Nothing
+        , name = Nothing
         }
 
     bus =
@@ -307,6 +289,7 @@ fxBus2 =
         , output = Nothing
         , sends = Nothing
         , fxs = Just [reverb]
+        , name = Nothing
         }
 
     routes =
@@ -369,12 +352,7 @@ groupChannels =
   where
     config =
       MixerConfig
-        { master =
-            MasterConfig
-              { volume = 1
-              , gain = Nothing
-              , fxs = Nothing
-              }
+        { master = Nothing
         , channels =
             [ channel { sends = Just [SendConfig 2 0.5] }
             , channelOutputTo 0
@@ -390,6 +368,7 @@ groupChannels =
         , output = Nothing
         , sends = Nothing
         , fxs = Nothing
+        , name = Nothing
         }
 
     channelOutputTo n =
@@ -405,6 +384,7 @@ groupChannels =
         , output = Nothing
         , sends = Nothing
         , fxs = Just [reverb]
+        , name = Nothing
         }
 
     routes =
@@ -469,12 +449,7 @@ groupTwoLayers =
   where
     config =
       MixerConfig
-        { master =
-            MasterConfig
-              { volume = 1
-              , gain = Nothing
-              , fxs = Nothing
-              }
+        { master = Nothing
         , channels =
             [ channel
             , channelOutputTo 0
@@ -492,6 +467,7 @@ groupTwoLayers =
         , output = Nothing
         , sends = Nothing
         , fxs = Nothing
+        , name = Nothing
         }
 
     channelOutputTo n = channel { output = Just n }
@@ -538,12 +514,7 @@ groupTwoLayersSends =
   where
     config =
       MixerConfig
-        { master =
-            MasterConfig
-              { volume = 1
-              , gain = Nothing
-              , fxs = Nothing
-              }
+        { master = Nothing
         , channels =
             [ channel { sends = Just [SendConfig 6 0.5] }
             , channelOutputTo 0
@@ -562,6 +533,7 @@ groupTwoLayersSends =
         , output = Nothing
         , sends = Nothing
         , fxs = Nothing
+        , name = Nothing
         }
 
     channelOutputTo n = channel { output = Just n }

@@ -22,6 +22,8 @@ module Live.Scene.Mixer
   ) where
 
 import Data.Boolean
+import Data.Default
+import Data.Maybe
 import Csound.Core
 import Safe (atMay)
 import Live.Scene.Gen as X
@@ -89,7 +91,6 @@ data Master = Master
   { volume :: Ref Sig
   , audio :: Ref Sig2
   , gain :: Maybe Float
-  , _fx :: Sig2 -> SE Sig2 -- TODO
   }
 
 data Channel = Channel
@@ -109,16 +110,15 @@ lookupSend channelId (SendMap refs) =
 
 initSt :: MixerConfig -> SE St
 initSt config = do
-  master <- loadMaster
+  master <- loadMaster (fromMaybe def config.master)
   channels <- loadChannels
   pure St {..}
   where
-    loadMaster =
+    loadMaster masterConfig =
       Master
-        <$> newCtrlRef (float config.master.volume)
+        <$> newCtrlRef (float masterConfig.volume)
         <*> newRef 0
-        <*> pure config.master.gain
-        <*> pure pure -- (toMasterFx fxConfigs)
+        <*> pure masterConfig.gain
 
     loadChannels =
       mapM initChannel config.channels

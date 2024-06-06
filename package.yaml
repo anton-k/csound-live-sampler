@@ -46,6 +46,7 @@ dependencies:
 - containers
 - mtl
 - directory
+- data-default
 
 ghc-options:
 - -Wall

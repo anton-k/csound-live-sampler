@@ -88,6 +88,7 @@ library
 executable csound-live-sampler
   main-is: Main.hs
   other-modules:
+      Config
       Paths_csound_live_sampler
   autogen-modules:
       Paths_csound_live_sampler
@@ -118,6 +119,7 @@ executable csound-live-sampler
     , directory
     , filepath
     , mtl
+    , optparse-applicative
     , safe
     , text
     , yaml

@@ -72,6 +72,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - csound-live-sampler
+    - optparse-applicative
 
 tests:
   csound-live-sampler-test:

@@ -1,5 +1,6 @@
 module Live.Scene
   ( runScene
+  , writeSceneCsd
   ) where
 
 import Live.Config
@@ -7,11 +8,18 @@ import Csound.Core
 import Live.Scene.Midi
 import Live.Scene.Mixer
 import Live.Scene.Sampler
+import Data.Maybe
 
-runScene :: Config -> IO ()
-runScene config =
-  -- dacBy (setMa <> setTrace) {- writeCsd "tmp.csd" -} $ do
-  writeCsdBy (setMa <> setDac) "tmp.csd" $ do
+writeSceneCsd :: Config -> Maybe FilePath -> IO ()
+writeSceneCsd config mFile =
+  writeCsdBy (setMa <> setDac) (fromMaybe "tmp.csd" mFile) $ do
+    toAudio =<< loadScene config
+
+-- | TODO: remove double rendering
+runScene :: Config -> Maybe FilePath -> IO ()
+runScene config mFile = do
+  mapM_ (writeSceneCsd config . Just) mFile
+  dacBy (setMa <> setTrace) $ do
     toAudio =<< loadScene config
 
 data Scene = Scene

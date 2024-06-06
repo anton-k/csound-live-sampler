@@ -1,18 +1,17 @@
 module Main (main) where
 
+import Config qualified as Config
 import Live.Config
 import Live.Scene
-import System.Environment
-import Data.Yaml qualified as Yaml
-import Data.ByteString qualified as BS
 import Data.Text.IO qualified as Text
 
 main :: IO ()
 main = do
-  configFile : _ <- getArgs
-  eConfig <- readConfig configFile
+  (command, args) <- Config.readArgs
+  eConfig <- readConfig args.config
   case eConfig of
     Right config -> do
-      BS.putStr $ Yaml.encode config
-      runScene config
+      case command of
+        Config.Run -> runScene config args.csdOutput
+        Config.WriteCsd -> writeSceneCsd config args.csdOutput
     Left err -> Text.putStrLn err

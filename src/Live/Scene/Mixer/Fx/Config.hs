@@ -2,6 +2,7 @@ module Live.Scene.Mixer.Fx.Config
   ( FxChain
   , FxUnit (..)
   , NamedFx (..)
+  , ToolConfig (..)
   , ReverbConfig (..)
   , DelayConfig (..)
   , PingPongConfig (..)
@@ -25,7 +26,8 @@ import Data.Aeson.TH qualified as Json
 type FxChain = [NamedFx FxUnit]
 
 data FxUnit
-  = ReverbFx ReverbConfig
+  = ToolFx ToolConfig
+  | ReverbFx ReverbConfig
   | DelayFx DelayConfig
   | PingPongFx PingPongConfig
   | MoogFx MoogConfig
@@ -38,6 +40,13 @@ data FxUnit
 data NamedFx a = NamedFx
   { name :: Text
   , fx :: a
+  }
+
+data ToolConfig = ToolConfig
+  { volume :: Maybe Float
+  , gain :: Maybe Float
+  , pan :: Maybe Float
+  , width :: Maybe Float
   }
 
 data ReverbConfig = ReverbConfig
@@ -109,6 +118,7 @@ data MixerEqConfig = MixerEqConfig
 -- JSON instances
 
 $(Json.deriveJSON Json.defaultOptions ''NamedFx)
+$(Json.deriveJSON Json.defaultOptions ''ToolConfig)
 $(Json.deriveJSON Json.defaultOptions ''ReverbConfig)
 $(Json.deriveJSON Json.defaultOptions ''DelayConfig)
 $(Json.deriveJSON Json.defaultOptions ''PingPongConfig)
@@ -122,6 +132,7 @@ $(Json.deriveJSON Json.defaultOptions ''MixerEqConfig)
 
 instance ToJSON FxUnit where
   toJSON = \case
+    ToolFx config -> object [ "tool" .= config ]
     ReverbFx config -> object [ "reverb" .= config ]
     DelayFx config -> object [ "delay" .= config ]
     PingPongFx config -> object [ "pingPong" .= config ]
@@ -137,7 +148,8 @@ instance FromJSON FxUnit where
     let
       parseBy cons field = fmap cons (obj .: field)
     in
-          parseBy ReverbFx "reverb"
+          parseBy ToolFx "tool"
+      <|> parseBy ReverbFx "reverb"
       <|> parseBy DelayFx "delay"
       <|> parseBy PingPongFx "pingPong"
       <|> parseBy MoogFx "moogFilter"

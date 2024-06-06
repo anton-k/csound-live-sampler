@@ -19,6 +19,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Maybe
 import Live.Scene.Mixer.Fx.Unit
+import Live.Scene.Mixer.Fx.Unit.Tool (toolUnit)
 import Live.Scene.Mixer.Fx.Unit.Reverb (reverbUnit)
 import Live.Scene.Mixer.Fx.Unit.Delay (delayUnit, pingPongUnit)
 import Live.Scene.Mixer.Fx.Unit.Filter (moogUnit, korgUnit)
@@ -50,6 +51,7 @@ newFxParams allUnits =
 
 toFxParamMap :: FxUnit -> SE ParamMap
 toFxParamMap = \case
+  ToolFx config -> toolUnit.getParams config
   ReverbFx config -> reverbUnit.getParams config
   DelayFx config -> delayUnit.getParams config
   PingPongFx config -> pingPongUnit.getParams config
@@ -68,6 +70,7 @@ readParamMap name (FxParams nameMap) =
 
 unitToFun :: Bpm -> ParamMap -> FxUnit -> Sig2 -> SE Sig2
 unitToFun bpm params = \case
+  ToolFx config -> toolUnit.apply bpm params config
   ReverbFx config -> reverbUnit.apply bpm params config
   DelayFx config -> delayUnit.apply bpm params config
   PingPongFx config -> pingPongUnit.apply bpm params config
@@ -80,6 +83,7 @@ unitToFun bpm params = \case
 
 isBpmSensitive :: FxUnit -> Bool
 isBpmSensitive = \case
+  ToolFx _ -> toolUnit.needsBpm
   ReverbFx _ -> reverbUnit.needsBpm
   DelayFx _ -> delayUnit.needsBpm
   PingPongFx _ -> pingPongUnit.needsBpm

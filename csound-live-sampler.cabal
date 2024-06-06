@@ -41,6 +41,7 @@ library
       Live.Scene.Mixer.Fx.Unit.Eq
       Live.Scene.Mixer.Fx.Unit.Filter
       Live.Scene.Mixer.Fx.Unit.Reverb
+      Live.Scene.Mixer.Fx.Unit.Tool
       Live.Scene.Mixer.Route
       Live.Scene.Mixer.Route.DependencyGraph
       Live.Scene.Sampler

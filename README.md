@@ -36,14 +36,14 @@ The features:
 
 ## Installation 
 
-Top install and use this app we need to install two things:
+To install and use this app we need to install two things:
 
 * [stack](https://docs.haskellstack.org/en/stable/#how-to-install-stack) - haskell build tool
 * [csound](https://csound.com/) - audio programming language that we use to play performance live
 
 Often those tools are available in the package manager of your system.
 After installation of the dependencies we can clone the repo
-navigate to it andbuild from sources:
+navigate to it and build from sources:
 
 ```
 > git clone https://github.com/anton-k/csound-live-sampler.git
@@ -54,7 +54,7 @@ navigate to it andbuild from sources:
 
 If you have not used haskell before for the first time it can take
 quite some time to install because it will download and install haskell compiler
-and all the dependencies. But on second run the build is going to be very fast.
+and all the dependencies. But on the second run the build is going to be very fast.
 
 ## Usage
 
@@ -104,10 +104,8 @@ controllers: "..."
 * sampler - describes the tracks of the performance and what bpm each track has
    and which sections we can loop and play in sequence.
 
-* controllers describes mappings from MIDI-controller of our chice
+* controllers section describes mappings from MIDI-controller of our chice
   to parameters of performance
-
-Let's discuss confir for each of this section.
 
 ### Quick start
 
@@ -225,9 +223,9 @@ Each track has it's own directory (`dir`), a name a list of stems
 (files which contain individual instrument parts of the track)
 and list of slots with cues. Slots define the division of the track on sections.
 
-regarding stems both tracks has the same structure. we have 4 instruments
+Regarding stems both tracks have the same structure. We have 4 instruments
 at play: drums, bass, guitars and vocals. Each instrument is directed
-to dedicated channel:
+to a dedicated channel:
 
 ```yaml
       stems:
@@ -255,6 +253,9 @@ The sections of the songs are different. The first track has 3 parts:
 ```
 
 The cues contain the sizes in beats for the sections.
+The changeRate defines in beats at which rate we would like
+to change the parts. So when we press the button to go to the next
+section it will switch only when we are on certain beat defined by the change rate.
 
 The second track has 4 parts:
 
@@ -293,7 +294,7 @@ with this config:
             - dur: 8
 ```
 
-The sampler let's us trigger songs or various parts of the track.
+With the sampler we can trigger songs or various parts of the track.
 With this config each seaction is played in loop until the next one is requested.
 Also we can make it automatically switch to the next section if it reaches
 an end of the current section or stop. So each seaction can be played in loop
@@ -309,6 +310,20 @@ for a given midi controller to parameters of the performance.
 
 I'm going to take Akai MIDIMIX controller as an example. But we 
 can adapt it to any other controller.
+
+Let's describe first what parameters we would like to control:
+* volume of the master (the final volume of the audio)
+* volume of each channel
+* switch tracks back and forth
+* switch parts back and forth
+
+so we would like to control the volumes and be ably to 
+o to the tracks in the playlist or some parts of the tracks.
+
+#### Control the volumes
+
+#### Switch tracks
+#### Switch parts of the tracks
 
 ### Mixer 
 
@@ -361,15 +376,15 @@ mixer:
   master: ...
   channels:
     - volume: 0.5
-    - gain: 1.0
-    - output: 2
-    - sends:
+      gain: 1.0
+      output: 2
+      sends:
         channel: 4
         gain: 0.3
-    - fxs:
+      fxs:
         - fx-1
         - fx-2
-    - name: drums
+      name: drums
 ```
 
 We have only one required parameter:

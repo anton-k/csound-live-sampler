@@ -175,174 +175,168 @@ sampler:
 
 audio: "audio"
 controllers:
-  # midi channels for faders (numbers for: Akai MidiMix)
-  faders:
-    master: 62
-    channels: [19, 23, 27, 31, 49, 53, 57, 61]
-  # note numbers for mutes
-  # mutes: [1, 4, 7, 10, 13, 16, 19, 22]
-  # trackChanges: [3, 6, 9, 12, 15, 18, 21, 24]
-  modifiers:
-    shift:
-      key: 27
-
-  knobs:
-    - when:
-        key: 62
-      act:
-        - on: "masterVolume"
-    - when:
-        key: 19
-      act:
-        - on:
-            channelVolume: 1
-    - when:
-        key: 23
-      act:
-        - on:
-            channelVolume: 2
-    - when:
+  midi:
+    modifiers:
+      shift:
         key: 27
-      act:
-        - on:
-            channelVolume: 3
-    - when:
-        key: 31
-      act:
-        - on:
-            channelVolume: 4
-    - when:
-        key: 31
-      act:
-        - on:
-            channelVolume: 5
-    - when:
-        key: 49
-      act:
-        - on:
-            channelVolume: 6
-    - when:
-        key: 53
-      act:
-        - on:
-            channelVolume: 7
-    - when:
-        key: 61
-      act:
-        - on:
-            channelVolume: 8
 
-    - when:
-        key: 18
-      act:
-        - on:
-            fxParam:
-              name: drum-delay-1
-              param: dryWet
+    knobs:
+      - when:
+          key: 62
+        act:
+          - on: "masterVolume"
+      - when:
+          key: 19
+        act:
+          - on:
+              channelVolume: 1
+      - when:
+          key: 23
+        act:
+          - on:
+              channelVolume: 2
+      - when:
+          key: 27
+        act:
+          - on:
+              channelVolume: 3
+      - when:
+          key: 31
+        act:
+          - on:
+              channelVolume: 4
+      - when:
+          key: 31
+        act:
+          - on:
+              channelVolume: 5
+      - when:
+          key: 49
+        act:
+          - on:
+              channelVolume: 6
+      - when:
+          key: 53
+        act:
+          - on:
+              channelVolume: 7
+      - when:
+          key: 61
+        act:
+          - on:
+              channelVolume: 8
 
-    - when:
-        key: 17
-      act:
-        - on:
-            fxParam:
-              name: drum-delay-2
-              param: dryWet
+      - when:
+          key: 18
+        act:
+          - on:
+              fxParam:
+                name: drum-delay-1
+                param: dryWet
 
-    - when:
-        key: 16
-      act:
-        - on:
-            fxParam:
-              name: drum-delay-3
-              param: dryWet
+      - when:
+          key: 17
+        act:
+          - on:
+              fxParam:
+                name: drum-delay-2
+                param: dryWet
 
-    - when:
-        key: 22
-      act:
-        - on:
-            fxParam:
-              name: drum-filter
-              param: cutoff
+      - when:
+          key: 16
+        act:
+          - on:
+              fxParam:
+                name: drum-delay-3
+                param: dryWet
 
-    - when:
-        key: 21
-      act:
-        - on:
-            fxParam:
-              name: drum-filter
-              param: resonance
+      - when:
+          key: 22
+        act:
+          - on:
+              fxParam:
+                name: drum-filter
+                param: cutoff
 
-  notes:
-    - when:
-        key: 25
-      act:
-        - shiftPart: -1
-    - when:
-        key: 26
-      act:
-        - shiftPart: 1
-    - when:
-        key: 25
-        modifier: shift
-      act:
-        - shiftTrack: -1
-    - when:
-        key: 26
-        modifier: shift
-      act:
-        - shiftTrack: 1
-    - when:
-        key: 3
-        modifier: shift
-      act:
-        - track: 1
-    - when:
-        key: 6
-        modifier: shift
-      act:
-        - track: 2
-    - when:
-        key: 9
-        modifier: shift
-      act:
-        - track: 3
+      - when:
+          key: 21
+        act:
+          - on:
+              fxParam:
+                name: drum-filter
+                param: resonance
 
-    - when:
-        key: 1
-      act:
-        - mute: 1
+    notes:
+      - when:
+          key: 25
+        act:
+          - shiftPart: -1
+      - when:
+          key: 26
+        act:
+          - shiftPart: 1
+      - when:
+          key: 25
+          modifier: shift
+        act:
+          - shiftTrack: -1
+      - when:
+          key: 26
+          modifier: shift
+        act:
+          - shiftTrack: 1
+      - when:
+          key: 3
+          modifier: shift
+        act:
+          - track: 1
+      - when:
+          key: 6
+          modifier: shift
+        act:
+          - track: 2
+      - when:
+          key: 9
+          modifier: shift
+        act:
+          - track: 3
 
-    - when:
-        key: 4
-      act:
-        - mute: 2
+      - when:
+          key: 1
+        act:
+          - mute: 1
 
-    - when:
-        key: 7
-      act:
-        - mute: 3
+      - when:
+          key: 4
+        act:
+          - mute: 2
 
-    - when:
-        key: 10
-      act:
-        - mute: 4
+      - when:
+          key: 7
+        act:
+          - mute: 3
 
-    - when:
-        key: 13
-      act:
-        - mute: 5
+      - when:
+          key: 10
+        act:
+          - mute: 4
 
-    - when:
-        key: 16
-      act:
-        - mute: 6
+      - when:
+          key: 13
+        act:
+          - mute: 5
 
-    - when:
-        key: 19
-      act:
-        - mute: 7
+      - when:
+          key: 16
+        act:
+          - mute: 6
 
-    - when:
-        key: 22
-      act:
-        - mute: 8
+      - when:
+          key: 19
+        act:
+          - mute: 7
+
+      - when:
+          key: 22
+        act:
+          - mute: 8

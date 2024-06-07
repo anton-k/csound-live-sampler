@@ -1,5 +1,5 @@
 module Live.Scene.Midi.Config
-  ( ControllerConfig (..)
+  ( MidiControllerConfig (..)
   , FadersMidiConfig (..)
   , MutesMidiConfig (..)
   , TrackChangesMidiConfig (..)
@@ -27,7 +27,7 @@ import Data.Map.Strict (Map)
 import Live.Scene.Sampler.Config (ColumnName (..), ClipName (..))
 import Data.Aeson.TH qualified as Json
 
-data ControllerConfig = ControllerConfig
+data MidiControllerConfig = MidiControllerConfig
   { modifiers :: Map Text MidiModifier
   , notes :: [ActLink]
   , knobs :: [KnobLink]
@@ -187,4 +187,4 @@ $(Json.deriveJSON Json.defaultOptions ''KnobWithRange)
 $(Json.deriveJSON Json.defaultOptions ''MidiKnob)
 $(Json.deriveJSON Json.defaultOptions ''KnobLink)
 $(Json.deriveJSON Json.defaultOptions ''ActLink)
-$(Json.deriveJSON Json.defaultOptions ''ControllerConfig)
+$(Json.deriveJSON Json.defaultOptions ''MidiControllerConfig)

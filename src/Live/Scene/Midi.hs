@@ -20,9 +20,9 @@ import Data.Text (Text)
 
 setupMidi :: Config -> Mixer -> Sampler -> SE ()
 setupMidi config mixer sampler = do
-  setMidiActions mixer sampler config.controllers
+  setMidiActions mixer sampler config.controllers.midi
 
-setMidiActions :: Mixer -> Sampler -> ControllerConfig -> SE ()
+setMidiActions :: Mixer -> Sampler -> MidiControllerConfig -> SE ()
 setMidiActions mixer sampler config = do
   instrRef <- newProc actionsInstr
   play instrRef [Core.Note 0 (-1) ()]

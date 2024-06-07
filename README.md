@@ -317,13 +317,217 @@ Let's describe first what parameters we would like to control:
 * switch tracks back and forth
 * switch parts back and forth
 
-so we would like to control the volumes and be ably to 
-o to the tracks in the playlist or some parts of the tracks.
+So we would like to control the volumes and be able to 
+navigate to the tracks in the playlist or some parts of the tracks.
+
+Controllers are defined in the section: 
+
+```yaml
+mixer: ...
+sampler: ...
+controllers:
+  midi:
+    knobs: ...
+    notes: ...
+```
+
+We have two main sections for the midi controllers:
+
+* `knobs` - continuous control signals
+* `notes` - trigger events (like button press, or playing notes)
+
+To control volumes we use `knobs` and to switch between tracks we ue `notes`.
 
 #### Control the volumes
 
+Let's define a mapping from midi-controller to volume.
+
+```yaml
+controllers:
+  midi:
+    knobs:
+      - when:
+          key: 19
+        act:
+          - on:
+              channelVolume: 1
+      - when:
+          key: 23
+        act:
+          - on:
+              channelVolume: 2
+      - when:
+          key: 27
+        act:
+          - on:
+              channelVolume: 3
+      - when:
+          key: 31
+        act:
+          - on:
+              channelVolume: 4
+```
+
+We have defined mappings for 4 channels of our mixer.
+The knob has list of mappings from midi CC keys to parameters of the scene.
+
+```yaml
+- when:
+    key: midiKeyId
+    act:
+      - on:
+          channelVolume: channelId
+```
+
+So for example when CC 19 changes we change the volume of the channel 1.
+We can control several parameters with a single controller so
+the `act` object expects a list of things to control.
+
+Let's define the volume control for the master channel:
+
+```yaml
+      - when:
+          key: 62
+        act:
+          - on: masterVolume
+```
+
 #### Switch tracks
+
+To switch tracks we use `notes` section of the midi controller.
+The sampler has a playlist inside it of the tracks. 
+With playlist we can 
+
+* select song by it's number in sequence
+* go to the next or previous section in the track 
+* go to the next or previous track in the list
+* select a part of the track
+
+We have two tracks to choose. Let define how to switch between them:
+
+```yaml
+controllers:
+  midi:
+    notes:
+      - when:
+          key: 6
+        act:
+          - track: 1
+      - when:
+          key: 9
+        act:
+          - track: 2
+```
+
+When key 6 is pressed on a midi controller we switch to the start
+of track 1, when key 9 is pressed we switch to the track 2.
+
 #### Switch parts of the tracks
+
+Let's go to next or previous section in the song:
+
+```yaml
+      - when:
+          key: 25
+        act:
+          - shiftPart: -1
+      - when:
+          key: 26
+        act:
+          - shiftPart: 1
+```
+
+The parameter `shiftPart` defines on how many steps forward or backward to go in 
+sections of the tracks. A minus sign makes it go backwards.
+If we use `shiftTrack` we define the step across tracks.
+
+#### Let's add a reverb to vocals and guitars
+
+Let's look at how to use effects. We will add a reverb to the vocals and 
+guitars. Let's recall the definition of the mixer:
+
+```yaml
+mixer:
+  master:
+    volume: 1
+  channels:
+    - name: drums
+      volume: 1
+
+    - name: bass
+      volume: 1
+
+    - name: guitars
+      volume: 1
+
+    - name: vocals
+      volume: 1
+```
+
+Effects are added to channels. To add reverb we add a new channel
+which will contain the reverb effect and send signals to it from other channels.
+
+```yaml
+mixer:
+  master:
+    volume: 1
+  channels:
+    - name: drums
+      volume: 1
+
+    - name: bass
+      volume: 1
+
+    - name: guitars
+      volume: 1
+      sends:
+        - channel: 5
+          gain: 0.2
+
+    - name: vocals
+      volume: 1
+      sends:
+        - channel: 5
+          gain: 0.3
+
+    - name: reverb-bus
+      volume: 1
+      fxs:
+        - reverb:
+            dryWet: 1
+            size: 0.5
+            damp: 0.75
+```
+
+We have added a channel named `reverb-bus`. It's 5th channel. 
+It has an `fxs` section which contains a sequence of audio processor.
+In our case it contains the reverb. In this section we specify initial parameters of 
+the reverb. 
+
+Also we define sends which send portion of the channel output to
+another channel. we send some portion of signal from guitars and vocals
+channels to the reverb bus. Also we can add FXs to the master channel.
+For example the typical effect to add is a limiter on master:
+
+```yaml
+master:
+    volume: 1
+    fxs:
+      - name: master-limiter
+        fx:
+          limiter:
+            maxVolume: 0.95
+```
+
+We have studied the main features of the app and defined 
+a setup for live-performance. You can find more alborate examples
+of config files at the directory [example](https://github.com/anton-k/csound-live-sampler/tree/main/example) in the repo.
+
+To run the performance we can run the command:
+
+```
+> csound-live-sampler run --config 2-songs.yaml
+```
 
 ### Mixer 
 
@@ -449,10 +653,12 @@ mixer:
   master: 
     volume: 1
     fxs: 
-        - reverb:
-            size: 0.5
-            damp: 0.7
-            dryWet: 0.25
+        - name: master-reverb
+          fx:
+            reverb:
+                size: 0.5
+                damp: 0.7
+                dryWet: 0.25
   channels:
     - name: vocal
       volume: 1
@@ -464,9 +670,11 @@ So the typical structure of effect object is:
     
 ```yaml
 fxs:
-    - effect-name
-        param1: initialValue1
-        param2: initialValue2
+    - name: effectName
+      fx:   
+        effectType:
+            param1: initialValue1
+            param2: initialValue2
 ```
 
 A value for parameter is float in range (0, 1).
@@ -540,7 +748,7 @@ We can change volume, gain, panning and stereo width of the signal.
 
 ##### Limiter
 
-Usefule to put on master to avoid audio clipping and distortion when 
+Useful to put on master to avoid audio clipping and distortion when 
 audio exceeds the volume limit.
 
 ```yaml

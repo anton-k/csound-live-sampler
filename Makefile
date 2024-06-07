@@ -7,7 +7,7 @@ test:
 	stack test
 
 run:
-	stack run -- example/config.yaml
+	stack run -- write-csd --config example/config.yaml --output tmp.csd
 	# stack runhaskell scripts/Playlist.hs
 
 

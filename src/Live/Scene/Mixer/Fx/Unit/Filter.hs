@@ -7,6 +7,7 @@ module Live.Scene.Mixer.Fx.Unit.Filter
 import Live.Scene.Mixer.Fx.Unit
 import Live.Scene.Mixer.Fx.Config (MoogConfig, KorgConfig, ResonantFilterConfig (..))
 import Csound.Core
+import Data.Maybe
 
 moogUnit :: Unit MoogConfig
 moogUnit =
@@ -27,7 +28,7 @@ resonantFilterUnit f =
         newParamMap config
           [ ("cutoff", (.cutoff))
           , ("resonance", (.resonance))
-          , ("dryWet", (.dryWet))
+          , ("dryWet", fromMaybe 1 . (.dryWet))
           ]
 
     , apply = \_bpm params _config -> resonFx f params

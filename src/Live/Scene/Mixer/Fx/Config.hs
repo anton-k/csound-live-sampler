@@ -77,7 +77,7 @@ type KorgConfig = ResonantFilterConfig
 data ResonantFilterConfig = ResonantFilterConfig
   { cutoff :: Float
   , resonance :: Float
-  , dryWet :: Float
+  , dryWet :: Maybe Float
   }
 
 data BbcutConfig = BbcutConfig
@@ -117,6 +117,19 @@ data MixerEqConfig = MixerEqConfig
 
 -- JSON instances
 
+instance ToJSON EqMode where
+  toJSON = \case
+    LowShelfEq -> "lowShelf"
+    HighShelfEq -> "highShelf"
+    BandPassEq -> "bandPass"
+
+instance FromJSON EqMode where
+  parseJSON = withText "EqMode" $ \case
+    "lowShelf" -> pure LowShelfEq
+    "highShelf" -> pure HighShelfEq
+    "bandPass" -> pure BandPassEq
+    _ -> fail "Failed to parse"
+
 $(Json.deriveJSON Json.defaultOptions ''NamedFx)
 $(Json.deriveJSON Json.defaultOptions ''ToolConfig)
 $(Json.deriveJSON Json.defaultOptions ''ReverbConfig)
@@ -125,7 +138,6 @@ $(Json.deriveJSON Json.defaultOptions ''PingPongConfig)
 $(Json.deriveJSON Json.defaultOptions ''LimiterConfig)
 $(Json.deriveJSON Json.defaultOptions ''ResonantFilterConfig)
 $(Json.deriveJSON Json.defaultOptions ''BbcutConfig)
-$(Json.deriveJSON Json.defaultOptions ''EqMode)
 $(Json.deriveJSON Json.defaultOptions ''EqPoint)
 $(Json.deriveJSON Json.defaultOptions ''EqConfig)
 $(Json.deriveJSON Json.defaultOptions ''MixerEqConfig)

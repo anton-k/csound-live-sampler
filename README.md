@@ -367,9 +367,9 @@ The master has parameters:
 * **fxs** - (optional) parameter with list of effects. We will discuss effects
    in a separate section.
 
-#### Ordinary channels 
+#### Channels 
 
-Let's look at the parameters of the ordinary channel:
+Let's look at the parameters of the a channel:
 
 ```yaml
 mixer:
@@ -423,6 +423,206 @@ mixer:
 We have defined a master and four channels which all are routed to master.
 We will discuss how to control mixer parameters in real-time in the section
 dedicated to controllers.
+
+#### Effects
+
+We can put a sequence of effects (audio processors) on channels.
+There are several effects implemented in the library:
+
+* tool (volume / gain / pan)
+* reverb
+* delay
+* ping-pong delay
+* moog filter
+* korg ms 20 filter
+* limiter
+* parametric equalizer
+* bbcus (playing audio with stutter loops)
+
+An effect has parameters which can be controlled in real-time.
+Effects can be added to master channel or any channel of the mixer.
+
+Let's add reverb to the master channel:
+
+```yaml
+mixer:
+  master: 
+    volume: 1
+    fxs: 
+        - reverb:
+            size: 0.5
+            damp: 0.7
+            dryWet: 0.25
+  channels:
+    - name: vocal
+      volume: 1
+    - name: guitar:
+      volume: 1
+```
+
+So the typical structure of effect object is:
+    
+```yaml
+fxs:
+    - effect-name
+        param1: initialValue1
+        param2: initialValue2
+```
+
+A value for parameter is float in range (0, 1).
+Let's look at the available effects.
+
+##### Reverb
+
+Reverb is based on Csound opcode [reverbsc](https://csound.com/docs/manual/reverbsc.html).
+It is high-quality reverb based on work of Sean Costello (the author of Valhalla plugins).
+
+```yaml
+- reverb:
+    size: 0.5
+    damp: 0.7
+    dryWet: 0.25
+```
+
+The reverb has 3 parameters: 
+
+* **size** - reverb space size (from room to cave)
+* **damp** - how much sound is reflected from the walls (the lower the more sound is damped)
+* **drtWet** - mix between dry and wet signal (0 - no processing applied, 1 - only processed signal is out)
+
+##### Delay
+
+Delay is a single line delay with equalization of the reflections.
+It is synchronized on bpm and repeatTime is measured in beats:
+
+```yaml
+delay:
+    repeatTime: 0.5
+    damp: 0.8
+    feedback: 0.2
+    dryWet: 0.0
+```
+
+* **repeatTime** - time between repeats, measured in beats (remains constant during performance)
+* **damp** - how much sound is reflected. It controlls of low-pass filter cutoff. 
+* **feedback** - feedback of delay, how many repeats are audible. It is gain that is successfully applied to repetitions of the signal.
+* **dryWet** - dry wet ratio
+
+##### Ping-pong delay
+
+Implements stereo ping pong delay. Reflections are audible with alternate panning.
+
+```yaml
+pingPong:
+    repeatTime: 0.5
+    damp: 0.8
+    feedback: 0.2
+    width: 0.7
+    dryWet: 0.0
+```
+
+Parameters are the same as for `delay`. We have one additional parameter `width`
+which defines the width of stereo spread.
+
+##### Tool
+
+Inspired by the Bitwig plugin `tool`. It gives basic controls for the audio:
+
+```yaml
+tool:
+    volume: 1
+    gain: 0.5
+    pan: 0.5
+    width: 0.3
+```
+
+We can change volume, gain, panning and stereo width of the signal.
+
+##### Limiter
+
+Usefule to put on master to avoid audio clipping and distortion when 
+audio exceeds the volume limit.
+
+```yaml
+limiter:
+    maxVolume: 0.95
+```
+
+##### Equalizer
+
+Equalizer can have as many points as we would like.
+
+```yaml
+eq:
+    maxGainDb :: 12 
+    points:
+        - mode: lowShelf
+          frequency: 0.1
+          gain: 0.6
+          width: 0.5  
+        - mode: bandPass
+          frequency: 0.4
+          gain: 0.5
+          width: 0.5  
+        - mode: highShelf
+          frequency: 0.6
+          gain: 0.4
+          width: 0.5  
+```
+
+Parameters:
+
+* **maxGainDb** - range of the EQ gain in decibels
+* **points** - Eq points. A point has parameters:
+    * **mode** - mode of the filter can be: `lowShelf`, `highShelf`, `bandPass`.
+    * **frequency** - frequency of the EQ-filter
+    * **gain** - gain in range [-maxGainDb, + maxGainDb]. It ranges in the interval `(0, 1)`.
+       The middle point `0.5` means no processing is applied. Higher than 0.5 is boost and lower is attenuation.
+    * **width** - width of the band of Q-factor of the filter. The `0.5` - is no Q-peak.
+        
+##### Resonant filters 
+
+We have two variations of the resonant filters:
+
+* moogFilter - emulator of the moog filter
+* korgFilter - emulator of korg 35 filter (used in early versions of Korg MS 20).
+
+They are both low-pass filters. They have distinct character.
+They have the same set of parameters:
+
+* **cutoff** - filter cutoff (range is `(0, 1)`)
+* **resonance**  - filter resonance (range is `(0, 1)`)
+* **dryWet** - dry wet ratio (optional, the default is 1).
+
+Example:
+
+```yaml
+moogFilter:
+    cutoff: 0.7
+    resonance: 0.15
+```
+
+##### Bbcuts
+
+Bbcuts is a looping-stutter machine. It chops incoming signal to
+chunks and plays them with repeats. It is implemented in Csound
+so it's better study the original [docs](https://csound.com/docs/manual/bbcuts.html).
+It is synchronized on current BPM of the track.
+
+Example:
+
+```yaml
+bbcut:
+  subdiv: 8
+  barlength: 4
+  phrasebars: 1
+  numrepeats: 8
+  dryWet: 1
+```
+
+All parameters except `dryWet` are fixed. Other arguments control
+how to slice audio to chunks and repeat it. Study the csound docs.
+So we set it up and can control how much signal is fed into bbcut effect.
 
 ### Sampler
 

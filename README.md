@@ -494,6 +494,7 @@ mixer:
       volume: 1
       fxs:
         - reverb:
+            name: reverb
             dryWet: 1
             size: 0.5
             damp: 0.75
@@ -513,10 +514,9 @@ For example the typical effect to add is a limiter on master:
 master:
     volume: 1
     fxs:
-      - name: master-limiter
-        fx:
-          limiter:
-            maxVolume: 0.95
+      - limiter:
+          name: master-limiter
+          maxVolume: 0.95
 ```
 
 We have studied the main features of the app and defined 
@@ -653,12 +653,11 @@ mixer:
   master: 
     volume: 1
     fxs: 
-        - name: master-reverb
-          fx:
-            reverb:
-                size: 0.5
-                damp: 0.7
-                dryWet: 0.25
+        - reverb:
+            name: master-reverb
+            size: 0.5
+            damp: 0.7
+            dryWet: 0.25
   channels:
     - name: vocal
       volume: 1
@@ -670,11 +669,10 @@ So the typical structure of effect object is:
     
 ```yaml
 fxs:
-    - name: effectName
-      fx:   
-        effectType:
-            param1: initialValue1
-            param2: initialValue2
+    - effectType:
+        name: effectName
+        param1: initialValue1
+        param2: initialValue2
 ```
 
 A value for parameter is float in range (0, 1).
@@ -687,6 +685,7 @@ It is high-quality reverb based on work of Sean Costello (the author of Valhalla
 
 ```yaml
 - reverb:
+    name: master-reverb
     size: 0.5
     damp: 0.7
     dryWet: 0.25
@@ -705,6 +704,7 @@ It is synchronized on bpm and repeatTime is measured in beats:
 
 ```yaml
 delay:
+    name: some-delay
     repeatTime: 0.5
     damp: 0.8
     feedback: 0.2
@@ -722,6 +722,7 @@ Implements stereo ping pong delay. Reflections are audible with alternate pannin
 
 ```yaml
 pingPong:
+    name: some-delay
     repeatTime: 0.5
     damp: 0.8
     feedback: 0.2
@@ -738,6 +739,7 @@ Inspired by the Bitwig plugin `tool`. It gives basic controls for the audio:
 
 ```yaml
 tool:
+    name: some-tool
     volume: 1
     gain: 0.5
     pan: 0.5
@@ -753,6 +755,7 @@ audio exceeds the volume limit.
 
 ```yaml
 limiter:
+    name: some-limiter
     maxVolume: 0.95
 ```
 
@@ -762,6 +765,7 @@ Equalizer can have as many points as we would like.
 
 ```yaml
 eq:
+    name: some-eq
     maxGainDb :: 12 
     points:
         - mode: lowShelf
@@ -806,6 +810,7 @@ Example:
 
 ```yaml
 moogFilter:
+    name: moog-filter
     cutoff: 0.7
     resonance: 0.15
 ```
@@ -821,6 +826,7 @@ Example:
 
 ```yaml
 bbcut:
+  name: drum-bus-stutter
   subdiv: 8
   barlength: 4
   phrasebars: 1

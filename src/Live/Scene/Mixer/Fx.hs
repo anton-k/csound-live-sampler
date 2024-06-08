@@ -8,6 +8,7 @@ module Live.Scene.Mixer.Fx
   , toFxParamMap
   , isBpmSensitive
   , newFxParams
+  , fxUnitName
   ) where
 
 import Prelude hiding (read)
@@ -41,13 +42,13 @@ modifyFxParam (FxParams nameMap) name param f = do
       paramMap <- Map.lookup name nameMap
       Map.lookup param paramMap
 
-newFxParams :: [NamedFx FxUnit] -> SE FxParams
+newFxParams :: [FxUnit] -> SE FxParams
 newFxParams allUnits =
   FxParams . Map.fromList <$> mapM toNameMapItem allUnits
   where
-    toNameMapItem :: NamedFx FxUnit -> SE (FxName, ParamMap)
+    toNameMapItem :: FxUnit -> SE (FxName, ParamMap)
     toNameMapItem unit =
-      (FxName unit.name, ) <$> toFxParamMap unit.fx
+      (FxName (fxUnitName unit), ) <$> toFxParamMap unit
 
 toFxParamMap :: FxUnit -> SE ParamMap
 toFxParamMap = \case
@@ -93,3 +94,16 @@ isBpmSensitive = \case
   LimiterFx _ -> limiterUnit.needsBpm
   EqFx _ -> eqUnit.needsBpm
   MixerEqFx _ -> mixerEqUnit.needsBpm
+
+fxUnitName :: FxUnit -> Text
+fxUnitName = \case
+  ToolFx config -> config.name
+  ReverbFx config -> config.name
+  DelayFx config -> config.name
+  PingPongFx config -> config.name
+  MoogFx config -> config.name
+  KorgFx config -> config.name
+  BbcutFx config -> config.name
+  LimiterFx config -> config.name
+  EqFx config -> config.name
+  MixerEqFx config -> config.name

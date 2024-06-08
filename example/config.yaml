@@ -2,41 +2,36 @@ mixer:
   master:
     volume: 1
     fxs:
-      - name: master-limiter
-        fx:
-          limiter:
-            maxVolume: 0.95
+      - limiter:
+          name: master-limiter
+          maxVolume: 0.95
   channels:
     - volume: 1
       fxs:
-        - name: drum-delay-1
-          fx:
-            delay:
-              repeatTime: 0.5
-              damp: 0.8
-              feedback: 0.2
-              dryWet: 0.0
-        - name: drum-delay-2
-          fx:
-            delay:
-              repeatTime: 1
-              damp: 0.6
-              feedback: 0.3
-              dryWet: 0.0
-        - name: drum-delay-3
-          fx:
-            delay:
-              repeatTime: 2
-              damp: 0.6
-              feedback: 0.3
-              dryWet: 0.0
+        - delay:
+            name: drum-delay-1
+            repeatTime: 0.5
+            damp: 0.8
+            feedback: 0.2
+            dryWet: 0.0
+        - delay:
+            name: drum-delay-2
+            repeatTime: 1
+            damp: 0.6
+            feedback: 0.3
+            dryWet: 0.0
+        - delay:
+            name: drum-delay-3
+            repeatTime: 2
+            damp: 0.6
+            feedback: 0.3
+            dryWet: 0.0
 
-        - name: drum-filter
-          fx:
-            moogFilter:
-              cutoff: 1
-              resonance: 0
-              dryWet: 1
+        - moogFilter:
+            name: drum-filter
+            cutoff: 1
+            resonance: 0
+            dryWet: 1
 
     - volume: 1
     - volume: 1

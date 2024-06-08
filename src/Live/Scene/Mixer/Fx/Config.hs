@@ -1,7 +1,6 @@
 module Live.Scene.Mixer.Fx.Config
   ( FxChain
   , FxUnit (..)
-  , NamedFx (..)
   , ToolConfig (..)
   , ReverbConfig (..)
   , DelayConfig (..)
@@ -23,7 +22,7 @@ import Data.Aeson
 import Data.Aeson.TH qualified as Json
 
 -- | Chain of effect processors
-type FxChain = [NamedFx FxUnit]
+type FxChain = [FxUnit]
 
 data FxUnit
   = ToolFx ToolConfig
@@ -37,33 +36,32 @@ data FxUnit
   | EqFx EqConfig
   | MixerEqFx MixerEqConfig
 
-data NamedFx a = NamedFx
-  { name :: Text
-  , fx :: a
-  }
-
 data ToolConfig = ToolConfig
-  { volume :: Maybe Float
+  { name :: Text
+  , volume :: Maybe Float
   , gain :: Maybe Float
   , pan :: Maybe Float
   , width :: Maybe Float
   }
 
 data ReverbConfig = ReverbConfig
-  { size :: Float
+  { name :: Text
+  , size :: Float
   , damp :: Float
   , dryWet :: Float
   }
 
 data DelayConfig = DelayConfig
-  { repeatTime :: Float
+  { name :: Text
+  , repeatTime :: Float
   , damp :: Float
   , feedback :: Float
   , dryWet :: Float
   }
 
 data PingPongConfig = PingPongConfig
-  { repeatTime :: Float
+  { name :: Text
+  , repeatTime :: Float
   , damp :: Float
   , feedback :: Float
   , width :: Float
@@ -75,13 +73,15 @@ type MoogConfig = ResonantFilterConfig
 type KorgConfig = ResonantFilterConfig
 
 data ResonantFilterConfig = ResonantFilterConfig
-  { cutoff :: Float
+  { name :: Text
+  , cutoff :: Float
   , resonance :: Float
   , dryWet :: Maybe Float
   }
 
 data BbcutConfig = BbcutConfig
-  { subdiv :: Float
+  { name :: Text
+  , subdiv :: Float
   , barlength :: Float
   , phrasebars :: Float
   , numrepeats :: Float
@@ -89,11 +89,13 @@ data BbcutConfig = BbcutConfig
   }
 
 data LimiterConfig = LimiterConfig
-  { maxVolume :: Float -- in range (0, 1), maximum volume, recommended 0.95
+  { name :: Text
+  , maxVolume :: Float -- in range (0, 1), maximum volume, recommended 0.95
   }
 
 data EqConfig = EqConfig
-  { points :: [EqPoint]
+  { name :: Text
+  , points :: [EqPoint]
   , maxGainDb:: Maybe Float -- if nothing then 12 dB
   }
 
@@ -110,7 +112,8 @@ data EqMode
   | HighShelfEq
 
 data MixerEqConfig = MixerEqConfig
-  { gains :: [Float]
+  { name :: Text
+  , gains :: [Float]
   , frequencies :: [Float]
   , maxGainDb :: Maybe Float
   }
@@ -130,7 +133,6 @@ instance FromJSON EqMode where
     "bandPass" -> pure BandPassEq
     _ -> fail "Failed to parse"
 
-$(Json.deriveJSON Json.defaultOptions ''NamedFx)
 $(Json.deriveJSON Json.defaultOptions ''ToolConfig)
 $(Json.deriveJSON Json.defaultOptions ''ReverbConfig)
 $(Json.deriveJSON Json.defaultOptions ''DelayConfig)
@@ -141,6 +143,7 @@ $(Json.deriveJSON Json.defaultOptions ''BbcutConfig)
 $(Json.deriveJSON Json.defaultOptions ''EqPoint)
 $(Json.deriveJSON Json.defaultOptions ''EqConfig)
 $(Json.deriveJSON Json.defaultOptions ''MixerEqConfig)
+
 
 instance ToJSON FxUnit where
   toJSON = \case

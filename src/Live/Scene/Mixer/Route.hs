@@ -231,15 +231,16 @@ applyFx ctx channel =
       fx <- concat $ maybeToList config.fxs
       pure (unitToFxInstr ctx (ctx.deps.readChannel channel) (ctx.deps.writeChannel channel) fx)
 
-unitToFxInstr :: RouteCtx -> SE Sig2 -> (Sig2 -> SE ()) -> NamedFx FxUnit -> FxInstr
+unitToFxInstr :: RouteCtx -> SE Sig2 -> (Sig2 -> SE ()) -> FxUnit -> FxInstr
 unitToFxInstr ctx read write fx =
   FxInstr
     { body = fxInstrBody read write fxFun
-    , needsBpm = Fx.isBpmSensitive fx.fx
-    , name = FxName fx.name
+    , needsBpm = Fx.isBpmSensitive fx
+    , name = fxName
     }
   where
-    fxFun = unitToFun ctx.bpm (readParamMap (FxName fx.name) ctx.fxParams) fx.fx
+    fxName = FxName (Fx.fxUnitName fx)
+    fxFun = unitToFun ctx.bpm (readParamMap fxName ctx.fxParams) fx
 
 fxInstrBody :: SE Sig2 -> (Sig2 -> SE ()) -> (Sig2 -> SE Sig2) -> SE ()
 fxInstrBody read write fun = do

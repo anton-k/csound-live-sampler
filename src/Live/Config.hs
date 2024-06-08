@@ -10,7 +10,6 @@ module Live.Config
 import Data.Text (Text)
 import Data.Yaml qualified as Yaml
 import Live.Scene.Mixer.Config (MixerConfig (..))
-import Live.Scene.Midi.Config (MidiControllerConfig (..))
 import Live.Scene.Sampler.Config
   (SamplerConfig (..), StemConfig (..), TrackConfig (..),
    ClipsConfig (..), ClipColumnConfig (..), ClipConfig (..),

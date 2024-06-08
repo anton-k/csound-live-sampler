@@ -13,14 +13,14 @@ import Live.Scene.Common
 
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
 writeSceneCsd config mFile =
-  writeCsdBy (setMa <> setDac) (fromMaybe "tmp.csd" mFile) $ do
+  writeCsdBy (withCsoundFlags config $ setMa <> setDac) (fromMaybe "tmp.csd" mFile) $ do
     toAudio =<< loadScene config
 
 -- | TODO: remove double rendering
 runScene :: Config -> Maybe FilePath -> IO ()
 runScene config mFile = do
   mapM_ (writeSceneCsd config . Just) mFile
-  dacBy (setMa <> setTrace) $ do
+  dacBy (withCsoundFlags config $ setMa <> setTrace) $ do
     toAudio =<< loadScene config
 
 data Scene = Scene
@@ -61,3 +61,8 @@ getChannelNames config =
     where
       getName (channel, n) = fmap (, n) channel.name
 
+withCsoundFlags :: Config -> Options -> Options
+withCsoundFlags config = maybe id (<>) $ do
+  audio <- config.audio
+  flags <- audio.csound
+  pure $ setVerbatimFlags flags

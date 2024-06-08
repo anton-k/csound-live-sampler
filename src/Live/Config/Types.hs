@@ -11,8 +11,8 @@ import Data.Aeson (ToJSON, FromJSON)
 import Data.Aeson.TH qualified as Json
 
 data Config = Config
-  { mixer :: MixerConfig
-  , sampler :: SamplerConfig
+  { mixer :: MixerConfig Int
+  , sampler :: SamplerConfig Int
   , audio :: AudioConfig
   , controllers :: ControllerConfig
   }

@@ -7,39 +7,23 @@ mixer:
           maxVolume: 0.95
   channels:
     - volume: 1
+    - volume: 1
+      sends:
+        - channel: 8
+          gain: 0.7
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
+    - volume: 1
+      name: reverb-bus
       fxs:
-        - delay:
-            name: drum-delay-1
-            repeatTime: 0.5
+        - reverb:
+            name: reverb-bus
+            size: 0.9
             damp: 0.8
-            feedback: 0.2
-            dryWet: 0.0
-        - delay:
-            name: drum-delay-2
-            repeatTime: 1
-            damp: 0.6
-            feedback: 0.3
-            dryWet: 0.0
-        - delay:
-            name: drum-delay-3
-            repeatTime: 2
-            damp: 0.6
-            feedback: 0.3
-            dryWet: 0.0
-
-        - moogFilter:
-            name: drum-filter
-            cutoff: 1
-            resonance: 0
             dryWet: 1
-
-    - volume: 1
-    - volume: 1
-    - volume: 1
-    - volume: 1
-    - volume: 1
-    - volume: 1
-    - volume: 1
 
 sampler:
   dir: "../tracks"
@@ -260,6 +244,14 @@ controllers:
               fxParam:
                 name: drum-filter
                 param: resonance
+
+      - when:
+          key: 60
+        act:
+          - on:
+              channelSend:
+                from: 4
+                to: 8
 
     notes:
       - when:

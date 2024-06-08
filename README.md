@@ -1084,7 +1084,7 @@ For midi key we can specify optional arguments:
 
 For notes:
 
-```
+```yaml
 when:
   key: 12
   modifier: shift

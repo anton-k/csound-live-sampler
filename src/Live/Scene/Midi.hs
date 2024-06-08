@@ -158,8 +158,10 @@ toKnobAct mixer note knob =
   case knob.on of
     SetMasterVolume -> mixer.modifyMasterVolume $
       const (applyRange $ gainslider (readKnobValue note))
-    SetChannelVolume n -> mixer.modifyChannelVolume (ChannelId (n - 1)) $
+    SetChannelVolume n -> mixer.modifyChannelVolume (toChannelId n) $
       const (applyRange $ gainslider (readKnobValue note))
+    SetChannelSend config -> mixer.modifyChannelSend (toChannelId config.from) (toChannelId config.to) $
+      const (applyRange $ readKnobValue note / 127)
     SetFxParam config -> mixer.modifyFxParam (toFxParamId config) $
       const (applyRange $ readKnobValue note / 127)
   where
@@ -168,6 +170,10 @@ toKnobAct mixer note knob =
 
     applyRange :: Sig -> Sig
     applyRange = maybe id (rescaleUnitRangeTo . bimap float float) knob.range
+
+    -- from human (1 start)  to programming index (0 start)
+    toChannelId :: Int -> ChannelId
+    toChannelId n = ChannelId (n - 1)
 
 rescaleUnitRangeTo :: (Sig, Sig) -> Sig -> Sig
 rescaleUnitRangeTo (minVal, maxVal) x =

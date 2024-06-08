@@ -8,6 +8,7 @@ import Live.Scene.Mixer.Route.DependencyGraph
 import Live.Scene.Mixer.Config
 import Live.Scene.Mixer.Config qualified as Channel (ChannelConfig (..))
 import Live.Scene.Mixer.Fx.Config
+import Live.Scene.Common (ChannelId (..))
 
 tests :: TestTree
 tests = testGroup "Routes"
@@ -22,12 +23,8 @@ tests = testGroup "Routes"
   ]
 
 -- FX test example
-reverb :: NamedFx FxUnit
-reverb =
-  NamedFx
-    { name = "reverb"
-    , fx = ReverbFx (ReverbConfig 1 1 1)
-    }
+reverb :: FxUnit
+reverb = ReverbFx (ReverbConfig "reverb" 1 1 1)
 
 simpleChannels :: Assertion
 simpleChannels =
@@ -609,3 +606,6 @@ groupTwoLayersSends =
                 }
             ]
         ]
+
+deriving newtype instance Num ChannelId
+

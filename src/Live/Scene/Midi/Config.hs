@@ -11,6 +11,7 @@ module Live.Scene.Midi.Config
   , NoteModifier (..)
   , MidiModifier (..)
   , MidiKnob (..)
+  , SetChannelSendConfig (..)
   , SetFxParamConfig (..)
   , MidiKnobAct (..)
   , KnobLink (..)
@@ -153,7 +154,13 @@ data KnobWithRange = KnobWithRange
 data MidiKnobAct
   = SetChannelVolume Int
   | SetMasterVolume
+  | SetChannelSend SetChannelSendConfig
   | SetFxParam SetFxParamConfig
+
+data SetChannelSendConfig = SetChannelSendConfig
+  { from :: Int
+  , to :: Int
+  }
 
 data SetFxParamConfig = SetFxParamConfig
   { name :: Text
@@ -163,6 +170,7 @@ data SetFxParamConfig = SetFxParamConfig
 -- JSON instances
 
 $(Json.deriveJSON Json.defaultOptions ''MidiModifier)
+$(Json.deriveJSON Json.defaultOptions ''SetChannelSendConfig)
 $(Json.deriveJSON Json.defaultOptions ''SetFxParamConfig)
 $(Json.deriveJSON Json.defaultOptions ''MidiNote)
 
@@ -170,6 +178,7 @@ instance ToJSON MidiKnobAct where
   toJSON = \case
     SetChannelVolume n -> Json.object ["channelVolume" .= n]
     SetMasterVolume -> Json.String "masterVolume"
+    SetChannelSend config -> Json.object ["channelSend" .= config]
     SetFxParam config -> Json.object ["fxParam" .= config]
 
 instance FromJSON MidiKnobAct where
@@ -180,6 +189,7 @@ instance FromJSON MidiKnobAct where
         getValue cons name = cons <$> (obj .: name)
       in
             getValue SetChannelVolume "channelVolume"
+        <|> getValue SetChannelSend "channelSend"
         <|> getValue SetFxParam "fxParam"
     _ -> fail "Failed to parse MidiKnobAct"
 

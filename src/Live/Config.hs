@@ -29,11 +29,11 @@ readConfig file = fmap absPath <$> do
   where
     absPath config = config { sampler = appendAbsPath config.sampler }
 
-appendAbsPath :: SamplerConfig -> SamplerConfig
+appendAbsPath :: SamplerConfig a -> SamplerConfig a
 appendAbsPath = appendStemAbsPath . appendClipAbsPath
 
 -- | makes path absolute for stems
-appendStemAbsPath :: SamplerConfig -> SamplerConfig
+appendStemAbsPath :: SamplerConfig a -> SamplerConfig a
 appendStemAbsPath config =
   config { tracks = fmap (appendTrack $ appendPath config.dir) config.tracks }
   where
@@ -42,23 +42,23 @@ appendStemAbsPath config =
       where
         trackDir = addRoot . appendPath track.dir
 
-    appendStem :: (FilePath -> FilePath) -> StemConfig -> StemConfig
+    appendStem :: (FilePath -> FilePath) -> StemConfig a -> StemConfig a
     appendStem add stem =
       stem { StemConfig.file = add stem.file }
 
-appendClipAbsPath :: SamplerConfig -> SamplerConfig
+appendClipAbsPath :: SamplerConfig a -> SamplerConfig a
 appendClipAbsPath config =
   config { SamplerConfig.clips = fmap (go $ appendPath config.dir) config.clips }
   where
-    go :: (FilePath -> FilePath) -> ClipsConfig -> ClipsConfig
+    go :: (FilePath -> FilePath) -> ClipsConfig a -> ClipsConfig a
     go add x =
       x { columns = fmap (appendColumn (add . appendPath x.dir)) x.columns }
 
-    appendColumn :: (FilePath -> FilePath) -> ClipColumnConfig -> ClipColumnConfig
+    appendColumn :: (FilePath -> FilePath) -> ClipColumnConfig a -> ClipColumnConfig a
     appendColumn add column =
       column { ClipColumnConfig.clips = fmap (appendClip (add . appendPath column.dir)) column.clips }
 
-    appendClip :: (FilePath -> FilePath) -> ClipConfig -> ClipConfig
+    appendClip :: (FilePath -> FilePath) -> ClipConfig a -> ClipConfig a
     appendClip add clip =
       clip { ClipConfig.file = add clip.file }
 

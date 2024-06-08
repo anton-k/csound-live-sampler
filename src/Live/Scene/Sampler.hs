@@ -1,5 +1,6 @@
 module Live.Scene.Sampler
   ( Sampler (..)
+  , SamplerDeps (..)
   , TrackId (..)
   , newSampler
   , setTrack
@@ -22,8 +23,7 @@ import Live.Scene.Sampler.Audio
 import Data.Map.Strict qualified as Map
 
 data Sampler = Sampler
-  { audio :: Gen
-  , cursor :: Cursor
+  { cursor :: Cursor
   , playExtraClip :: ColumnName -> ClipName -> SE ()
   , start :: SE ()
   , stop :: SE ()
@@ -31,9 +31,13 @@ data Sampler = Sampler
   , readBpm :: SE Sig
   }
 
-newSampler :: SamplerConfig -> SE Sampler
-newSampler config = do
-  audio <- setupAudio config
+data SamplerDeps = SamplerDeps
+  { writeChannel :: ChannelId -> Sig2 -> SE ()
+  }
+
+newSampler :: SamplerConfig ChannelId -> SamplerDeps -> SE Sampler
+newSampler config deps = do
+  audio <- setupAudio config (AudioDeps deps.writeChannel)
   playlist <- newPlaylist config (fmap (toSig . getInstrRefIdNum) audio.mainTrackInstrs)
   let
     getNextPart = do
@@ -41,8 +45,7 @@ newSampler config = do
       getPart playlist
   engine <- newEngine getNextPart (getExtraClipColumnSize config)
   pure $ Sampler
-    { audio = audio.gen
-    , cursor = initSamplerCursor playlist engine
+    { cursor = initSamplerCursor playlist engine
     , start = engine.start
     , stop = engine.stop
     , getTrackIds = allTrackIds config
@@ -80,11 +83,11 @@ findExtraPart clipMap columnName clipName = do
 toAbsTime :: Float -> Float -> Float
 toAbsTime bpm beats = 60 * beats / bpm
 
-getExtraClipColumnSize :: SamplerConfig -> ExtraClipSize
+getExtraClipColumnSize :: SamplerConfig ChannelId -> ExtraClipSize
 getExtraClipColumnSize config =
   maybe 0 (length . (.columns)) config.clips
 
-allTrackIds :: SamplerConfig -> [TrackId]
+allTrackIds :: SamplerConfig ChannelId -> [TrackId]
 allTrackIds config =
   TrackId . int <$> [0 .. length config.tracks - 1]
 

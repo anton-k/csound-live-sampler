@@ -10,10 +10,11 @@ import Live.Scene.Mixer.Fx.Config
 import Data.Text (Text)
 import Data.Default
 
-data MixerConfig = MixerConfig
-  { channels :: [ChannelConfig]
+data MixerConfig channelId = MixerConfig
+  { channels :: [ChannelConfig channelId]
   , master :: Maybe MasterConfig
   }
+  deriving (Functor)
 
 data MasterConfig = MasterConfig
   { volume :: Float
@@ -24,19 +25,21 @@ data MasterConfig = MasterConfig
 instance Default MasterConfig where
   def = MasterConfig 1 Nothing Nothing
 
-data ChannelConfig = ChannelConfig
+data ChannelConfig a = ChannelConfig
   { volume :: Float
   , gain :: Maybe Float
-  , output :: Maybe Int -- if Nothing then output to master
-  , sends :: Maybe [SendConfig]
+  , output :: Maybe a -- if Nothing then output to master
+  , sends :: Maybe [SendConfig a]
   , fxs :: Maybe FxChain
   , name :: Maybe Text
   }
+  deriving (Functor)
 
-data SendConfig = SendConfig
-  { channel :: Int
+data SendConfig a = SendConfig
+  { channel :: a
   , gain :: Float
   }
+  deriving (Functor)
 
 -- JSON instances
 

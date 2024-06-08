@@ -1,6 +1,5 @@
 module Live.Scene.Mixer.Route
-  ( ChannelId
-  , MixerRoute (..)
+  ( MixerRoute (..)
   , MixerRouteFx (..)
   , RouteDeps (..)
   , FxParamId (..)
@@ -23,8 +22,9 @@ import Live.Scene.Mixer.Config
 import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Fx (FxName (..), FxParams, Bpm (..), readParamMap, unitToFun)
 import Live.Scene.Mixer.Fx qualified as Fx
+import Live.Scene.Common (ChannelId (..))
 
-toMixerRoute :: RouteDeps -> Bpm -> MixerConfig -> SE MixerRoute
+toMixerRoute :: RouteDeps -> Bpm -> MixerConfig ChannelId -> SE MixerRoute
 toMixerRoute deps bpm config = do
   ctx <- newRouteCtx deps config bpm
   let
@@ -91,18 +91,18 @@ modifyFxParamSt :: FxParams -> FxParamId -> (Sig -> Sig) -> SE ()
 modifyFxParamSt fxParams paramId f =
   Fx.modifyFxParam fxParams (FxName paramId.name) paramId.param f
 
-newRouteCtx :: RouteDeps -> MixerConfig -> Bpm -> SE RouteCtx
+newRouteCtx :: RouteDeps -> MixerConfig ChannelId -> Bpm -> SE RouteCtx
 newRouteCtx deps config bpm = do
   fxParams <- initFxParams config
   pure $ RouteCtx { deps, configs = configMap, masterConfig = fromMaybe def config.master, bpm, fxParams }
   where
     configMap = initConfigMap config
 
-initConfigMap :: MixerConfig -> ChannelConfigMap
+initConfigMap :: MixerConfig ChannelId -> ChannelConfigMap
 initConfigMap config =
   ChannelConfigMap $ IntMap.fromList $ zip [0..] config.channels
 
-initFxParams :: MixerConfig -> SE FxParams
+initFxParams :: MixerConfig ChannelId -> SE FxParams
 initFxParams config =
   Fx.newFxParams allFxs
   where
@@ -121,8 +121,6 @@ restartFxInstr instrId = do
   turnoff2 instrId 0 0.25
   play instrId [Note 0 (-1) ()]
 
-type ChannelId = Int
-
 data RouteDeps = RouteDeps
   { readChannel :: ChannelId -> SE Sig2
   , readChannelVolume :: ChannelId -> SE Sig
@@ -134,13 +132,13 @@ data RouteDeps = RouteDeps
   , appendMaster :: Sig2 -> SE ()
   }
 
-newtype ChannelConfigMap = ChannelConfigMap (IntMap ChannelConfig)
+newtype ChannelConfigMap = ChannelConfigMap (IntMap (ChannelConfig ChannelId))
 
-getConfig :: ChannelConfigMap -> ChannelId -> Maybe ChannelConfig
-getConfig (ChannelConfigMap configs) channel =
+getConfig :: ChannelConfigMap -> ChannelId -> Maybe (ChannelConfig ChannelId)
+getConfig (ChannelConfigMap configs) (ChannelId channel) =
   IntMap.lookup channel configs
 
-withConfig :: ChannelConfigMap -> ChannelId -> (ChannelConfig -> SE ()) -> SE ()
+withConfig :: ChannelConfigMap -> ChannelId -> (ChannelConfig ChannelId -> SE ()) -> SE ()
 withConfig configs channel cont =
   maybe (pure ()) cont $ getConfig configs channel
 
@@ -208,7 +206,7 @@ toRouteChannelInstrBodies ctx (Route groupActs) = do
         CopySends -> copySends ctx act.channel
         ApplyFx -> mapM_ (.body) $ applyFx ctx act.channel
 
-extractFxAct :: GroupAct -> Either [RouteAct] Int
+extractFxAct :: GroupAct -> Either [RouteAct] ChannelId
 extractFxAct (GroupAct acts) =
   case acts of
     [act] | act.type_ == ApplyFx -> Right act.channel

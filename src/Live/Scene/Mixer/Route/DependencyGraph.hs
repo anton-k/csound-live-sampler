@@ -14,7 +14,6 @@ module Live.Scene.Mixer.Route.DependencyGraph
   , orderDependencies
   ) where
 
-import Data.Bifunctor (second)
 import Live.Scene.Mixer.Config
 import Data.Graph (Graph, Vertex)
 import Data.Graph qualified as Graph
@@ -23,6 +22,7 @@ import Data.IntMap.Strict qualified as IntMap
 import Data.Maybe
 import Data.List qualified as List
 import Data.Array qualified as Array
+import Live.Scene.Common (ChannelId (..))
 
 data RouteGraph = RouteGraph
   { graph :: Graph
@@ -39,7 +39,7 @@ newtype GroupAct = GroupAct { acts :: [RouteAct] }
 data RouteAct = RouteAct
   { type_ :: RouteActType
   , isActive :: Bool
-  , channel :: Int
+  , channel :: ChannelId
   }
   deriving (Show, Eq)
 
@@ -50,11 +50,11 @@ data RouteActType
   deriving (Show, Eq)
 
 data ChannelOutput
-  = ChannelOutput Int
+  = ChannelOutput ChannelId
   | MasterOutput
   deriving (Show, Eq)
 
-orderDependencies :: MixerConfig -> Route
+orderDependencies :: MixerConfig ChannelId -> Route
 orderDependencies config = Route $ toGroupActs sortedActs
   where
     routeGraph = toRouteGraph config
@@ -76,14 +76,14 @@ toGroupActs acts =
     isFxAct :: RouteAct -> Bool
     isFxAct act = act.type_ == ApplyFx
 
-toRouteGraph :: MixerConfig -> RouteGraph
+toRouteGraph :: MixerConfig ChannelId -> RouteGraph
 toRouteGraph config =
   RouteGraph
-    { graph = Array.array (0, length config.channels * 3 - 1) $ fmap (second snd) $ List.sortOn fst vertices
+    { graph = Array.listArray (0, length config.channels * 3 - 1) $ fmap (snd . snd) $ List.sortOn fst vertices
     , content = fst <$> IntMap.fromList vertices
     }
   where
-    vertices = concat $ zipWith channelToVertices [0..] config.channels
+    vertices = concat $ zipWith channelToVertices (fmap ChannelId [0..]) config.channels
 
 -- | For every channel we produce 3 vertices:
 --
@@ -95,7 +95,7 @@ toRouteGraph config =
 -- for send destination channels and output channels.
 --
 -- Output to master produce no successor.
-channelToVertices :: Int -> ChannelConfig -> [(Vertex, (RouteAct, [Vertex]))]
+channelToVertices :: ChannelId -> ChannelConfig ChannelId -> [(Vertex, (RouteAct, [Vertex]))]
 channelToVertices channelIndex config =
   [ applyFx, copySends, copyOutput ]
   where
@@ -137,19 +137,18 @@ channelToVertices channelIndex config =
     copySendsSuccessors =
       toCopyOutpIndex channelIndex : fmap toApplyFxIndex sends
       where
-        sends = fmap (.channel) $ fromMaybe [] config.sends
+        sends = fmap ((.channel)) $ fromMaybe [] config.sends
 
     copyOutputSuccessors = fmap toApplyFxIndex outputs
       where
         outputs = maybe [] pure config.output
 
-    toApplyFxIndex :: Int -> Int
-    toApplyFxIndex channel = 3 * channel
+    toApplyFxIndex :: ChannelId -> Int
+    toApplyFxIndex (ChannelId channel) = 3 * channel
 
-    toCopySendsIndex :: Int -> Int
-    toCopySendsIndex channel = 3 * channel + 1
+    toCopySendsIndex :: ChannelId -> Int
+    toCopySendsIndex (ChannelId channel) = 3 * channel + 1
 
-    toCopyOutpIndex :: Int -> Int
-    toCopyOutpIndex channel = 3 * channel + 2
-
+    toCopyOutpIndex :: ChannelId -> Int
+    toCopyOutpIndex (ChannelId channel) = 3 * channel + 2
 

@@ -21,6 +21,7 @@ module Live.Scene.Sampler.Playlist
 import Prelude hiding ((<*))
 import Data.Boolean
 import Csound.Core
+import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Sampler.Timing qualified as Timing
 import Live.Scene.Sampler.Config
 import Live.Scene.Sampler.Engine (Part (..), ClipInstr, Clip (..))
@@ -62,7 +63,7 @@ setPart cursor (TrackId trackId) (ClipId clipId) = do
   cursor.modifyTrack (const $ toSig trackId)
   cursor.modifyPart (+ toSig clipId)
 
-newPlaylist :: SamplerConfig -> [ClipInstr] -> SE Playlist
+newPlaylist :: SamplerConfig ChannelId -> [ClipInstr] -> SE Playlist
 newPlaylist config instrs = do
   st <- initSt config instrs
   pure $
@@ -120,7 +121,7 @@ wrapArrayBounds arr index =
   where
     len = toSig (lenarray arr)
 
-initSt :: SamplerConfig -> [ClipInstr] -> SE St
+initSt :: SamplerConfig ChannelId -> [ClipInstr] -> SE St
 initSt config instrs = do
   infos <- initPartArray tracks
   trackStarts <- initTrackStartArray tracks
@@ -168,16 +169,16 @@ initClipToTrackArray tracks =
       fmap (const $ int trackId) track.clips
 
 data TimedTrack = TimedTrack
-  { track :: TrackConfig
+  { track :: TrackConfig ChannelId
   , clips :: [Timing.Clip]
   , instr :: ClipInstr
   }
 
-timeTracks :: SamplerConfig -> [ClipInstr] -> [TimedTrack]
+timeTracks :: SamplerConfig ChannelId -> [ClipInstr] -> [TimedTrack]
 timeTracks config instrs =
   zipWith toTimedTrack instrs config.tracks
 
-toTimedTrack :: ClipInstr -> TrackConfig -> TimedTrack
+toTimedTrack :: ClipInstr -> TrackConfig ChannelId -> TimedTrack
 toTimedTrack instr config =
   TimedTrack
     { track = config

@@ -55,7 +55,7 @@ runValid valid = do
     then Nothing
     else Just (Text.unlines $ fmap (<> "\n") errs)
 
-checkSamplerFiles :: SamplerConfig -> Valid ()
+checkSamplerFiles :: SamplerConfig Int -> Valid ()
 checkSamplerFiles config =
   withRoot config Nothing $ \root -> do
     mapM_ (checkTrack root) config.tracks
@@ -76,12 +76,12 @@ checkFile file = do
     isOk <- liftIO $ doesFileExist absFile
     unless isOk $ fileDoesNotExist absFile
 
-checkTrack :: Maybe FilePath -> TrackConfig -> Valid ()
+checkTrack :: Maybe FilePath -> TrackConfig Int -> Valid ()
 checkTrack mRoot config = do
   withRoot config mRoot $ \root ->
     mapM_ (checkStemFile root) config.stems
 
-checkStemFile :: Maybe FilePath -> StemConfig -> Valid ()
+checkStemFile :: Maybe FilePath -> StemConfig Int -> Valid ()
 checkStemFile mRoot config =
   checkFile (appendPath mRoot config.file)
 
@@ -93,17 +93,17 @@ appendMaybePath mA mB = case mA of
 appendPath :: Maybe FilePath -> FilePath -> FilePath
 appendPath mPrefix = maybe id (</>)mPrefix
 
-checkClips :: Maybe FilePath -> ClipsConfig -> Valid ()
+checkClips :: Maybe FilePath -> ClipsConfig Int -> Valid ()
 checkClips mRoot config =
   withRoot config mRoot $ \root ->
     mapM_ (checkClipColumnFiles root) config.columns
 
-checkClipColumnFiles :: Maybe FilePath -> ClipColumnConfig -> Valid ()
+checkClipColumnFiles :: Maybe FilePath -> ClipColumnConfig Int -> Valid ()
 checkClipColumnFiles mRoot config = do
   withRoot config mRoot $ \root ->
     mapM_ (checkClipFile root) config.clips
 
-checkClipFile :: Maybe FilePath -> ClipConfig -> Valid ()
+checkClipFile :: Maybe FilePath -> ClipConfig Int -> Valid ()
 checkClipFile mRoot config =
   checkFile (appendPath mRoot config.file)
 
@@ -132,7 +132,7 @@ checkVolumes config = do
   checkMixerVolumes config.mixer
   checkSamplerVolumes config.sampler
 
-checkMixerVolumes :: MixerConfig -> Valid ()
+checkMixerVolumes :: MixerConfig Int -> Valid ()
 checkMixerVolumes config = do
   mapM_ checkMasterVolume config.master
   mapM_ checkChannelVolume config.channels
@@ -142,36 +142,36 @@ checkMixerVolumes config = do
       checkVolume master.volume
       mapM_ checkVolume master.gain
 
-    checkChannelVolume :: ChannelConfig -> Valid ()
+    checkChannelVolume :: ChannelConfig Int -> Valid ()
     checkChannelVolume channel = do
       checkVolume channel.volume
       mapM_ checkVolume channel.gain
 
-checkSamplerVolumes :: SamplerConfig -> Valid ()
+checkSamplerVolumes :: SamplerConfig Int -> Valid ()
 checkSamplerVolumes config = do
   mapM_ checkTrackVolume config.tracks
   mapM_ checkClipsVolume config.clips
   where
-    checkTrackVolume :: TrackConfig -> Valid ()
+    checkTrackVolume :: TrackConfig Int -> Valid ()
     checkTrackVolume track = do
       mapM_ checkVolume track.gain
       mapM_ checkStemVolume track.stems
 
-    checkClipsVolume :: ClipsConfig -> Valid ()
+    checkClipsVolume :: ClipsConfig Int -> Valid ()
     checkClipsVolume clips = do
       mapM_ checkClipColumnVolume clips.columns
 
-    checkStemVolume :: StemConfig -> Valid ()
+    checkStemVolume :: StemConfig Int -> Valid ()
     checkStemVolume stem = do
       mapM_ checkVolume stem.volume
       mapM_ checkVolume stem.gain
 
-    checkClipColumnVolume :: ClipColumnConfig -> Valid ()
+    checkClipColumnVolume :: ClipColumnConfig Int -> Valid ()
     checkClipColumnVolume column = do
       mapM_ checkVolume column.gain
       mapM_ checkClipVolume column.clips
 
-    checkClipVolume :: ClipConfig -> Valid ()
+    checkClipVolume :: ClipConfig Int -> Valid ()
     checkClipVolume clip =
       mapM_ checkVolume clip.gain
 
@@ -190,21 +190,21 @@ checkChannels :: Config -> Valid ()
 checkChannels config = do
   checkSamplerChannels config.sampler
 
-checkSamplerChannels :: SamplerConfig -> Valid ()
+checkSamplerChannels :: SamplerConfig Int -> Valid ()
 checkSamplerChannels config = do
   mapM_ checkStem $ (.stems) =<< config.tracks
   mapM_ (uncurry checkClipColumn) $ zip [1..] $ (.columns) =<< maybeToList config.clips
   where
-    checkStem :: StemConfig -> Valid ()
+    checkStem :: StemConfig Int -> Valid ()
     checkStem stem =
       checkChannel ("stem " <> Text.pack stem.file) stem.channel
 
-    checkClipColumn :: Int -> ClipColumnConfig -> Valid ()
+    checkClipColumn :: Int -> ClipColumnConfig Int -> Valid ()
     checkClipColumn index column = do
       mapM_ (checkChannel $ "Clip column at " <> Text.pack (show index)) column.channel
       mapM_ checkClip column.clips
 
-    checkClip :: ClipConfig -> Valid ()
+    checkClip :: ClipConfig Int -> Valid ()
     checkClip clip = do
       mapM_ (checkChannel ("Clip " <> clip.name.name)) clip.channel
 

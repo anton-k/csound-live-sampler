@@ -9,6 +9,7 @@ import Live.Scene.Midi
 import Live.Scene.Mixer
 import Live.Scene.Sampler
 import Data.Maybe
+import Live.Scene.Common (toChannelId)
 
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
 writeSceneCsd config mFile =
@@ -32,13 +33,17 @@ data Scene = Scene
 toAudio :: Scene -> SE Sig2
 toAudio scene = do
   scene.sampler.start
-  sum <$> (runGen (scene.sampler.audio |> scene.mixer.audio) [])
+  scene.mixer.readMaster
 
 -- * init
 
 loadScene :: Config -> SE Scene
 loadScene config = do
-  sampler <- newSampler config.sampler
-  mixer <- newMixer config.mixer sampler.readBpm
+  channels <- newMixerChannels mixerConfig
+  sampler <- newSampler samplerConfig (SamplerDeps $ appendMixerChannels channels)
+  mixer <- newMixer mixerConfig channels sampler.readBpm
   setupMidi config mixer sampler
   pure $ Scene {..}
+  where
+    mixerConfig = fmap toChannelId config.mixer
+    samplerConfig = fmap toChannelId config.sampler

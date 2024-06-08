@@ -20,26 +20,29 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Aeson.TH qualified as Json
 
-data SamplerConfig = SamplerConfig
-  { tracks :: [TrackConfig]
-  , clips :: Maybe ClipsConfig
+data SamplerConfig chan = SamplerConfig
+  { tracks :: [TrackConfig chan]
+  , clips :: Maybe (ClipsConfig chan)
   , dir :: Maybe FilePath
   }
+  deriving (Functor)
 
-data TrackConfig = TrackConfig
+data TrackConfig chan = TrackConfig
   { dir :: Maybe FilePath
   , name :: Text
-  , stems :: [StemConfig]
+  , stems :: [StemConfig chan]
   , slots :: [TimeSlot]
   , gain :: Maybe Float
   }
+  deriving (Functor)
 
-data StemConfig = StemConfig
+data StemConfig chan = StemConfig
   { volume :: Maybe Float
   , file :: FilePath
-  , channel :: Int
+  , channel :: chan
   , gain :: Maybe Float
   }
+  deriving (Functor)
 
 data TimeSlot = TimeSlot
   { bpm :: Float
@@ -57,19 +60,21 @@ data Cue = Cue
 data NextAction = PlayLoop | PlayNext | StopPlayback
   deriving (Show, Eq, Enum)
 
-data ClipsConfig = ClipsConfig
-  { columns :: [ClipColumnConfig]
+data ClipsConfig chan = ClipsConfig
+  { columns :: [ClipColumnConfig chan]
   , groups :: Maybe [ClipGroupConfig]
   , dir :: Maybe FilePath
   }
+  deriving (Functor)
 
-data ClipColumnConfig = ClipColumnConfig
+data ClipColumnConfig a = ClipColumnConfig
   { name :: ColumnName
-  , clips :: [ClipConfig]
+  , clips :: [ClipConfig a]
   , dir :: Maybe FilePath
-  , channel :: Maybe Int
+  , channel :: Maybe a
   , gain :: Maybe Float
   }
+  deriving (Functor)
 
 newtype ColumnName = ColumnName
   { name :: Text
@@ -87,7 +92,7 @@ data ClipGroupConfig = ClipGroupConfig
   , group :: [(ColumnName, ClipName)]
   }
 
-data ClipConfig = ClipConfig
+data ClipConfig a = ClipConfig
   { name :: ClipName
   , file :: FilePath
   , bpm :: Float
@@ -96,9 +101,10 @@ data ClipConfig = ClipConfig
   , dur :: Int
   , mode :: Maybe ClipMode
   , nextAction :: Maybe NextAction
-  , channel :: Maybe Int
+  , channel :: Maybe a
   , gain :: Maybe Float
   }
+  deriving (Functor)
 
 data ClipMode = Diskin | Flooper -- TODO: Mincer
 

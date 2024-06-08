@@ -8,7 +8,6 @@ module Live.Scene.Sampler
   ) where
 
 import Csound.Core
-import Live.Scene.Gen as X
 import Live.Scene.Sampler.Config as X
 import Live.Scene.Sampler.Engine
 import Live.Scene.Sampler.Playlist
@@ -21,6 +20,7 @@ import Live.Scene.Sampler.Playlist
   )
 import Live.Scene.Sampler.Audio
 import Data.Map.Strict qualified as Map
+import Live.Scene.Common (ChannelId (..))
 
 data Sampler = Sampler
   { cursor :: Cursor

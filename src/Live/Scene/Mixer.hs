@@ -50,6 +50,7 @@ data Mixer = Mixer
   , modifyChannelSend :: ChannelId -> ChannelId -> (Sig -> Sig) -> SE ()
   , modifyMasterVolume :: (Sig -> Sig) -> SE ()
   , modifyFxParam :: FxParamId -> (Sig -> Sig) -> SE ()
+  , clean :: SE ()
   }
 
 newtype MixerChannels = MixerChannels [Channel]
@@ -70,6 +71,7 @@ newMixer config channels readBpm = do
   instrIds <- route.setupInstr
   let
     fxControls = route.fxControls instrIds
+  route.launchInstr instrIds
   pure $ Mixer
     { readMaster = readMixSt st
     , modifyChannelVolume = modifyChannelVolumeSt st
@@ -77,6 +79,7 @@ newMixer config channels readBpm = do
     , modifyMasterVolume = modifyMasterVolumeSt st
     , toggleChannelMute = toggleChannelMuteSt st
     , modifyFxParam = fxControls.modifyFxParam
+    , clean = cleanSt st
     }
 
 -- * mixer internal state
@@ -146,7 +149,6 @@ readMixSt :: St -> SE Sig2
 readMixSt St{..} = do
   volume <- readRef master.volume
   audio <- readRef master.audio
-  writeRef master.audio 0
   pure $ withGain master.gain $ mul volume audio
 
 writeChannelSt :: St -> ChannelId -> Sig2 -> SE ()
@@ -189,6 +191,11 @@ withGain mValue audio =
   case mValue of
     Nothing -> audio
     Just value -> mul (float value) audio
+
+cleanSt :: St -> SE ()
+cleanSt st = do
+  mapM_ (\channel -> writeRef channel.audio 0) st.channels
+  writeRef st.master.audio 0
 
 -------------------------------------------------------------------------------------
 -- Routes

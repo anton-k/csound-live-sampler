@@ -9,7 +9,7 @@ import Live.Scene.Midi
 import Live.Scene.Mixer
 import Live.Scene.Sampler
 import Data.Maybe
-import Live.Scene.Common (toChannelId)
+import Live.Scene.Common
 
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
 writeSceneCsd config mFile =
@@ -33,7 +33,9 @@ data Scene = Scene
 toAudio :: Scene -> SE Sig2
 toAudio scene = do
   scene.sampler.start
-  scene.mixer.readMaster
+  result <- scene.mixer.readMaster
+  scene.mixer.clean
+  pure result
 
 -- * init
 
@@ -42,8 +44,20 @@ loadScene config = do
   channels <- newMixerChannels mixerConfig
   sampler <- newSampler samplerConfig (SamplerDeps $ appendMixerChannels channels)
   mixer <- newMixer mixerConfig channels sampler.readBpm
-  setupMidi config mixer sampler
+  setupMidi mixer sampler midiConfig
   pure $ Scene {..}
   where
-    mixerConfig = fmap toChannelId config.mixer
-    samplerConfig = fmap toChannelId config.sampler
+    mixerConfig = fmap convertChannel config.mixer
+    samplerConfig = fmap convertChannel config.sampler
+    midiConfig = fmap convertChannel config.controllers.midi
+
+    channelNames = getChannelNames config
+
+    convertChannel = toChannelId . flip lookupNameRef channelNames
+
+getChannelNames :: Config -> NameMap
+getChannelNames config =
+  toNameMap $ mapMaybe getName $ zip config.mixer.channels [1..]
+    where
+      getName (channel, n) = fmap (, n) channel.name
+

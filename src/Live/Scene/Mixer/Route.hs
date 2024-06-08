@@ -111,10 +111,12 @@ initFxParams config =
       concat $ maybeToList mUnits
 
 reloadOnBpmChange :: Bpm -> [InstrRef ()] -> SE ()
-reloadOnBpmChange (Bpm readBpm) instrRefs = do
-  bpm <- readBpm
-  when1 (changed [bpm] ==* 1) $
-    mapM_ restartFxInstr instrRefs
+reloadOnBpmChange (Bpm readBpm) instrRefs
+  | null instrRefs = pure ()
+  | otherwise = do
+      bpm <- readBpm
+      when1 (changed [bpm] ==* 1) $
+        mapM_ restartFxInstr instrRefs
 
 restartFxInstr :: InstrRef () -> SE ()
 restartFxInstr instrId = do

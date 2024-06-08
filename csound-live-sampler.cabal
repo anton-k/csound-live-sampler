@@ -28,7 +28,6 @@ library
       Live.Config.Validate
       Live.Scene
       Live.Scene.Common
-      Live.Scene.Gen
       Live.Scene.Midi
       Live.Scene.Midi.Config
       Live.Scene.Mixer

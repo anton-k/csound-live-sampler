@@ -1,6 +1,5 @@
 module Live.Scene.Midi.Config
   ( MidiControllerConfig (..)
-  , FadersMidiConfig (..)
   , MutesMidiConfig (..)
   , TrackChangesMidiConfig (..)
   , ShiftMidiConfig (..)
@@ -28,22 +27,18 @@ import Data.Map.Strict (Map)
 import Live.Scene.Sampler.Config (ColumnName (..), ClipName (..))
 import Data.Aeson.TH qualified as Json
 
-data MidiControllerConfig = MidiControllerConfig
+data MidiControllerConfig channel = MidiControllerConfig
   { modifiers :: Map Text MidiModifier
-  , notes :: [ActLink]
-  , knobs :: [KnobLink]
+  , notes :: [ActLink channel]
+  , knobs :: [KnobLink channel]
   }
+  deriving (Functor)
 
 data MidiModifier = MidiModifier
   { key :: Int
   , channel :: Maybe MidiChannel
   }
   deriving (Eq, Ord)
-
-data FadersMidiConfig = FadersMidiConfig
-  { master :: Int
-  , channels :: [Int]
-  }
 
 -- | Note numbers for the mutes
 newtype MutesMidiConfig = MutesMidiConfig [Int]
@@ -91,15 +86,16 @@ instance FromJSON NoteModifier where
     Json.Number n -> pure (NoteModifierKey $ floor n)
     _ -> fail "Failed to parse Note modifier, use integer or string"
 
-data MidiAct
-  = ToggleMute Int
+data MidiAct channel
+  = ToggleMute channel
   | SetTrack Int
   | SetPart Int
   | ShiftTrack Int
   | ShiftPart Int
   | PlayExtraClip ColumnName ClipName
+  deriving (Functor)
 
-instance ToJSON MidiAct where
+instance ToJSON a => ToJSON (MidiAct a) where
   toJSON = \case
     ToggleMute n -> Json.object ["mute" .= n]
     SetTrack n -> Json.object ["track" .= n]
@@ -108,7 +104,7 @@ instance ToJSON MidiAct where
     ShiftPart n -> Json.object ["shiftPart" .= n]
     PlayExtraClip column clip -> Json.object [ "playClip" .= (column, clip)]
 
-instance FromJSON MidiAct where
+instance FromJSON a => FromJSON (MidiAct a) where
   parseJSON = Json.withObject "MidiAct" $ \obj ->
     let
       getInt cons name = cons <$> (obj .: name)
@@ -127,15 +123,17 @@ instance FromJSON MidiAct where
       <|> getPair (\a b -> PlayExtraClip (ColumnName a) (ClipName b)) "playClip"
       <|> fail "Failed to parse midi action"
 
-data ActLink = ActLink
+data ActLink channel = ActLink
   { when :: MidiNote
-  , act :: [MidiAct]
+  , act :: [MidiAct channel]
   }
+  deriving (Functor)
 
-data KnobLink = KnobLink
+data KnobLink channel = KnobLink
   { when :: MidiKnob
-  , act :: [KnobWithRange]
+  , act :: [KnobWithRange channel]
   }
+  deriving (Functor)
 
 newtype MidiChannel = MidiChannel Int
   deriving newtype (FromJSON, ToJSON, Eq, Ord)
@@ -146,21 +144,24 @@ data MidiKnob = MidiKnob
   , channel :: Maybe MidiChannel
   }
 
-data KnobWithRange = KnobWithRange
-  { on :: MidiKnobAct
+data KnobWithRange channel = KnobWithRange
+  { on :: MidiKnobAct channel
   , range :: Maybe (Float, Float)
   }
+  deriving (Functor)
 
-data MidiKnobAct
-  = SetChannelVolume Int
+data MidiKnobAct channel
+  = SetChannelVolume channel
   | SetMasterVolume
-  | SetChannelSend SetChannelSendConfig
+  | SetChannelSend (SetChannelSendConfig channel)
   | SetFxParam SetFxParamConfig
+  deriving (Functor)
 
-data SetChannelSendConfig = SetChannelSendConfig
-  { from :: Int
-  , to :: Int
+data SetChannelSendConfig channel = SetChannelSendConfig
+  { from :: channel
+  , to :: channel
   }
+  deriving (Functor)
 
 data SetFxParamConfig = SetFxParamConfig
   { name :: Text
@@ -174,14 +175,14 @@ $(Json.deriveJSON Json.defaultOptions ''SetChannelSendConfig)
 $(Json.deriveJSON Json.defaultOptions ''SetFxParamConfig)
 $(Json.deriveJSON Json.defaultOptions ''MidiNote)
 
-instance ToJSON MidiKnobAct where
+instance ToJSON a => ToJSON (MidiKnobAct a) where
   toJSON = \case
     SetChannelVolume n -> Json.object ["channelVolume" .= n]
     SetMasterVolume -> Json.String "masterVolume"
     SetChannelSend config -> Json.object ["channelSend" .= config]
     SetFxParam config -> Json.object ["fxParam" .= config]
 
-instance FromJSON MidiKnobAct where
+instance FromJSON a => FromJSON (MidiKnobAct a) where
   parseJSON = \case
     Json.String "masterVolume" -> pure SetMasterVolume
     Json.Object obj ->

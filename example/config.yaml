@@ -6,14 +6,22 @@ mixer:
           name: master-limiter
           maxVolume: 0.95
   channels:
-    - volume: 1
-    - volume: 1
+    - name: drums
+      volume: 1
+    - name: perc
+      volume: 1
       sends:
-        - channel: 8
+        - channel: reverb-bus
           gain: 0.7
-    - volume: 1
-    - volume: 1
-    - volume: 1
+    - name: bass
+      volume: 1
+    - name: pad
+      volume: 1
+      sends:
+        - channel: reverb-bus
+          gain: 0.2
+    - name: glue
+      volume: 1
     - volume: 1
     - volume: 1
     - volume: 1
@@ -248,6 +256,10 @@ controllers:
       - when:
           key: 60
         act:
+          - on:
+              channelSend:
+                from: 2
+                to: 8
           - on:
               channelSend:
                 from: 4

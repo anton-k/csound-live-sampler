@@ -9,19 +9,20 @@ import Live.Scene.Mixer.Config (MixerConfig (..))
 import Live.Scene.Midi.Config (MidiControllerConfig (..))
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Aeson.TH qualified as Json
+import Live.Scene.Common (NameRef)
 
 data Config = Config
-  { mixer :: MixerConfig Int
-  , sampler :: SamplerConfig Int
+  { mixer :: MixerConfig NameRef
+  , sampler :: SamplerConfig NameRef
   , audio :: AudioConfig
-  , controllers :: ControllerConfig
+  , controllers :: ControllerConfig NameRef
   }
 
 newtype AudioConfig = AudioConfig String
   deriving newtype (FromJSON, ToJSON)
 
-data ControllerConfig = ControllerConfig
-  { midi :: MidiControllerConfig
+data ControllerConfig channel = ControllerConfig
+  { midi :: MidiControllerConfig channel
   }
 
 $(Json.deriveJSON Json.defaultOptions ''ControllerConfig)

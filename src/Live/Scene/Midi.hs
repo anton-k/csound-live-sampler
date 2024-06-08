@@ -3,7 +3,6 @@ module Live.Scene.Midi
   ) where
 
 import Data.Bifunctor
-import Live.Config
 import Live.Scene.Midi.Config
 import Csound.Core hiding (Note)
 import Csound.Core qualified as Core
@@ -17,13 +16,10 @@ import Live.Scene.Sampler.Playlist qualified as Playlist
 import Safe (atMay)
 import Data.Containers.ListUtils qualified as List
 import Data.Text (Text)
+import Live.Scene.Common (ChannelId (..))
 
-setupMidi :: Config -> Mixer -> Sampler -> SE ()
-setupMidi config mixer sampler = do
-  setMidiActions mixer sampler config.controllers.midi
-
-setMidiActions :: Mixer -> Sampler -> MidiControllerConfig -> SE ()
-setMidiActions mixer sampler config = do
+setupMidi :: Mixer -> Sampler -> MidiControllerConfig ChannelId -> SE ()
+setupMidi mixer sampler config = do
   instrRef <- newProc actionsInstr
   play instrRef [Core.Note 0 (-1) ()]
   global $ massign 0 (instrRefFromNum 0 :: InstrRef ())
@@ -42,11 +38,11 @@ setMidiActions mixer sampler config = do
       NoteModifierKey n -> Just (MidiModifier n chan)
       NoteModifierName name -> Map.lookup name config.modifiers
 
-setMidiActLink :: Mixer -> Sampler -> ModifierNames -> ModifierMap -> Note -> ActLink -> SE ()
+setMidiActLink :: Mixer -> Sampler -> ModifierNames -> ModifierMap -> Note -> ActLink ChannelId -> SE ()
 setMidiActLink mixer sampler modNames mods note link =
   when1 (note.isChange &&* toCond modNames mods note link.when) (mapM_ (toAct mixer sampler) link.act)
 
-setMidiKnobLink :: Mixer -> ModifierNames -> ModifierMap -> Note -> KnobLink -> SE ()
+setMidiKnobLink :: Mixer -> ModifierNames -> ModifierMap -> Note -> KnobLink ChannelId -> SE ()
 setMidiKnobLink mixer modNames mods note link =
   when1 (note.isChange &&* toKnobCond modNames mods note link.when) (mapM_ (toKnobAct mixer note) link.act)
 
@@ -129,10 +125,10 @@ hasModifier mChan modNames (ModifierMap mods) mModifier =
       Map.lookup modifier mods
 
 
-toAct :: Mixer -> Sampler -> MidiAct -> SE ()
+toAct :: Mixer -> Sampler -> MidiAct ChannelId -> SE ()
 toAct mixer sampler = \case
   ToggleMute n ->
-    mixer.toggleChannelMute (ChannelId (n - 1))
+    mixer.toggleChannelMute n
   SetTrack n -> withTrackId n $ \trackId ->
     Playlist.setTrack sampler.cursor trackId
   SetPart _n -> pure () -- TODO:  setPart sampler.cursor n
@@ -153,14 +149,14 @@ toKnobCond modNames mods actualNote expectedNote =
 isKnobStatus :: Note -> BoolSig
 isKnobStatus note = note.status ==* 176
 
-toKnobAct :: Mixer -> Note -> KnobWithRange -> SE ()
+toKnobAct :: Mixer -> Note -> KnobWithRange ChannelId -> SE ()
 toKnobAct mixer note knob =
   case knob.on of
     SetMasterVolume -> mixer.modifyMasterVolume $
       const (applyRange $ gainslider (readKnobValue note))
-    SetChannelVolume n -> mixer.modifyChannelVolume (toChannelId n) $
+    SetChannelVolume n -> mixer.modifyChannelVolume n $
       const (applyRange $ gainslider (readKnobValue note))
-    SetChannelSend config -> mixer.modifyChannelSend (toChannelId config.from) (toChannelId config.to) $
+    SetChannelSend config -> mixer.modifyChannelSend config.from config.to $
       const (applyRange $ readKnobValue note / 127)
     SetFxParam config -> mixer.modifyFxParam (toFxParamId config) $
       const (applyRange $ readKnobValue note / 127)
@@ -170,10 +166,6 @@ toKnobAct mixer note knob =
 
     applyRange :: Sig -> Sig
     applyRange = maybe id (rescaleUnitRangeTo . bimap float float) knob.range
-
-    -- from human (1 start)  to programming index (0 start)
-    toChannelId :: Int -> ChannelId
-    toChannelId n = ChannelId (n - 1)
 
 rescaleUnitRangeTo :: (Sig, Sig) -> Sig -> Sig
 rescaleUnitRangeTo (minVal, maxVal) x =

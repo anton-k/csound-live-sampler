@@ -840,6 +840,105 @@ So we set it up and can control how much signal is fed into bbcut effect.
 
 ### Sampler
 
+Sampler has two parts:
+
+* An **audio engine** can play parts of audio files and syncronize on BPM
+
+* A **playlist** of tracks which can switch between tracks and parts of the tracks
+
+The sampler has internal metronome which syncs the launches of audio files.
+For sampler we define which tracks do we have which parts each track have
+and what BPM we use. 
+
+Let's look at the sections of the sampler config:
+
+```yaml
+sampler:
+  tracks: [list of tracks]
+  dir: tracks-directory
+```
+
+The `dir` tells where the audio files are stored. In tracks we specify the sequence of tracks
+how we can play them.
+
+
+```yaml
+tracks:
+  - dir: track-directory
+    name: name of the track
+    stems: [...]
+    slots: [...]
+```
+
+The track has directory `dir` where all files for that track are stored.
+We assume that after mixing stage we have stem files for the track.
+In stem file we have groups of alike instruments: vocals, drums, guitars.
+The granularity depends on your approach to playing. Splitting to stems
+gives us ability to control volumes and apply effects to certain groups of instruments
+in the track. 
+
+Slots define the division of track to parts. Like we have intro, chorus A, versus A, chorus B, versus B and outro.
+
+#### Stems
+
+Stems allow us to control instrument groups of the track and remix it live.
+Let's look at example of the stems:
+
+```yaml
+stems:
+  - file: "Arps.wav"
+    channel: 4
+  - file: "Kick.wav"
+    channel: 1
+    gain: 1.2
+  - file: "Piano.wav"
+    channel: 4
+  - file: "Bass.wav"
+    channel: 3
+```
+
+Each stem has parameters of `file`-path and mixer channel to route the audio.
+Here we play Kick in channel 1, play bass on channel 3 and arps and piano on channel 4.
+Also there is optional argument gain which can scale the volume of the stem file.
+
+#### Slots
+
+Slots define division of the track to parts in time domain.
+
+```yaml
+slots:
+  - bpm: 85
+    measure: [4, 4]
+    changeRate: 4
+    cues:
+    - dur: 16
+    - dur: 32
+    - dur: 32
+```
+
+Our song has BPM 85 and measure 4/4. We set `changeRate` to 4. It means that 
+audio clips are changed every 4th beat.
+The section `cues` defines the parts of the track. In the example we have 3 parts
+each 16 beats long.
+
+Why do we need slots as a list? Because the tempo and measure of the song can change.
+In this case we will use several slots.
+
+A cue has optional arguments:
+
+```yaml
+cues:
+    - start: 4
+      dur: 16
+      nextAction: loop
+```
+
+Start defines delay in beats from the end of previous cue/slot.
+The `nextAction` has 3 modes: loop, next, stop. By default it is `loop`.
+Which means we play this cue in loop until the next one is requested on playlist.
+The `next` mode can be useful for intros. With it we play next part as soon as the current one ends.
+The `stop` stops the playback when end is reached.
+
 ### Controllers
 
 The section `controllers` defines how we can control parameters in real-time.

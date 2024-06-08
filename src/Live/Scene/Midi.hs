@@ -18,31 +18,33 @@ import Data.Containers.ListUtils qualified as List
 import Data.Text (Text)
 import Live.Scene.Common (ChannelId (..))
 
-setupMidi :: Mixer -> Sampler -> MidiControllerConfig ChannelId -> SE ()
+setupMidi :: Mixer -> Sampler -> MidiControllerConfig ChannelId Int -> SE ()
 setupMidi mixer sampler config = do
   instrRef <- newProc actionsInstr
   play instrRef [Core.Note 0 (-1) ()]
   global $ massign 0 (instrRefFromNum 0 :: InstrRef ())
   where
+    modifierMap = fromMaybe mempty config.modifiers
+
     actionsInstr () = do
       note <- readNote
       mods <- setModifiers note modifierKeys
-      mapM_ (setMidiActLink mixer sampler config.modifiers mods note) config.notes
-      mapM_ (setMidiKnobLink mixer config.modifiers mods note) config.knobs
+      mapM_ (setMidiActLink mixer sampler modifierMap mods note) config.notes
+      mapM_ (setMidiKnobLink mixer modifierMap mods note) config.knobs
 
-    modifierKeys :: [MidiModifier]
+    modifierKeys :: [MidiModifier Int]
     modifierKeys = List.nubOrd $ mapMaybe (\x -> fromModifier x.when.channel =<< x.when.modifier) config.notes
 
-    fromModifier :: Maybe MidiChannel -> NoteModifier -> Maybe MidiModifier
+    fromModifier :: Maybe MidiChannel -> NoteModifier -> Maybe (MidiModifier Int)
     fromModifier chan = \case
       NoteModifierKey n -> Just (MidiModifier n chan)
-      NoteModifierName name -> Map.lookup name config.modifiers
+      NoteModifierName name -> Map.lookup name modifierMap
 
-setMidiActLink :: Mixer -> Sampler -> ModifierNames -> ModifierMap -> Note -> ActLink ChannelId -> SE ()
+setMidiActLink :: Mixer -> Sampler -> ModifierNames -> ModifierMap -> Note -> ActLink ChannelId Int -> SE ()
 setMidiActLink mixer sampler modNames mods note link =
   when1 (note.isChange &&* toCond modNames mods note link.when) (mapM_ (toAct mixer sampler) link.act)
 
-setMidiKnobLink :: Mixer -> ModifierNames -> ModifierMap -> Note -> KnobLink ChannelId -> SE ()
+setMidiKnobLink :: Mixer -> ModifierNames -> ModifierMap -> Note -> KnobLink ChannelId Int -> SE ()
 setMidiKnobLink mixer modNames mods note link =
   when1 (note.isChange &&* toKnobCond modNames mods note link.when) (mapM_ (toKnobAct mixer note) link.act)
 
@@ -61,7 +63,7 @@ data Note = Note
   , data2 :: Sig
   }
 
-newtype ModifierMap = ModifierMap (Map MidiModifier BoolSig)
+newtype ModifierMap = ModifierMap (Map (MidiModifier Int) BoolSig)
 
 noModifiersPressed :: Maybe MidiChannel -> ModifierMap -> BoolSig
 noModifiersPressed mChan (ModifierMap mods) =
@@ -69,13 +71,13 @@ noModifiersPressed mChan (ModifierMap mods) =
   where
     modifierIsOnChannel modifier _ = modifier.channel == mChan
 
-setModifiers :: Note -> [MidiModifier] -> SE ModifierMap
+setModifiers :: Note -> [MidiModifier Int] -> SE ModifierMap
 setModifiers note keys = do
   refs <- mapM (initModifier note) keys
   sigs <- mapM (fmap (==* 1) . readRef) refs
   pure $ ModifierMap (Map.fromList $ zip keys sigs)
 
-initModifier :: Note -> MidiModifier -> SE (Ref Sig)
+initModifier :: Note -> MidiModifier Int -> SE (Ref Sig)
 initModifier note modifier = do
   ref <- newCtrlRef 0
   when1 (note.isChange &&* withChan note modifier.channel (hasKey note modifier.key &&* isNoteOn note)) (writeRef ref 1)
@@ -100,9 +102,9 @@ hasChan note (MidiChannel channel) = note.chan ==* int channel
 isNoteOff :: Note -> BoolSig
 isNoteOff note = note.status ==* 128
 
-type ModifierNames = Map Text MidiModifier
+type ModifierNames = Map Text (MidiModifier Int)
 
-toCond :: ModifierNames -> ModifierMap -> Note -> MidiNote -> BoolSig
+toCond :: ModifierNames -> ModifierMap -> Note -> MidiNote Int -> BoolSig
 toCond modNames mods actualNote expectedNote =
   withChan actualNote expectedNote.channel $
       hasKey actualNote expectedNote.key
@@ -139,7 +141,7 @@ toAct mixer sampler = \case
   where
     withTrackId n cont = mapM_ cont $ atMay sampler.getTrackIds (n - 1)
 
-toKnobCond :: ModifierNames -> ModifierMap -> Note -> MidiKnob -> BoolSig
+toKnobCond :: ModifierNames -> ModifierMap -> Note -> MidiKnob Int -> BoolSig
 toKnobCond modNames mods actualNote expectedNote =
   withChan actualNote expectedNote.channel $
       hasKey actualNote expectedNote.key

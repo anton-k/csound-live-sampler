@@ -18,6 +18,7 @@ module Live.Scene.Midi.Config
   , MidiChannel (..)
   ) where
 
+import Data.Bifunctor
 import Control.Applicative (Alternative (..))
 import Data.Aeson (ToJSON, FromJSON, (.=), (.:))
 import Data.Aeson qualified as Json
@@ -27,18 +28,27 @@ import Data.Map.Strict (Map)
 import Live.Scene.Sampler.Config (ColumnName (..), ClipName (..))
 import Data.Aeson.TH qualified as Json
 
-data MidiControllerConfig channel = MidiControllerConfig
-  { modifiers :: Map Text MidiModifier
-  , notes :: [ActLink channel]
-  , knobs :: [KnobLink channel]
+data MidiControllerConfig channel key = MidiControllerConfig
+  { modifiers :: Maybe (Map Text (MidiModifier key))
+  , keys :: Maybe (Map Text Int)
+  , notes :: [ActLink channel key]
+  , knobs :: [KnobLink channel key]
   }
   deriving (Functor)
 
-data MidiModifier = MidiModifier
-  { key :: Int
+instance Bifunctor MidiControllerConfig where
+  first f (MidiControllerConfig mods keys notes knobs) =
+    MidiControllerConfig mods keys (fmap (first f) notes) (fmap (first f) knobs)
+
+  second f (MidiControllerConfig mods keys notes knobs) =
+    MidiControllerConfig (fmap (fmap (fmap f)) mods) keys (fmap (second f) notes) (fmap (second f) knobs)
+
+
+data MidiModifier key = MidiModifier
+  { key :: key
   , channel :: Maybe MidiChannel
   }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Functor)
 
 -- | Note numbers for the mutes
 newtype MutesMidiConfig = MutesMidiConfig [Int]
@@ -51,12 +61,13 @@ newtype TrackChangesMidiConfig = TrackChangesMidiConfig [Int]
 newtype ShiftMidiConfig = ShiftMidiConfig Int
   deriving newtype (FromJSON, ToJSON)
 
-data MidiNote = MidiNote
-  { key :: Int
+data MidiNote key = MidiNote
+  { key :: key
   , modifier :: Maybe NoteModifier
   , press :: Maybe MidiNoteType
   , channel :: Maybe MidiChannel
   }
+  deriving (Functor)
 
 data MidiNoteType = MidiNoteOn | MidiNoteOff
 
@@ -123,26 +134,35 @@ instance FromJSON a => FromJSON (MidiAct a) where
       <|> getPair (\a b -> PlayExtraClip (ColumnName a) (ClipName b)) "playClip"
       <|> fail "Failed to parse midi action"
 
-data ActLink channel = ActLink
-  { when :: MidiNote
+data ActLink channel key = ActLink
+  { when :: MidiNote key
   , act :: [MidiAct channel]
   }
   deriving (Functor)
 
-data KnobLink channel = KnobLink
-  { when :: MidiKnob
+instance Bifunctor ActLink where
+  first f (ActLink a b) = ActLink a (fmap (fmap f) b)
+  second f (ActLink a b) = ActLink (fmap f a) b
+
+data KnobLink channel key = KnobLink
+  { when :: MidiKnob key
   , act :: [KnobWithRange channel]
   }
   deriving (Functor)
 
+instance Bifunctor KnobLink where
+  first f (KnobLink a b) = KnobLink a (fmap (fmap f) b)
+  second f (KnobLink a b) = KnobLink (fmap f a) b
+
 newtype MidiChannel = MidiChannel Int
   deriving newtype (FromJSON, ToJSON, Eq, Ord)
 
-data MidiKnob = MidiKnob
-  { key :: Int
+data MidiKnob key = MidiKnob
+  { key :: key
   , modifier :: Maybe NoteModifier
   , channel :: Maybe MidiChannel
   }
+  deriving (Functor)
 
 data KnobWithRange channel = KnobWithRange
   { on :: MidiKnobAct channel

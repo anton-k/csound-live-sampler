@@ -15,15 +15,15 @@ data Config = Config
   { mixer :: MixerConfig NameRef
   , sampler :: SamplerConfig NameRef
   , audio :: Maybe AudioConfig
-  , controllers :: ControllerConfig NameRef
+  , controllers :: ControllerConfig NameRef NameRef
   }
 
 data AudioConfig = AudioConfig
   { csound :: Maybe Text
   }
 
-data ControllerConfig channel = ControllerConfig
-  { midi :: MidiControllerConfig channel
+data ControllerConfig channel key = ControllerConfig
+  { midi :: MidiControllerConfig channel key
   }
 
 $(Json.deriveJSON Json.defaultOptions ''AudioConfig)

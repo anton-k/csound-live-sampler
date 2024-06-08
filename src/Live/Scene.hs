@@ -3,9 +3,11 @@ module Live.Scene
   , writeSceneCsd
   ) where
 
+import Data.Bifunctor
 import Live.Config
 import Csound.Core
 import Live.Scene.Midi
+import Live.Scene.Midi.Config
 import Live.Scene.Mixer
 import Live.Scene.Sampler
 import Data.Maybe
@@ -49,17 +51,25 @@ loadScene config = do
   where
     mixerConfig = fmap convertChannel config.mixer
     samplerConfig = fmap convertChannel config.sampler
-    midiConfig = fmap convertChannel config.controllers.midi
+    midiConfig = bimap convertChannel convertMidiKey config.controllers.midi
 
     channelNames = getChannelNames config
 
     convertChannel = toChannelId . flip lookupNameRef channelNames
+
+    midiKeyNames = getMidiKeyNames config
+
+    convertMidiKey = flip lookupNameRef midiKeyNames
 
 getChannelNames :: Config -> NameMap
 getChannelNames config =
   toNameMap $ mapMaybe getName $ zip config.mixer.channels [1..]
     where
       getName (channel, n) = fmap (, n) channel.name
+
+getMidiKeyNames :: Config -> NameMap
+getMidiKeyNames config =
+  NameMap $ fromMaybe mempty config.controllers.midi.keys
 
 withCsoundFlags :: Config -> Options -> Options
 withCsoundFlags config = maybe id (<>) $ do

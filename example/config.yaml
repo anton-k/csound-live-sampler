@@ -160,55 +160,103 @@ sampler:
               nextAction: "next"
             - dur: 64
 
-audio: "audio"
+# audio:
+#   csound: put-csound-flags-gere
 controllers:
   midi:
+    # names for Akai MIDI MIX controller
+    keys:
+      slider1: 19
+      slider2: 23
+      slider3: 27
+      slider4: 31
+      slider5: 49
+      slider6: 53
+      slider7: 57
+      slider8: 61
+      sliderMaster: 62
+      mute1: 1
+      mute2: 4
+      mute3: 7
+      mute4: 10
+      mute5: 13
+      mute6: 16
+      mute7: 19
+      mute8: 22
+      solo: 27
+      bankRight: 26
+      bankLeft: 25
+      knob11: 16
+      knob21: 20
+      knob31: 24
+      knob41: 28
+      knob51: 46
+      knob61: 50
+      knob71: 54
+      knob81: 58
+      knob12: 17
+      knob22: 21
+      knob32: 25
+      knob42: 29
+      knob52: 47
+      knob62: 51
+      knob72: 55
+      knob82: 59
+      knob13: 18
+      knob23: 22
+      knob33: 26
+      knob43: 30
+      knob53: 48
+      knob63: 52
+      knob73: 56
+      knob83: 60
+
     modifiers:
       shift:
         key: 27
 
     knobs:
       - when:
-          key: 62
+          key: sliderMaster
         act:
           - on: "masterVolume"
       - when:
-          key: 19
+          key: slider1
         act:
           - on:
               channelVolume: 1
       - when:
-          key: 23
+          key: slider2
         act:
           - on:
               channelVolume: 2
       - when:
-          key: 27
+          key: slider3
         act:
           - on:
               channelVolume: 3
       - when:
-          key: 31
+          key: slider4
         act:
           - on:
               channelVolume: 4
       - when:
-          key: 31
+          key: slider5
         act:
           - on:
               channelVolume: 5
       - when:
-          key: 49
+          key: slider6
         act:
           - on:
               channelVolume: 6
       - when:
-          key: 53
+          key: slider7
         act:
           - on:
               channelVolume: 7
       - when:
-          key: 61
+          key: slider8
         act:
           - on:
               channelVolume: 8

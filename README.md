@@ -7,9 +7,9 @@ like reverb, delay, equaliser and so on. The performance is controlled
 over MIDI.
 
 Typical scenario of usage is when you have stems from the mixing stage
-and you would liike to play live and be able to control volumes of various
+and you would like to play live and be able to control volumes of various
 components of the track (say turn off drums or solo parts). 
-It can switch parts of the track syncronized on beat and play parts in loops.
+It can switch parts of the track synchronized on beat and play parts in loops.
 
 The code is written in Haskell with the library csound-expression.
 The program expects a config file which defines the scene and produces
@@ -20,10 +20,10 @@ The features:
 
 * Mixer with individual channels for various parts of the Scene
     * in the mixer we can group channels to buses
-    * apply effects to channels and busses
+    * apply effects to channels and buses
 
 * Sampler that can play parts of the tracks in loops
-  synchornised on bpm, also it can launch audio clips rescaled
+  synchronised on bpm, also it can launch audio clips rescaled
   to the main bpm of the currently played track
 
 * Playlist which organizes tracks in sequence for easy switching
@@ -76,14 +76,14 @@ We can run in two modes:
     ```
 
 The latter option is useful if we want to run the performance on another 
-computer without the need to rerender it. If the config file does not change
+computer without the need to re render it. If the config file does not change
 we can just run generated file with csound:
 
 ```
 csound live.csd
 ```
 
-in the following sections we will look at how to describe live performances
+In the following sections we will look at how to describe live performances
 with config file. We can also find some examples at the examples directory of this repo.
 
 ## Live performance
@@ -104,7 +104,7 @@ controllers: "..."
 * sampler - describes the tracks of the performance and what bpm each track has
    and which sections we can loop and play in sequence.
 
-* controllers section describes mappings from MIDI-controller of our chice
+* controllers section describes mappings from MIDI-controller of our choice
   to parameters of performance
 
 ### Quick start
@@ -165,7 +165,7 @@ We will route instrument groups to individual channels.
 
 Let's define how to play the tracks and loop over sections. 
 For the task at hand we use sampler. Sampler can play audio files
-and change sections syncronized on BPM. It means that when we request the 
+and change sections synchronized on BPM. It means that when we request the 
 next section the switch will happen not right away but when the section
 will end up. This is useful to keep music on tempo.
 
@@ -253,7 +253,7 @@ The sections of the songs are different. The first track has 3 parts:
 ```
 
 The cues contain the sizes in beats for the sections.
-The changeRate defines in beats at which rate we would like
+The `changeRate` defines in beats at which rate we would like
 to change the parts. So when we press the button to go to the next
 section it will switch only when we are on certain beat defined by the change rate.
 
@@ -272,8 +272,8 @@ The second track has 4 parts:
 ```
 
 Why do we need slots and cues? The slots are useful when measure or
-bpm chanes between the parts. What if the first two sections are in 3/4 and 130 bpm
-and the second two sections are in 4/4 and 100 bpm. we can describe it 
+bpm changes between the parts. What if the first two sections are in 3/4 and 130 bpm
+and the second two sections are in 4/4 and 100 bpm. We can describe it 
 with this config:
 
 ```yaml
@@ -295,14 +295,14 @@ with this config:
 ```
 
 With the sampler we can trigger songs or various parts of the track.
-With this config each seaction is played in loop until the next one is requested.
+With this config each section is played in loop until the next one is requested.
 Also we can make it automatically switch to the next section if it reaches
-an end of the current section or stop. So each seaction can be played in loop
+an end of the current section or stop. So each section can be played in loop
 or reach for the next one or reach the stop at the end.
 
 ### Midi controllers
 
-So far we have descrbed the structure of the tracks.
+So far we have described the structure of the tracks.
 Let's make it interactive and play it live with a midi controller.
 
 Each midi controller is different so we are going to describe the mapping
@@ -336,7 +336,7 @@ We have two main sections for the midi controllers:
 * `knobs` - continuous control signals
 * `notes` - trigger events (like button press, or playing notes)
 
-To control volumes we use `knobs` and to switch between tracks we ue `notes`.
+To control volumes we use `knobs` and to switch between tracks we use `notes`.
 
 #### Control the volumes
 
@@ -506,7 +506,7 @@ In our case it contains the reverb. In this section we specify initial parameter
 the reverb. 
 
 Also we define sends which send portion of the channel output to
-another channel. we send some portion of signal from guitars and vocals
+another channel. We send some portion of signal from guitars and vocals
 channels to the reverb bus. Also we can add FXs to the master channel.
 For example the typical effect to add is a limiter on master:
 
@@ -520,7 +520,7 @@ master:
 ```
 
 We have studied the main features of the app and defined 
-a setup for live-performance. You can find more alborate examples
+a setup for live-performance. You can find more elaborate examples
 of config files at the directory [example](https://github.com/anton-k/csound-live-sampler/tree/main/example) in the repo.
 
 To run the performance we can run the command:
@@ -573,7 +573,7 @@ The master has parameters:
 
 #### Channels 
 
-Let's look at the parameters of the a channel:
+Let's look at the parameters of the channel:
 
 ```yaml
 mixer:
@@ -601,10 +601,10 @@ Other arguments are all optional:
 * **output** - if missing the output of the channel is sent to master
   otherwise we can specify channel to receive the output. 
     The output is useful to group channel output to one channel.
-    For ewxample we can have parent drum channel and children channels
+    For example we can have parent drum channel and children channels
     like base drum, snare, overheads all will send output to the drum channel.
 * **sends** - with send we can send a portion of the signal to another channel.
-   The protion is prior to scaling by volume. This is useful to create effect sends.
+   The portion is prior to scaling by volume. This is useful to create effect sends.
    For example instead of adding reverb to every instrument we
    can create a single channel dedicated to reverb processing. And we can
    send portion of the output from all instruments to that channel.
@@ -641,7 +641,7 @@ There are several effects implemented in the library:
 * korg ms 20 filter
 * limiter
 * parametric equalizer
-* bbcus (playing audio with stutter loops)
+* bbcuts (playing audio with stutter loops)
 
 An effect has parameters which can be controlled in real-time.
 Effects can be added to master channel or any channel of the mixer.
@@ -700,7 +700,7 @@ The reverb has 3 parameters:
 ##### Delay
 
 Delay is a single line delay with equalization of the reflections.
-It is synchronized on bpm and repeatTime is measured in beats:
+It is synchronized on bpm and `repeatTime` is measured in beats:
 
 ```yaml
 delay:
@@ -712,7 +712,7 @@ delay:
 ```
 
 * **repeatTime** - time between repeats, measured in beats (remains constant during performance)
-* **damp** - how much sound is reflected. It controlls of low-pass filter cutoff. 
+* **damp** - how much sound is reflected. It controls of low-pass filter cutoff. 
 * **feedback** - feedback of delay, how many repeats are audible. It is gain that is successfully applied to repetitions of the signal.
 * **dryWet** - dry wet ratio
 
@@ -788,7 +788,7 @@ Parameters:
 * **points** - Eq points. A point has parameters:
     * **mode** - mode of the filter can be: `lowShelf`, `highShelf`, `bandPass`.
     * **frequency** - frequency of the EQ-filter
-    * **gain** - gain in range [-maxGainDb, + maxGainDb]. It ranges in the interval `(0, 1)`.
+    * **gain** - gain in range `[-maxGainDb, + maxGainDb]`. It ranges in the interval `(0, 1)`.
        The middle point `0.5` means no processing is applied. Higher than 0.5 is boost and lower is attenuation.
     * **width** - width of the band of Q-factor of the filter. The `0.5` - is no Q-peak.
         
@@ -796,8 +796,8 @@ Parameters:
 
 We have two variations of the resonant filters:
 
-* moogFilter - emulator of the moog filter
-* korgFilter - emulator of korg 35 filter (used in early versions of Korg MS 20).
+* `moogFilter` - emulator of the moog filter
+* `korgFilter` - emulator of korg 35 filter (used in early versions of Korg MS 20).
 
 They are both low-pass filters. They have distinct character.
 They have the same set of parameters:
@@ -842,7 +842,7 @@ So we set it up and can control how much signal is fed into bbcut effect.
 
 Sampler has two parts:
 
-* An **audio engine** can play parts of audio files and syncronize on BPM
+* An **audio engine** can play parts of audio files and synchronize on BPM
 
 * A **playlist** of tracks which can switch between tracks and parts of the tracks
 
@@ -961,7 +961,7 @@ We have two types of midi controllers:
 - notes - events that trigger instant change
 
 The `modifiers` is a section for modifier keys. If we press modifier key
-than we can choose different type of parameter. An example fo hte modifier:
+than we can choose different type of parameter. An example for the modifier:
 
 ```yaml
 modifiers:
@@ -1011,7 +1011,7 @@ Let look at what we can control:
         from: 2
         to: 3
     ```
-* effect peremter:
+* effect parameter:
 
    ```yaml
    on:

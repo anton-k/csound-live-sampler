@@ -841,3 +841,161 @@ So we set it up and can control how much signal is fed into bbcut effect.
 ### Sampler
 
 ### Controllers
+
+The section `controllers` defines how we can control parameters in real-time.
+
+#### Midi controllers
+
+We can control performance with MIDI-devices. We specify the parameters to control in the section:
+
+```yaml
+controllers:
+    midi: 
+        knobs: ...
+        notes: ...
+        modifiers: ...
+```
+
+We have two types of midi controllers:
+
+- knobs -  control signals
+- notes - events that trigger instant change
+
+The `modifiers` is a section for modifier keys. If we press modifier key
+than we can choose different type of parameter. An example fo hte modifier:
+
+```yaml
+modifiers:
+  shift:
+    key: 27
+```
+
+Modifiers contains object where fields are unique modifier names
+and key is a Midi controller CC number.
+
+##### Midi signals (knobs)
+
+Let's look at the knob config. It is a list of links from midi event to parameter of the performance:
+
+```yaml
+knobs:
+  - when: 
+      key: 62
+    act:
+      - on: 
+            channelVolume: 1
+```
+
+In this example when midi controller with id 62 changes we 
+change the volume of the first channel. The range of the control signal is `(0, 1)`.
+
+Let look at what we can control:
+
+* master volume:
+
+    ```yaml
+    on: masterVolume
+    ```
+
+* channel volume:
+
+    ```yaml
+    on: 
+      channelVolume: 3
+    ```
+
+* channel send
+
+    ```yaml
+    on:
+      channelSend:
+        from: 2
+        to: 3
+    ```
+* effect peremter:
+
+   ```yaml
+   on:
+     fxParam: 
+        name: effectName
+        param: paramName
+   ```
+
+All control signals by default are in range `(0, 1)`.
+We can change that with optional field `range`:
+
+```yaml
+when:
+  key: 25
+act:
+  - on: 
+      channelVolume: 3
+      range: [0.5, 2]
+```
+
+##### Midi signals (knobs)
+
+The event defines some instant change. It looks like the knob control:
+
+```yaml
+notes:
+  - when:
+      key: 23
+    act:
+      - mute: 1
+```
+
+In this example when button with id 23 pressed we toggle mute the channel 1.
+Let's look at what we can control:
+
+* toggle mute of the channel 
+
+    ```yaml
+    mute: channelId
+    ```
+
+* set track to id:
+    
+    ```yaml
+    track: trackId
+    ```
+
+* set track part to id (part id is int within current track):
+
+    ```yaml
+    part: partId
+    ```
+
+* go to next track relative to current one:
+    
+    ```yaml
+    shiftTrack: intAmount
+    ```
+
+* go to next track's part relative to current one:
+    
+    ```yaml
+    shiftPart: intAmount
+    ```
+  in shift negative amount goes backwards.
+
+##### Midi key optional arguments
+
+For midi key we can specify optional arguments:
+
+For notes:
+
+```
+when:
+  key: 12
+  modifier: shift
+  press: off
+  channel: 2
+```
+
+* `modifier` activates this trigger only if modifier is pressed at the same time.
+* `press` defines note `on` or `off` mode.
+* `channel` - midi-channel to listen to, by default  it listens on all channels.
+
+For the knobs we have the same optional arguments except `press`. 
+

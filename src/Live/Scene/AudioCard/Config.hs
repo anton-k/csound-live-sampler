@@ -49,14 +49,16 @@ data AudioOutputConfig channel
   deriving (Functor)
 
 data StereoOutputConfig channel = StereoOutputConfig
-  { channel :: Maybe channel
+  { name :: Maybe Text
+  , channel :: Maybe channel
   , gain :: Maybe Float
   , stereo :: Maybe (Int, Int)
   }
   deriving (Functor)
 
 data MonoOutputConfig channel = MonoOutputConfig
-  { channel :: Maybe channel
+  { name :: Maybe Text
+  , channel :: Maybe channel
   , gain :: Maybe Float
   , mono :: Int
   }

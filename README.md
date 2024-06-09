@@ -94,6 +94,7 @@ Top-level contains configuration of the main parts of the app:
 mixer: "..."
 sampler: "..."
 controllers: "..."
+audio: "..."
 ```
 
 * mixer - is an audio mixer which has channels that control balance
@@ -106,6 +107,8 @@ controllers: "..."
 
 * controllers section describes mappings from MIDI-controller of our choice
   to parameters of performance
+
+* audio section describes audio IO settings. How to use audio card channels and which flags to set for csound.
 
 ### Quick start
 
@@ -1125,4 +1128,61 @@ when:
 * `channel` - midi-channel to listen to, by default  it listens on all channels.
 
 For the knobs we have the same optional arguments except `press`. 
+
+### Audio IO settings
+
+In the audio section we can provide audio settings.
+It's an optional field, by ddefault we use default audio port for stereo output
+and set `-odac` and midi flags to csound.
+
+Let's look at the definition of the audio section:
+
+```yaml
+audio:
+  csound: "csound flags"
+  inputs:
+    - name: guitar
+      channel: 10
+      mono: 1
+    - name: piano
+      channel: 11
+      gain: 1.5
+      stereo: [2, 3]
+
+  outputs:
+    - name: master
+    - name: monitoring
+      channel: 12
+      stereo: [2, 3]
+    - name: metronome
+      mono: 4
+      channel: 13
+```
+
+The audio section has sub-sections:
+
+* `csound` - to set up csound flags
+* `inputs` - defines audio card inputs and where to route them
+* `outputs` - defines audio card outputs and where to route them
+
+The csound flags is just a plain string which is added to csound file.
+
+For the audio card inputs we define:
+
+* `name` - (optional) how input is called
+* `channel` - to which mixer channel we send signal form the audio card input
+* `gain` - (optional) gain volume multiplier for the input
+* `mono` or `stereo` - defines which sound card port to read
+
+For the audio card output we define:
+
+* `name` - (optional) name of the output
+* `channel` - (optional) channel on the mixer to read the output. If it's missing then master channel is read
+* `gain` - (optional) gaib volume multiplier for the output
+* `mono` or `stereo` - (optional) defines which sound card port to write. 
+    If missing the default ports are used.
+
+### Conclusion
+
+That's it. Wish you happy live performances!
 

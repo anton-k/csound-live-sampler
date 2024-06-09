@@ -64,7 +64,8 @@ newSt config = do
 defaultMasterOutput :: AudioOutputConfig ChannelId
 defaultMasterOutput =
   StereoAudioOutputConfig $ StereoOutputConfig
-    { channel = Nothing -- output to master
+    { name = Just "master"
+    , channel = Nothing -- output to master
     , gain = Nothing
     , stereo = Nothing -- use default card output
     }

@@ -3,7 +3,7 @@ module Live.Config.Types
   , ControllerConfig (..)
   ) where
 
-import Live.Scene.Audio.Config
+import Live.Scene.AudioCard.Config
 import Live.Scene.Sampler.Config
 import Live.Scene.Mixer.Config (MixerConfig (..))
 import Live.Scene.Midi.Config (MidiControllerConfig (..))

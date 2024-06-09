@@ -1,4 +1,4 @@
-module Live.Scene.Audio.Config
+module Live.Scene.AudioCard.Config
   ( AudioConfig (..)
   , AudioInputConfig (..)
   , MonoInputConfig (..)

@@ -13,7 +13,7 @@ import Data.Default
 import Data.Text (Text)
 import Data.Yaml qualified as Yaml
 import Live.Scene.Mixer.Config
-import Live.Scene.Audio.Config
+import Live.Scene.AudioCard.Config
 import Live.Scene.Sampler.Config
 import System.FilePath
 import Live.Scene.Sampler.Config qualified as SamplerConfig (SamplerConfig (..))

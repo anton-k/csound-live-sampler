@@ -7,7 +7,7 @@ module Live.Scene.AudioCard
 import Data.Maybe
 import Csound.Core
 import Live.Scene.Common (ChannelId (..), AudioInputId (..))
-import Live.Scene.Audio.Config
+import Live.Scene.AudioCard.Config
 import Safe
 
 -- | Audio IO

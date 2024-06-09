@@ -10,17 +10,17 @@ mixer:
       volume: 1
     - name: perc
       volume: 1
-      sends:
-        - channel: reverb-bus
-          gain: 0.7
     - name: bass
       volume: 1
     - name: pad
       volume: 1
       sends:
         - channel: reverb-bus
-          gain: 0.2
+          gain: 0
     - name: solo
+      sends:
+        - channel: reverb-bus
+          gain: 0
       volume: 1
     - volume: 1
     - volume: 1
@@ -29,8 +29,8 @@ mixer:
       fxs:
         - reverb:
             name: reverb-bus
-            size: 0.9
-            damp: 0.8
+            size: 0.5
+            damp: 0.7
             dryWet: 1
 
 sampler:
@@ -107,21 +107,23 @@ sampler:
         - file: "Shaker+Tamburine.wav"
           channel: 2
         - file: "Gtrs.wav"
-          channel: 5
-        - file: "Strings.wav"
           channel: 4
+        - file: "Strings.wav"
+          channel: 5
         - file: "Hats.wav"
           channel: 2
         - file: "VocalsSample.wav"
-          channel: 4
+          channel: 5
       slots:
         - bpm: 85
           measure: [4, 4]
           changeRate: 8
           cues:
             - dur: 16
+              nextAction: next
+            - dur: 32
+              nextAction: next
             - dur: 16
-            - dur: 8
 
     - name: "Samurai"
       dir: "SamuraiStems119bpm"

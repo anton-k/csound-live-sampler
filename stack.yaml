@@ -44,14 +44,14 @@ packages:
 # extra-deps: []
 
 extra-deps:
-  -  ../csound-expression/packages/core/csound-expression-dynamic
-  -  ../csound-expression/packages/core/csound-core
-    #  - git: https://github.com/spell-music/csound-expression
-    #    commit: 693ddcc3c9e1668b120a26bc9693ea33769295c1
-    #    subdirs:
-    #       - packages/core/csound-expression-dynamic
-    #       - packages/core/csound-core
-    #
+  # -  ../csound-expression/packages/core/csound-expression-dynamic
+  # -  ../csound-expression/packages/core/csound-core
+  - git: https://github.com/spell-music/csound-expression
+    commit: f80dc5125dd46766c93688c283bd9f9ba2c466f0
+    subdirs:
+        - packages/core/csound-expression-dynamic
+        - packages/core/csound-core
+
   - git: https://github.com/spell-music/data-fix-cse
     commit: abff72605479401fc43fa62f053153a11d7a1c61
 

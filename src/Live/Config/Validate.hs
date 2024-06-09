@@ -8,6 +8,8 @@ import Data.Maybe
 import System.Directory
 import System.FilePath
 import Live.Config.Types
+import Data.Set (Set)
+import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Live.Scene.Sampler.Config
@@ -31,6 +33,7 @@ checkConfig config = do
 validateConfig :: Config -> IO (Maybe Text)
 validateConfig config = runValid $ do
   checkFiles config
+  checkSampler config.sampler
   checkVolumes config
   checkAudio config
   checkControllers config
@@ -38,6 +41,22 @@ validateConfig config = runValid $ do
   where
     checkAudio _ = pure () -- TODO
     checkControllers _ = pure () -- TODO
+
+checkSampler :: SamplerConfig NameRef -> Valid ()
+checkSampler config =
+  mapM_ (checkPlaylist config.tracks) config.playlist
+
+checkPlaylist :: [TrackConfig NameRef] -> [Text] -> Valid ()
+checkPlaylist tracks playlist =
+  mapM_ checkName playlist
+  where
+    trackNames :: Set Text
+    trackNames = Set.fromList $ fmap (.name) tracks
+
+    checkName :: Text -> Valid ()
+    checkName name =
+      unless (Set.member name trackNames) $
+        tell["Playlist name not found in tracks: " <> name]
 
 -------------------------------------------------------------------------------------
 -- files

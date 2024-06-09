@@ -34,6 +34,11 @@ mixer:
             dryWet: 1
 
 sampler:
+  playlist:
+    - Never Enough
+    - Samurai
+    - La melody
+
   dir: "../tracks"
   tracks :
     - name: "La melody"

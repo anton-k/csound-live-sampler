@@ -24,6 +24,7 @@ data SamplerConfig chan = SamplerConfig
   { tracks :: [TrackConfig chan]
   , clips :: Maybe (ClipsConfig chan)
   , dir :: Maybe FilePath
+  , playlist :: Maybe [Text]
   }
   deriving (Functor)
 

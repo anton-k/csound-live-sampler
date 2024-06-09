@@ -872,10 +872,11 @@ Let's look at the sections of the sampler config:
 sampler:
   tracks: [list of tracks]
   dir: tracks-directory
+  playlist: [list of track names]
 ```
 
 The `dir` tells where the audio files are stored. In tracks we specify the sequence of tracks
-how we can play them.
+how we can play them. The optional field `playlist` gives the order of tracks.
 
 
 ```yaml

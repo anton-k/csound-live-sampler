@@ -8,6 +8,8 @@ module Live.Scene.Sampler
   ) where
 
 import Csound.Core
+import Data.Text (Text)
+import Data.List qualified as List
 import Live.Scene.Sampler.Config as X
 import Live.Scene.Sampler.Engine
 import Live.Scene.Sampler.Playlist
@@ -19,6 +21,7 @@ import Live.Scene.Sampler.Playlist
   , nextPart
   )
 import Live.Scene.Sampler.Audio
+import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Live.Scene.Common (ChannelId (..))
 
@@ -36,7 +39,7 @@ data SamplerDeps = SamplerDeps
   }
 
 newSampler :: SamplerConfig ChannelId -> SamplerDeps -> SE Sampler
-newSampler config deps = do
+newSampler configUnordered deps = do
   audio <- setupAudio config (AudioDeps deps.writeChannel)
   playlist <- newPlaylist config (fmap (toSig . getInstrRefIdNum) audio.mainTrackInstrs)
   let
@@ -52,6 +55,35 @@ newSampler config deps = do
     , playExtraClip = playExtraClipSt engine audio.extraClips
     , readBpm = engine.readBpm
     }
+  where
+    config = orderTracks configUnordered
+
+orderTracks :: forall a. SamplerConfig a -> SamplerConfig a
+orderTracks config =
+  case config.playlist of
+    Nothing -> config
+    Just playlist -> config { tracks = order playlist config.tracks }
+  where
+    order :: [Text] -> [TrackConfig a] -> [TrackConfig a]
+    order playlist tracks
+      | not (null playlist) = (fmap fst $ List.sortOn snd $ map addOrder inPlaylistTracks) <> notInPlaylistTracks
+      | otherwise = tracks
+      where
+        (inPlaylistTracks, notInPlaylistTracks) = List.partition (\track -> Map.member track.name orderMap) tracks
+
+
+        orderMap :: Map Text Int
+        orderMap = Map.fromList $ zip playlist [0..]
+
+        maxOrder :: Int
+        maxOrder = length playlist + 1
+
+        addOrder :: TrackConfig a -> (TrackConfig a, Int)
+        addOrder track =
+          case Map.lookup track.name orderMap of
+            Just priority -> (track, priority)
+            Nothing -> (track, maxOrder)
+
 
 playExtraClipSt :: Engine -> ExtraClips -> ColumnName -> ClipName -> SE ()
 playExtraClipSt engine extraClips column clip =

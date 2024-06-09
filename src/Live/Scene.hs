@@ -10,8 +10,10 @@ import Live.Scene.Midi
 import Live.Scene.Midi.Config
 import Live.Scene.Mixer
 import Live.Scene.Sampler
+import Live.Scene.Audio
 import Data.Maybe
 import Live.Scene.Common
+import Data.Default
 
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
 writeSceneCsd config mFile =
@@ -29,6 +31,7 @@ withOptions config mFile = withWriteCsd mFile . withCsoundFlags config
 data Scene = Scene
   { mixer :: Mixer
   , sampler :: Sampler
+  , audio :: Audio
   }
 
 -- * audio playback
@@ -45,14 +48,18 @@ toAudio scene = do
 loadScene :: Config -> SE Scene
 loadScene config = do
   channels <- newMixerChannels mixerConfig
-  sampler <- newSampler samplerConfig (SamplerDeps $ appendMixerChannels channels)
+  let
+    appendMixer = appendMixerChannels channels
+  audio <- newAudio audioConfig (AudioDeps appendMixer)
+  sampler <- newSampler samplerConfig (SamplerDeps appendMixer)
   mixer <- newMixer mixerConfig channels sampler.readBpm
   setupMidi mixer sampler midiConfig
-  pure $ Scene {..}
+  pure $ Scene {audio, sampler, mixer}
   where
     mixerConfig = fmap convertChannel config.mixer
     samplerConfig = fmap convertChannel config.sampler
     midiConfig = bimap convertChannel convertMidiKey config.controllers.midi
+    audioConfig = fmap convertChannel (fromMaybe def config.audio)
 
     channelNames = getChannelNames config
 

@@ -1,6 +1,8 @@
 module Live.Scene.Common
   ( ChannelId (..)
   , toChannelId
+  , AudioInputId (..)
+  , toAudioInputId
   , NameRef (..)
   , lookupNameRef
   , NameMap (..)
@@ -19,6 +21,11 @@ newtype ChannelId = ChannelId { unChannelId :: Int }
 
 toChannelId :: Int -> ChannelId
 toChannelId n = ChannelId (n - 1)
+
+newtype AudioInputId = AudioInputId { unAudioInputId :: Int }
+
+toAudioInputId :: Int -> AudioInputId
+toAudioInputId n = AudioInputId (n - 1)
 
 data NameRef
   = NameRef Text

@@ -27,6 +27,8 @@ library
       Live.Config.Types
       Live.Config.Validate
       Live.Scene
+      Live.Scene.Audio
+      Live.Scene.Audio.Config
       Live.Scene.Common
       Live.Scene.Midi
       Live.Scene.Midi.Config

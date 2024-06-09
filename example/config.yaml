@@ -20,7 +20,7 @@ mixer:
       sends:
         - channel: reverb-bus
           gain: 0.2
-    - name: glue
+    - name: solo
       volume: 1
     - volume: 1
     - volume: 1
@@ -213,38 +213,38 @@ controllers:
 
     modifiers:
       shift:
-        key: 27
+        key: solo
 
     knobs:
       - when:
           key: sliderMaster
         act:
-          - on: "masterVolume"
+          - on: masterVolume
       - when:
           key: slider1
         act:
           - on:
-              channelVolume: 1
+              channelVolume: drums
       - when:
           key: slider2
         act:
           - on:
-              channelVolume: 2
+              channelVolume: perc
       - when:
           key: slider3
         act:
           - on:
-              channelVolume: 3
+              channelVolume: bass
       - when:
           key: slider4
         act:
           - on:
-              channelVolume: 4
+              channelVolume: pad
       - when:
           key: slider5
         act:
           - on:
-              channelVolume: 5
+              channelVolume: solo
       - when:
           key: slider6
         act:
@@ -262,7 +262,7 @@ controllers:
               channelVolume: 8
 
       - when:
-          key: 18
+          key: knob11
         act:
           - on:
               fxParam:
@@ -270,7 +270,7 @@ controllers:
                 param: dryWet
 
       - when:
-          key: 17
+          key: knob12
         act:
           - on:
               fxParam:
@@ -278,7 +278,7 @@ controllers:
                 param: dryWet
 
       - when:
-          key: 16
+          key: knob13
         act:
           - on:
               fxParam:
@@ -286,7 +286,7 @@ controllers:
                 param: dryWet
 
       - when:
-          key: 22
+          key: knob23
         act:
           - on:
               fxParam:
@@ -294,7 +294,7 @@ controllers:
                 param: cutoff
 
       - when:
-          key: 21
+          key: knob22
         act:
           - on:
               fxParam:
@@ -302,16 +302,16 @@ controllers:
                 param: resonance
 
       - when:
-          key: 60
+          key: knob83
         act:
           - on:
               channelSend:
-                from: 2
-                to: 8
+                from: perc
+                to: reverb-bus
           - on:
               channelSend:
-                from: 4
-                to: 8
+                from: pad
+                to: reverb-bus
 
     notes:
       - when:
@@ -349,41 +349,41 @@ controllers:
           - track: 3
 
       - when:
-          key: 1
+          key: mute1
         act:
           - mute: 1
 
       - when:
-          key: 4
+          key: mute2
         act:
           - mute: 2
 
       - when:
-          key: 7
+          key: mute3
         act:
           - mute: 3
 
       - when:
-          key: 10
+          key: mute4
         act:
           - mute: 4
 
       - when:
-          key: 13
+          key: mute5
         act:
           - mute: 5
 
       - when:
-          key: 16
+          key: mute6
         act:
           - mute: 6
 
       - when:
-          key: 19
+          key: mute7
         act:
           - mute: 7
 
       - when:
-          key: 22
+          key: mute8
         act:
           - mute: 8

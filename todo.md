@@ -44,7 +44,7 @@ prototypes:
 
     - [x] with changeable BPM and measure
 
-- [ ] config validations
+- [x] config validations
 
 - [ ] crossfades?
 
@@ -60,16 +60,16 @@ prototypes:
  
    - EQ
 
-   - Compressor
+   - [ ] Compressor
 
-   - Limiter
+   - [x] Limiter
 
    - [x] Reverb
 
    - [x] Delay
 
 - [ ] add channel tools:
-    - EQ
+    - [x] EQ
 
     - Compressor
 

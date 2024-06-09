@@ -100,7 +100,6 @@ data Channel = Channel
   , mute :: Ref Sig
   , gain :: Maybe Float
   , audio :: Ref Sig2
-  , fx :: Sig2 -> SE Sig2
   , sendGains :: SendMap
   }
 
@@ -130,7 +129,6 @@ loadChannels config =
       mute <- newCtrlRef 1
       let
         gain = channelConfig.gain
-        fx = pure -- toChannelFx (ChannelId channelId) fxConfigs
       audio <- newRef 0
       sendGains <- initSends channelConfig
       pure Channel {..}

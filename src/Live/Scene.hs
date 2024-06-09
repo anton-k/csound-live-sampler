@@ -18,12 +18,13 @@ writeSceneCsd config mFile =
   writeCsdBy (withCsoundFlags config $ setMa <> setDac) (fromMaybe "tmp.csd" mFile) $ do
     toAudio =<< loadScene config
 
--- | TODO: remove double rendering
 runScene :: Config -> Maybe FilePath -> IO ()
 runScene config mFile = do
-  mapM_ (writeSceneCsd config . Just) mFile
-  dacBy (withCsoundFlags config $ setMa <> setTrace) $ do
+  dacBy (withOptions config mFile $ setMa <> setTrace) $ do
     toAudio =<< loadScene config
+
+withOptions :: Config -> Maybe FilePath -> Options -> Options
+withOptions config mFile = withWriteCsd mFile . withCsoundFlags config
 
 data Scene = Scene
   { mixer :: Mixer
@@ -76,3 +77,7 @@ withCsoundFlags config = maybe id (<>) $ do
   audio <- config.audio
   flags <- audio.csound
   pure $ setVerbatimFlags flags
+
+withWriteCsd :: Maybe FilePath -> Options -> Options
+withWriteCsd mFile = maybe id (mappend . setWriteCsd) mFile
+

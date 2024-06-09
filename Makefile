@@ -8,6 +8,3 @@ test:
 
 run:
 	stack run -- write-csd --config example/config.yaml --output tmp.csd
-	# stack runhaskell scripts/Playlist.hs
-
-

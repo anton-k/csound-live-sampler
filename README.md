@@ -11,7 +11,7 @@ and you would like to play live and be able to control volumes of various
 components of the track (say turn off drums or solo parts). 
 It can switch parts of the track synchronized on beat and play parts in loops.
 
-The code is written in Haskell with the library csound-expression.
+The code is written in Haskell with the library [csound-expression](https://github.com/spell-music/csound-expression).
 The program expects a config file which defines the scene and produces
 low-level Csound code. The Csound code can be run with Csound.
 Also we can generate code and play it right away.
@@ -160,6 +160,8 @@ mixer:
 ```
 
 We will route instrument groups to individual channels.
+If we give a name to a channel we can refer to it by name istead 
+of integer identifier anywhere in the config file.
 
 ### Sampler section
 
@@ -237,6 +239,20 @@ to a dedicated channel:
           channel: 3
         - file: "vocals.wav"
           channel: 4
+```
+
+Also we can write it with channel names:
+
+```yaml
+      stems:
+        - file: "drums.wav"
+          channel: drums
+        - file: "bass.wav"
+          channel: bass
+        - file: "guitars.wav"
+          channel: guitars
+        - file: "vocals.wav"
+          channel: vocals
 ```
 
 The sections of the songs are different. The first track has 3 parts:
@@ -953,6 +969,7 @@ controllers:
         knobs: ...
         notes: ...
         modifiers: ...
+        keys: ...
 ```
 
 We have two types of midi controllers:
@@ -962,6 +979,9 @@ We have two types of midi controllers:
 
 The `modifiers` is a section for modifier keys. If we press modifier key
 than we can choose different type of parameter. An example for the modifier:
+
+With `keys`  we can give a readable name to a MIDI controll id.
+So we can refer to it not by integer but by a name.
 
 ```yaml
 modifiers:

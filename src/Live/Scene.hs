@@ -3,17 +3,13 @@ module Live.Scene
   , writeSceneCsd
   ) where
 
-import Data.Bifunctor
 import Live.Config
 import Csound.Core
 import Live.Scene.Midi
-import Live.Scene.Midi.Config
 import Live.Scene.Mixer
 import Live.Scene.Sampler
 import Live.Scene.Audio
 import Data.Maybe
-import Live.Scene.Common
-import Data.Default
 
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
 writeSceneCsd config mFile =
@@ -45,6 +41,15 @@ toAudio scene = do
 
 -- * init
 
+-- | Note that order of definitions matters as we allocate
+-- Csound instruments and instruments are executed in the order
+-- of definition.
+--
+-- The order to define the instruments follows the flow of the signals:
+--
+-- * audio - reads audio inputs
+-- * sampler - playback audio files
+-- * mixer - mix signals to master outuput
 loadScene :: Config -> SE Scene
 loadScene config = do
   channels <- newMixerChannels mixerConfig
@@ -53,31 +58,10 @@ loadScene config = do
   audio <- newAudio audioConfig (AudioDeps appendMixer)
   sampler <- newSampler samplerConfig (SamplerDeps appendMixer)
   mixer <- newMixer mixerConfig channels sampler.readBpm
-  setupMidi mixer sampler midiConfig
+  setupMidi audio mixer sampler midiConfig
   pure $ Scene {audio, sampler, mixer}
   where
-    mixerConfig = fmap convertChannel config.mixer
-    samplerConfig = fmap convertChannel config.sampler
-    midiConfig = bimap convertChannel convertMidiKey config.controllers.midi
-    audioConfig = fmap convertChannel (fromMaybe def config.audio)
-
-    channelNames = getChannelNames config
-
-    convertChannel = toChannelId . flip lookupNameRef channelNames
-
-    midiKeyNames = getMidiKeyNames config
-
-    convertMidiKey = flip lookupNameRef midiKeyNames
-
-getChannelNames :: Config -> NameMap
-getChannelNames config =
-  toNameMap $ mapMaybe getName $ zip config.mixer.channels [1..]
-    where
-      getName (channel, n) = fmap (, n) channel.name
-
-getMidiKeyNames :: Config -> NameMap
-getMidiKeyNames config =
-  NameMap $ fromMaybe mempty config.controllers.midi.keys
+    (audioConfig, samplerConfig, mixerConfig, midiConfig) = convertConfig config
 
 withCsoundFlags :: Config -> Options -> Options
 withCsoundFlags config = maybe id (<>) $ do

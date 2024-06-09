@@ -1,5 +1,6 @@
 module Live.Scene.Midi.Config
   ( MidiControllerConfig (..)
+  , mapMidiControllerConfig
   , MutesMidiConfig (..)
   , TrackChangesMidiConfig (..)
   , ShiftMidiConfig (..)
@@ -10,6 +11,7 @@ module Live.Scene.Midi.Config
   , NoteModifier (..)
   , MidiModifier (..)
   , MidiKnob (..)
+  , mapKnobLink
   , SetChannelSendConfig (..)
   , SetFxParamConfig (..)
   , MidiKnobAct (..)
@@ -28,21 +30,26 @@ import Data.Map.Strict (Map)
 import Live.Scene.Sampler.Config (ColumnName (..), ClipName (..))
 import Data.Aeson.TH qualified as Json
 
-data MidiControllerConfig channel key = MidiControllerConfig
+data MidiControllerConfig audioInput channel key = MidiControllerConfig
   { modifiers :: Maybe (Map Text (MidiModifier key))
   , keys :: Maybe (Map Text Int)
   , notes :: [ActLink channel key]
-  , knobs :: [KnobLink channel key]
+  , knobs :: [KnobLink audioInput channel key]
   }
   deriving (Functor)
 
-instance Bifunctor MidiControllerConfig where
-  first f (MidiControllerConfig mods keys notes knobs) =
-    MidiControllerConfig mods keys (fmap (first f) notes) (fmap (first f) knobs)
-
-  second f (MidiControllerConfig mods keys notes knobs) =
-    MidiControllerConfig (fmap (fmap (fmap f)) mods) keys (fmap (second f) notes) (fmap (second f) knobs)
-
+mapMidiControllerConfig ::
+  (a1 -> a2) ->
+  (b1 -> b2) ->
+  (c1 -> c2) ->
+  MidiControllerConfig a1 b1 c1 -> MidiControllerConfig a2 b2 c2
+mapMidiControllerConfig f g h (MidiControllerConfig modsA keysA notesA knobsA) =
+  MidiControllerConfig modsB keysB notesB knobsB
+  where
+    modsB = fmap (fmap (fmap h)) modsA
+    keysB = keysA
+    notesB = fmap (bimap g h) notesA
+    knobsB = fmap (mapKnobLink f g h) knobsA
 
 data MidiModifier key = MidiModifier
   { key :: key
@@ -144,15 +151,22 @@ instance Bifunctor ActLink where
   first f (ActLink a b) = ActLink a (fmap (fmap f) b)
   second f (ActLink a b) = ActLink (fmap f a) b
 
-data KnobLink channel key = KnobLink
+data KnobLink audioInput channel key = KnobLink
   { when :: MidiKnob key
-  , act :: [KnobWithRange channel]
+  , act :: [KnobWithRange audioInput channel]
   }
   deriving (Functor)
 
-instance Bifunctor KnobLink where
-  first f (KnobLink a b) = KnobLink a (fmap (fmap f) b)
-  second f (KnobLink a b) = KnobLink (fmap f a) b
+mapKnobLink ::
+  (a1 -> a2) ->
+  (b1 -> b2) ->
+  (c1 -> c2) ->
+  KnobLink a1 b1 c1 -> KnobLink a2 b2 c2
+mapKnobLink f g h (KnobLink whenA actA) =
+  KnobLink whenB actB
+  where
+    whenB = fmap h whenA
+    actB = fmap (bimap f g) actA
 
 newtype MidiChannel = MidiChannel Int
   deriving newtype (FromJSON, ToJSON, Eq, Ord)
@@ -164,18 +178,30 @@ data MidiKnob key = MidiKnob
   }
   deriving (Functor)
 
-data KnobWithRange channel = KnobWithRange
-  { on :: MidiKnobAct channel
+data KnobWithRange audioInput channel = KnobWithRange
+  { on :: MidiKnobAct audioInput channel
   , range :: Maybe (Float, Float)
   }
   deriving (Functor)
 
-data MidiKnobAct channel
+instance Bifunctor KnobWithRange where
+  bimap f g (KnobWithRange on range) = KnobWithRange (bimap f g on) range
+
+data MidiKnobAct audioInput channel
   = SetChannelVolume channel
   | SetMasterVolume
   | SetChannelSend (SetChannelSendConfig channel)
   | SetFxParam SetFxParamConfig
+  | SetAudioInputGain audioInput
   deriving (Functor)
+
+instance Bifunctor MidiKnobAct where
+  bimap f g = \case
+    SetChannelVolume channel -> SetChannelVolume (g channel)
+    SetMasterVolume -> SetMasterVolume
+    SetChannelSend config -> SetChannelSend (fmap g config)
+    SetFxParam config -> SetFxParam config
+    SetAudioInputGain audioInput -> SetAudioInputGain (f audioInput)
 
 data SetChannelSendConfig channel = SetChannelSendConfig
   { from :: channel
@@ -195,14 +221,15 @@ $(Json.deriveJSON Json.defaultOptions ''SetChannelSendConfig)
 $(Json.deriveJSON Json.defaultOptions ''SetFxParamConfig)
 $(Json.deriveJSON Json.defaultOptions ''MidiNote)
 
-instance ToJSON a => ToJSON (MidiKnobAct a) where
+instance (ToJSON a, ToJSON b) => ToJSON (MidiKnobAct a b) where
   toJSON = \case
     SetChannelVolume n -> Json.object ["channelVolume" .= n]
     SetMasterVolume -> Json.String "masterVolume"
     SetChannelSend config -> Json.object ["channelSend" .= config]
     SetFxParam config -> Json.object ["fxParam" .= config]
+    SetAudioInputGain audioInput -> Json.object ["audioInputGain" .= audioInput]
 
-instance FromJSON a => FromJSON (MidiKnobAct a) where
+instance (FromJSON a, FromJSON b) => FromJSON (MidiKnobAct a b) where
   parseJSON = \case
     Json.String "masterVolume" -> pure SetMasterVolume
     Json.Object obj ->
@@ -212,6 +239,7 @@ instance FromJSON a => FromJSON (MidiKnobAct a) where
             getValue SetChannelVolume "channelVolume"
         <|> getValue SetChannelSend "channelSend"
         <|> getValue SetFxParam "fxParam"
+        <|> getValue SetFxParam "audioInputGain"
     _ -> fail "Failed to parse MidiKnobAct"
 
 $(Json.deriveJSON Json.defaultOptions ''KnobWithRange)

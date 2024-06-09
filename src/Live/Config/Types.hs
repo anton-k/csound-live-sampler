@@ -14,11 +14,11 @@ data Config = Config
   { mixer :: MixerConfig NameRef
   , sampler :: SamplerConfig NameRef
   , audio :: Maybe (AudioConfig NameRef)
-  , controllers :: ControllerConfig NameRef NameRef
+  , controllers :: ControllerConfig NameRef NameRef NameRef
   }
 
-data ControllerConfig channel key = ControllerConfig
-  { midi :: MidiControllerConfig channel key
+data ControllerConfig audioInput channel key = ControllerConfig
+  { midi :: MidiControllerConfig audioInput channel key
   }
 
 $(Json.deriveJSON Json.defaultOptions ''ControllerConfig)

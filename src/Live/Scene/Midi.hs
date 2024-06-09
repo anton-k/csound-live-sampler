@@ -10,16 +10,17 @@ import Data.Boolean
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe
+import Live.Scene.Audio
 import Live.Scene.Mixer
 import Live.Scene.Sampler
 import Live.Scene.Sampler.Playlist qualified as Playlist
 import Safe (atMay)
 import Data.Containers.ListUtils qualified as List
 import Data.Text (Text)
-import Live.Scene.Common (ChannelId (..))
+import Live.Scene.Common (ChannelId (..), AudioInputId (..))
 
-setupMidi :: Mixer -> Sampler -> MidiControllerConfig ChannelId Int -> SE ()
-setupMidi mixer sampler config = do
+setupMidi :: Audio -> Mixer -> Sampler -> MidiControllerConfig AudioInputId ChannelId Int -> SE ()
+setupMidi audio mixer sampler config = do
   instrRef <- newProc actionsInstr
   play instrRef [Core.Note 0 (-1) ()]
   global $ massign 0 (instrRefFromNum 0 :: InstrRef ())
@@ -30,7 +31,7 @@ setupMidi mixer sampler config = do
       note <- readNote
       mods <- setModifiers note modifierKeys
       mapM_ (setMidiActLink mixer sampler modifierMap mods note) config.notes
-      mapM_ (setMidiKnobLink mixer modifierMap mods note) config.knobs
+      mapM_ (setMidiKnobLink audio mixer modifierMap mods note) config.knobs
 
     modifierKeys :: [MidiModifier Int]
     modifierKeys = List.nubOrd $ mapMaybe (\x -> fromModifier x.when.channel =<< x.when.modifier) config.notes
@@ -44,9 +45,9 @@ setMidiActLink :: Mixer -> Sampler -> ModifierNames -> ModifierMap -> Note -> Ac
 setMidiActLink mixer sampler modNames mods note link =
   when1 (note.isChange &&* toCond modNames mods note link.when) (mapM_ (toAct mixer sampler) link.act)
 
-setMidiKnobLink :: Mixer -> ModifierNames -> ModifierMap -> Note -> KnobLink ChannelId Int -> SE ()
-setMidiKnobLink mixer modNames mods note link =
-  when1 (note.isChange &&* toKnobCond modNames mods note link.when) (mapM_ (toKnobAct mixer note) link.act)
+setMidiKnobLink :: Audio -> Mixer -> ModifierNames -> ModifierMap -> Note -> KnobLink AudioInputId ChannelId Int -> SE ()
+setMidiKnobLink audio mixer modNames mods note link =
+  when1 (note.isChange &&* toKnobCond modNames mods note link.when) (mapM_ (toKnobAct audio mixer note) link.act)
 
 readNote :: SE Note
 readNote = do
@@ -151,8 +152,8 @@ toKnobCond modNames mods actualNote expectedNote =
 isKnobStatus :: Note -> BoolSig
 isKnobStatus note = note.status ==* 176
 
-toKnobAct :: Mixer -> Note -> KnobWithRange ChannelId -> SE ()
-toKnobAct mixer note knob =
+toKnobAct :: Audio -> Mixer -> Note -> KnobWithRange AudioInputId ChannelId -> SE ()
+toKnobAct audio mixer note knob =
   case knob.on of
     SetMasterVolume -> mixer.modifyMasterVolume $
       const (applyRange $ gainslider (readKnobValue note))
@@ -162,6 +163,8 @@ toKnobAct mixer note knob =
       const (applyRange $ readKnobValue note / 127)
     SetFxParam config -> mixer.modifyFxParam (toFxParamId config) $
       const (applyRange $ readKnobValue note / 127)
+    SetAudioInputGain inputId -> audio.setInputGain inputId $
+      (applyRange $ readKnobValue note / 127)
   where
     toFxParamId :: SetFxParamConfig -> FxParamId
     toFxParamId SetFxParamConfig{..} = FxParamId{..}

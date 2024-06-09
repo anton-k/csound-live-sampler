@@ -219,7 +219,7 @@ controllers:
       - when:
           key: sliderMaster
         act:
-          - on: masterVolume
+          - on: masterVolume: {}
       - when:
           key: slider1
         act:

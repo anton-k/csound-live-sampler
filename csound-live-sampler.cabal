@@ -30,6 +30,7 @@ library
       Live.Scene.Audio
       Live.Scene.Audio.Config
       Live.Scene.Common
+      Live.Scene.Common.Aeson
       Live.Scene.Midi
       Live.Scene.Midi.Config
       Live.Scene.Mixer

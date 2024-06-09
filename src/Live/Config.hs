@@ -5,23 +5,25 @@ module Live.Config
   , ControllerConfig (..)
   , AudioConfig (..)
   , readConfig
+  , convertConfig
   ) where
 
+import Data.Maybe
+import Data.Default
 import Data.Text (Text)
 import Data.Yaml qualified as Yaml
-import Live.Scene.Mixer.Config (MixerConfig (..))
+import Live.Scene.Mixer.Config
 import Live.Scene.Audio.Config
 import Live.Scene.Sampler.Config
-  (SamplerConfig (..), StemConfig (..), TrackConfig (..),
-   ClipsConfig (..), ClipColumnConfig (..), ClipConfig (..),
-  )
 import System.FilePath
 import Live.Scene.Sampler.Config qualified as SamplerConfig (SamplerConfig (..))
 import Live.Scene.Sampler.Config qualified as StemConfig (StemConfig (..))
 import Live.Scene.Sampler.Config qualified as ClipConfig (ClipConfig (..))
 import Live.Scene.Sampler.Config qualified as ClipColumnConfig (ClipColumnConfig (..))
+import Live.Scene.Midi.Config
 import Live.Config.Types
 import Live.Config.Validate
+import Live.Scene.Common
 
 readConfig :: FilePath -> IO (Either Text Config)
 readConfig file = fmap absPath <$> do
@@ -65,3 +67,53 @@ appendClipAbsPath config =
 
 appendPath :: Maybe FilePath -> FilePath -> FilePath
 appendPath mPrefix = maybe id (</>)mPrefix
+
+-- * convert configs
+
+convertConfig ::
+  Config ->
+  ( AudioConfig ChannelId
+  , SamplerConfig ChannelId
+  , MixerConfig ChannelId
+  , MidiControllerConfig AudioInputId ChannelId Int
+  )
+convertConfig config = (audioConfig, samplerConfig, mixerConfig, midiConfig)
+  where
+    mixerConfig = fmap convertChannel config.mixer
+    samplerConfig = fmap convertChannel config.sampler
+    midiConfig = mapMidiControllerConfig convertAudioInput convertChannel convertMidiKey config.controllers.midi
+    audioConfig = fmap convertChannel (fromMaybe def config.audio)
+
+    audioInputNames = getAudioInputNames config
+
+    convertAudioInput = toAudioInputId . flip lookupNameRef audioInputNames
+
+    channelNames = getChannelNames config
+
+    convertChannel = toChannelId . flip lookupNameRef channelNames
+
+    midiKeyNames = getMidiKeyNames config
+
+    convertMidiKey = flip lookupNameRef midiKeyNames
+
+getAudioInputNames :: Config -> NameMap
+getAudioInputNames config =
+  toNameMap $ mapMaybe getName $ zip (fromMaybe def config.audio).inputs [1..]
+  where
+    getName (input, n) = fmap (, n) (getInputName input)
+
+    getInputName = \case
+      StereoAudioInputConfig stereo -> stereo.name
+      MonoAudioInputConfig mono -> mono.name
+
+getChannelNames :: Config -> NameMap
+getChannelNames config =
+  toNameMap $ mapMaybe getName $ zip config.mixer.channels [1..]
+    where
+      getName (channel, n) = fmap (, n) channel.name
+
+getMidiKeyNames :: Config -> NameMap
+getMidiKeyNames config =
+  NameMap $ fromMaybe mempty config.controllers.midi.keys
+
+

@@ -1040,6 +1040,13 @@ Let look at what we can control:
         param: paramName
    ```
 
+* audio input gain:
+    
+    ```yaml
+    on:
+      audioInputGain: 2
+    ```
+
 All control signals by default are in range `(0, 1)`.
 We can change that with optional field `range`:
 
@@ -1052,7 +1059,7 @@ act:
       range: [0.5, 2]
 ```
 
-##### Midi signals (knobs)
+##### Midi events (notes)
 
 The event defines some instant change. It looks like the knob control:
 

@@ -14,12 +14,12 @@ import Data.Maybe
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
 writeSceneCsd config mFile =
   writeCsdBy (withCsoundFlags config $ setMa <> setDac) (fromMaybe "tmp.csd" mFile) $ do
-    toAudio =<< loadScene config
+    execScene =<< loadScene config
 
 runScene :: Config -> Maybe FilePath -> IO ()
 runScene config mFile = do
   dacBy (withOptions config mFile $ setMa <> setTrace) $ do
-    toAudio =<< loadScene config
+    execScene =<< loadScene config
 
 withOptions :: Config -> Maybe FilePath -> Options -> Options
 withOptions config mFile = withWriteCsd mFile . withCsoundFlags config
@@ -32,12 +32,20 @@ data Scene = Scene
 
 -- * audio playback
 
+{-
 toAudio :: Scene -> SE Sig2
 toAudio scene = do
   scene.sampler.start
   result <- scene.mixer.readMaster
   scene.mixer.clean
   pure result
+-}
+
+execScene :: Scene -> SE ()
+execScene scene = do
+  scene.sampler.start
+  scene.audio.setupOutputs
+  scene.mixer.clean
 
 -- * init
 
@@ -55,7 +63,9 @@ loadScene config = do
   channels <- newMixerChannels mixerConfig
   let
     appendMixer = appendMixerChannels channels
-  audio <- newAudio audioConfig (AudioDeps appendMixer)
+    readMixer = readMixerChannels channels
+    readMaster = readMixerMaster channels
+  audio <- newAudio audioConfig (AudioDeps appendMixer readMixer readMaster)
   sampler <- newSampler samplerConfig (SamplerDeps appendMixer)
   mixer <- newMixer mixerConfig channels sampler.readBpm
   setupMidi audio mixer sampler midiConfig

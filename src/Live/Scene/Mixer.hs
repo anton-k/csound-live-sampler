@@ -20,6 +20,8 @@ module Live.Scene.Mixer
   , MixerChannels
   , newMixerChannels
   , appendMixerChannels
+  , readMixerMaster
+  , readMixerChannels
   , module X
   ) where
 
@@ -53,18 +55,32 @@ data Mixer = Mixer
   , clean :: SE ()
   }
 
-newtype MixerChannels = MixerChannels [Channel]
+data MixerChannels = MixerChannels
+  { channels :: [Channel]
+  , master :: Master
+  }
 
 newMixerChannels :: MixerConfig ChannelId -> SE MixerChannels
-newMixerChannels config = MixerChannels <$> loadChannels config
+newMixerChannels config =
+  MixerChannels <$> loadChannels config <*> loadMaster config
 
 appendMixerChannels :: MixerChannels -> ChannelId -> Sig2 -> SE ()
-appendMixerChannels (MixerChannels channels) (ChannelId channelId) ins =
+appendMixerChannels (MixerChannels channels _master) (ChannelId channelId) ins =
   mapM_ (\chan -> modifyRef chan.audio (+ ins)) (channels `atMay` channelId)
+
+readMixerMaster :: MixerChannels -> SE Sig2
+readMixerMaster (MixerChannels _channels master) =
+  readRef master.audio
+
+readMixerChannels :: MixerChannels -> ChannelId -> SE Sig2
+readMixerChannels (MixerChannels channels _master) (ChannelId channelId) =
+  case channels `atMay` channelId of
+    Just channel -> readRef channel.audio
+    Nothing -> pure 0
 
 newMixer :: MixerConfig ChannelId -> MixerChannels -> SE Sig -> SE Mixer
 newMixer config channels readBpm = do
-  st <- initSt config channels
+  st <- initSt channels
   let
     routeDeps = initRouteDeps st
   route <- toMixerRoute routeDeps (Bpm readBpm) config
@@ -109,16 +125,18 @@ lookupSend :: ChannelId -> SendMap -> Maybe (Ref Sig)
 lookupSend (ChannelId channelId) (SendMap refs) =
   IntMap.lookup channelId refs
 
-initSt :: MixerConfig ChannelId -> MixerChannels -> SE St
-initSt config (MixerChannels channels) = do
-  master <- loadMaster (fromMaybe def config.master)
-  pure St {..}
+initSt :: MixerChannels -> SE St
+initSt MixerChannels {channels, master} =
+  pure St {channels, master}
+
+loadMaster :: MixerConfig ChannelId -> SE Master
+loadMaster config =
+  Master
+    <$> newCtrlRef (float masterConfig.volume)
+    <*> newRef 0
+    <*> pure masterConfig.gain
   where
-    loadMaster masterConfig =
-      Master
-        <$> newCtrlRef (float masterConfig.volume)
-        <*> newRef 0
-        <*> pure masterConfig.gain
+    masterConfig = fromMaybe def config.master
 
 loadChannels :: MixerConfig ChannelId -> SE [Channel]
 loadChannels config =
@@ -237,4 +255,3 @@ initRouteDeps st =
           case lookupSend sendId channel.sendGains of
             Just sendRef -> readRef sendRef
             Nothing -> pure 0
-

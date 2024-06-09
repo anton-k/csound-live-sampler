@@ -10,14 +10,13 @@ V1 implements:
 * playlist - navigate track list with midi controls
 * mixer - mix several audio inputs to single output and apply effects
 * some effects: reverb, delay, eq, limiter, bbcuts, moog filter, korg filter
-* audio inputs: read from sound card
+* audio card setup: read from sound card, and output to sound card
 * midi controls
 
 ### v2
 
 * [ ] OSC constrols
 * [ ] Looper FX synced on BPM
-* [ ] support for several audio outputs
 * [ ] metronome output
 * [ ] UI sketch to control over OSC
 * [ ] OSC sensors for channels volumes, master volume, maybe spectrum

@@ -13,10 +13,13 @@ import Safe
 -- | Audio IO
 data Audio = Audio
   { setInputGain :: AudioInputId -> Sig -> SE ()
+  , setupOutputs :: SE ()
   }
 
-newtype AudioDeps = AudioDeps
+data AudioDeps = AudioDeps
   { writeChannel :: ChannelId -> Sig2  -> SE ()
+  , readChannel :: ChannelId -> SE Sig2
+  , readMaster :: SE Sig2
   }
 
 newAudio  :: AudioConfig ChannelId -> AudioDeps -> SE Audio
@@ -25,35 +28,59 @@ newAudio config deps = do
   updateAudio st deps
   pure $ Audio
     { setInputGain = setInputGainSt st
+    , setupOutputs = setupOutputsSt st deps
     }
 
 -- | private state for Audio unit
 data St = St
   { inputs :: [AudioInput]
+  , outputs :: [AudioOutput]
   }
 
 data AudioInput = AudioInput
   { channel :: ChannelId
-  , cardInputId :: CardInputId
+  , cardInputId :: CardPortId
   , gain :: Ref Sig
   }
 
-data CardInputId
-  = MonoInput Int
-  | StereoInput Int Int
+data OutputTo = ToMaster | ToChannel ChannelId
+
+data AudioOutput = AudioOutput
+  { channel :: OutputTo
+  , cardOuptutId :: Maybe CardPortId
+  , gain :: Ref Sig
+  }
+
+data CardPortId
+  = MonoPort Int
+  | StereoPort Int Int
 
 newSt :: AudioConfig ChannelId -> SE St
 newSt config = do
   inputs <- mapM newAudioInput (fromMaybe [] config.inputs)
-  pure St { inputs }
+  outputs <- mapM newAudioOutput (fromMaybe [defaultMasterOutput] config.outputs)
+  pure St { inputs, outputs }
+
+defaultMasterOutput :: AudioOutputConfig ChannelId
+defaultMasterOutput =
+  StereoAudioOutputConfig $ StereoOutputConfig
+    { channel = Nothing -- output to master
+    , gain = Nothing
+    , stereo = Nothing -- use default card output
+    }
 
 newAudioInput :: AudioInputConfig ChannelId -> SE AudioInput
 newAudioInput config =
   AudioInput (getChannelIdConfig config) (getCardInputId config) <$>
-    newCtrlRef (maybe 1 float (getGainConfig config))
+    newCtrlRef (maybe 1 float (getInputGainConfig config))
 
-getGainConfig :: AudioInputConfig a -> Maybe Float
-getGainConfig = \case
+newAudioOutput :: AudioOutputConfig ChannelId -> SE AudioOutput
+newAudioOutput config =
+  AudioOutput (getOutputTo config) (getCardOutputId config) <$>
+    newCtrlRef (maybe 1 float (getOutputGainConfig config))
+
+getInputGainConfig :: AudioInputConfig a -> Maybe Float
+getInputGainConfig = \case
   StereoAudioInputConfig config -> config.gain
   MonoAudioInputConfig config -> config.gain
 
@@ -62,10 +89,27 @@ getChannelIdConfig = \case
   StereoAudioInputConfig config -> config.channel
   MonoAudioInputConfig config -> config.channel
 
-getCardInputId :: AudioInputConfig a -> CardInputId
+getCardInputId :: AudioInputConfig a -> CardPortId
 getCardInputId = \case
-  StereoAudioInputConfig config -> StereoInput (fst config.stereo) (snd config.stereo)
-  MonoAudioInputConfig config -> MonoInput config.mono
+  StereoAudioInputConfig config -> StereoPort (fst config.stereo) (snd config.stereo)
+  MonoAudioInputConfig config -> MonoPort config.mono
+
+getOutputTo :: AudioOutputConfig ChannelId -> OutputTo
+getOutputTo = \case
+  StereoAudioOutputConfig config -> toOutputTo config.channel
+  MonoAudioOutputConfig config -> toOutputTo config.channel
+  where
+    toOutputTo = maybe ToMaster ToChannel
+
+getCardOutputId :: AudioOutputConfig ChannelId -> Maybe CardPortId
+getCardOutputId = \case
+  StereoAudioOutputConfig config -> fmap (uncurry StereoPort) config.stereo
+  MonoAudioOutputConfig config -> Just $ MonoPort $ config.mono
+
+getOutputGainConfig :: AudioOutputConfig a -> Maybe Float
+getOutputGainConfig = \case
+  StereoAudioOutputConfig config -> config.gain
+  MonoAudioOutputConfig config -> config.gain
 
 setInputGainSt :: St -> AudioInputId -> Sig -> SE ()
 setInputGainSt st (AudioInputId inputId) value =
@@ -88,8 +132,8 @@ runInput deps input = do
 readInput :: AudioInput -> SE Sig2
 readInput input =
   case input.cardInputId of
-    MonoInput n -> readMono n
-    StereoInput left right -> readStereo left right
+    MonoPort n -> readMono n
+    StereoPort left right -> readStereo left right
 
 readMono :: Int -> SE Sig2
 readMono n =
@@ -98,3 +142,29 @@ readMono n =
 readStereo :: Int -> Int -> SE Sig2
 readStereo left right =
   (,) <$> inch (int left) <*> inch (int right)
+
+setupOutputsSt :: St -> AudioDeps -> SE ()
+setupOutputsSt st deps =
+  mapM_ (runOutput deps) st.outputs
+
+runOutput :: AudioDeps -> AudioOutput -> SE ()
+runOutput deps output = do
+  gain <- readRef output.gain
+  writeOut . mul gain =<< readChannel
+  where
+    readChannel :: SE Sig2
+    readChannel =
+      case output.channel of
+        ToMaster -> deps.readMaster
+        ToChannel channelId -> deps.readChannel channelId
+
+    writeOut :: Sig2 -> SE ()
+    writeOut =
+      case output.cardOuptutId of
+        Nothing -> outs
+        Just cardPort ->
+          case cardPort of
+            MonoPort n -> outch (int n) . toMono
+            StereoPort a b -> \(sigA, sigB) -> do
+              outch (int a) sigA
+              outch (int b) sigB

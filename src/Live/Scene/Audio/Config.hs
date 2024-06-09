@@ -51,7 +51,7 @@ data AudioOutputConfig channel
 data StereoOutputConfig channel = StereoOutputConfig
   { channel :: Maybe channel
   , gain :: Maybe Float
-  , stereo :: (Int, Int)
+  , stereo :: Maybe (Int, Int)
   }
   deriving (Functor)
 

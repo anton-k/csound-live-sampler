@@ -10,7 +10,7 @@ import Data.Boolean
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe
-import Live.Scene.Audio
+import Live.Scene.AudioCard
 import Live.Scene.Mixer
 import Live.Scene.Sampler
 import Live.Scene.Sampler.Playlist qualified as Playlist
@@ -19,7 +19,7 @@ import Data.Containers.ListUtils qualified as List
 import Data.Text (Text)
 import Live.Scene.Common (ChannelId (..), AudioInputId (..))
 
-setupMidi :: Audio -> Mixer -> Sampler -> MidiControllerConfig AudioInputId ChannelId Int -> SE ()
+setupMidi :: AudioCard -> Mixer -> Sampler -> MidiControllerConfig AudioInputId ChannelId Int -> SE ()
 setupMidi audio mixer sampler config = do
   instrRef <- newProc actionsInstr
   play instrRef [Core.Note 0 (-1) ()]
@@ -45,7 +45,7 @@ setMidiActLink :: Mixer -> Sampler -> ModifierNames -> ModifierMap -> Note -> Ac
 setMidiActLink mixer sampler modNames mods note link =
   when1 (note.isChange &&* toCond modNames mods note link.when) (mapM_ (toAct mixer sampler) link.act)
 
-setMidiKnobLink :: Audio -> Mixer -> ModifierNames -> ModifierMap -> Note -> KnobLink AudioInputId ChannelId Int -> SE ()
+setMidiKnobLink :: AudioCard -> Mixer -> ModifierNames -> ModifierMap -> Note -> KnobLink AudioInputId ChannelId Int -> SE ()
 setMidiKnobLink audio mixer modNames mods note link =
   when1 (note.isChange &&* toKnobCond modNames mods note link.when) (mapM_ (toKnobAct audio mixer note) link.act)
 
@@ -152,7 +152,7 @@ toKnobCond modNames mods actualNote expectedNote =
 isKnobStatus :: Note -> BoolSig
 isKnobStatus note = note.status ==* 176
 
-toKnobAct :: Audio -> Mixer -> Note -> KnobWithRange AudioInputId ChannelId -> SE ()
+toKnobAct :: AudioCard -> Mixer -> Note -> KnobWithRange AudioInputId ChannelId -> SE ()
 toKnobAct audio mixer note knob =
   case knob.on of
     SetMasterVolume -> mixer.modifyMasterVolume $

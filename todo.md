@@ -4,7 +4,7 @@ prototypes:
 
 ### v1 (done):
 
-V1 implements:
+V1 implements cli app that can run live performances with features:
 
 * sampler - launches audio files based on BPM
 * playlist - navigate track list with midi controls

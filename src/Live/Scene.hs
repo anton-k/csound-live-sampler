@@ -8,7 +8,7 @@ import Csound.Core
 import Live.Scene.Midi
 import Live.Scene.Mixer
 import Live.Scene.Sampler
-import Live.Scene.Audio
+import Live.Scene.AudioCard
 import Data.Maybe
 
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
@@ -27,7 +27,7 @@ withOptions config mFile = withWriteCsd mFile . withCsoundFlags config
 data Scene = Scene
   { mixer :: Mixer
   , sampler :: Sampler
-  , audio :: Audio
+  , audio :: AudioCard
   }
 
 -- * audio playback
@@ -65,7 +65,7 @@ loadScene config = do
     appendMixer = appendMixerChannels channels
     readMixer = readMixerChannels channels
     readMaster = readMixerMaster channels
-  audio <- newAudio audioConfig (AudioDeps appendMixer readMixer readMaster)
+  audio <- newAudioCard audioConfig (AudioCardDeps appendMixer readMixer readMaster)
   sampler <- newSampler samplerConfig (SamplerDeps appendMixer)
   mixer <- newMixer mixerConfig channels sampler.readBpm
   setupMidi audio mixer sampler midiConfig

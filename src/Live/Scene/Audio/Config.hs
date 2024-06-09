@@ -11,12 +11,12 @@ import Data.Default
 
 data AudioConfig channel = AudioConfig
   { csound :: Maybe Text
-  , inputs :: [AudioInputConfig channel]
+  , inputs :: Maybe [AudioInputConfig channel]
   }
   deriving (Functor)
 
 instance Default (AudioConfig a) where
-  def = AudioConfig { csound = Nothing, inputs = [] }
+  def = AudioConfig { csound = Nothing, inputs = Nothing }
 
 data AudioInputConfig channel
   = StereoAudioInputConfig (StereoInputConfig channel)

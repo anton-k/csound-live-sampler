@@ -98,7 +98,7 @@ convertConfig config = (audioConfig, samplerConfig, mixerConfig, midiConfig)
 
 getAudioInputNames :: Config -> NameMap
 getAudioInputNames config =
-  toNameMap $ mapMaybe getName $ zip (fromMaybe def config.audio).inputs [1..]
+  toNameMap $ mapMaybe getName $ zip (fromMaybe [] (fromMaybe def config.audio).inputs) [1..]
   where
     getName (input, n) = fmap (, n) (getInputName input)
 

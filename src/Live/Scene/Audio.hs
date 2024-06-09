@@ -4,6 +4,7 @@ module Live.Scene.Audio
   , newAudio
   ) where
 
+import Data.Maybe
 import Csound.Core
 import Live.Scene.Common (ChannelId (..), AudioInputId (..))
 import Live.Scene.Audio.Config
@@ -43,7 +44,7 @@ data CardInputId
 
 newSt :: AudioConfig ChannelId -> SE St
 newSt config = do
-  inputs <- mapM newAudioInput config.inputs
+  inputs <- mapM newAudioInput (fromMaybe [] config.inputs)
   pure St { inputs }
 
 newAudioInput :: AudioInputConfig ChannelId -> SE AudioInput

@@ -2,94 +2,36 @@
 
 prototypes:
 
-### v1:
+### v1 (done):
 
-- [x] implement app that can load one track in loop
-  it assigns stems to channels. and plays bakc everything as in config.
+V1 implements:
 
-    - [x] implement csound multitrack player
-
-    - [x] test on various files, create several tracks, configs
-
-- [x] add volume control with MIDI. Master and channels
-
-    - [x] implement controller in csound for AKAI midi mix
-        csound midi: https://flossmanual.csound.com/midi/receiving-events-by-midiin
-
-    - [x] use it to control volumes
-
-    - [x] make it configurable (reasignable channels)
-
-- [x] add gains: master, channel, tracks, stems
-
-- [x] add toggle mutes
-
-    - [x] use mute buttons
-
-- [x] add switch between several tracks. Igonre the cues so far
-  Just switch on a new track and turn off previous one.
-    - [x] with single button
-
-    - [x] with shift button (shift is used to reuse the same buttons
-      and also to not to swiitch tracks by accident)
-
-- [x] add clips (track parts). ignore bpm sync.
-  Just switch imidiately to the track part in a loop
-
-- [x] loop and play once options
-
-- [x] use BPM sync (hard task)
-
-    - [x] with same BPM and measure
-
-    - [x] with changeable BPM and measure
-
-- [x] config validations
-
-- [ ] crossfades?
+* sampler - launches audio files based on BPM
+* playlist - navigate track list with midi controls
+* mixer - mix several audio inputs to single output and apply effects
+* some effects: reverb, delay, eq, limiter, bbcuts, moog filter, korg filter
+* audio inputs: read from sound card
+* midi controls
 
 ### v2
 
-- [x] add FX sends
-
-   - [x] configs for FXs: delay, reverb, bbcuts
-
-   - [x] sends for channels
-
-- [ ] add master chain:
- 
-   - EQ
-
-   - [ ] Compressor
-
-   - [x] Limiter
-
-   - [x] Reverb
-
-   - [x] Delay
-
-- [ ] add channel tools:
-    - [x] EQ
-
-    - Compressor
-
-- [] pre-bar play in loops
-
-- [] midi channels
+* [ ] OSC constrols
+* [ ] Looper FX synced on BPM
+* [ ] support for several audio outputs
+* [ ] metronome output
+* [ ] UI sketch to control over OSC
+* [ ] OSC sensors for channels volumes, master volume, maybe spectrum
+* [ ] Pads playback. Play files that are not synced on bpm
+* [ ] Rhytmic tremlol FX
+* [ ] Cross fade and XY-pad controls
+* [ ] play random short snippets of the file on event 
 
 ### v3
 
-channel extras:
-
-    - play reverse
-
-    - play stutter
-
-    - PAD smooth transitions
-
-    - play random cuts
-
-    - play long samples unBPM (for PADs)
-
-    - play random snippets in style of music for airports (for PADs and ambience)
+* [ ] play random snippets in style of music for airports (for PADs and ambience)
+* [ ] UI app with OSC
+* [ ] haskell lib for OSC controlling from ghci
+* [ ] LFO controls
+* [ ] sound fonts
+* [ ] midi clips for sampler
 

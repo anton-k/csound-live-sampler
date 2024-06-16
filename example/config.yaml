@@ -27,6 +27,12 @@ mixer:
     - volume: 1
       name: reverb-bus
       fxs:
+        - delay:
+            name: delay-bus
+            repeatTime: 2
+            damp: 0.7
+            feedback: 0.5
+            dryWet: 0.3
         - reverb:
             name: reverb-bus
             size: 0.5

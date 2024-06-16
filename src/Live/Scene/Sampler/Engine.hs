@@ -1,28 +1,29 @@
--- | Engine can play instruments in the loop syncronized on BPM.
---
--- Note that engine can play any instrument which has single
--- argument: skip start time
---
--- TOOD: interesting idea: we can make it more generic if we
--- use csoundf opcode scoreline thus we can have just three arguments for clip:
--- * instr id
--- * arguments as a string
--- * duration
---
--- or even we can keep everything in single score, but this way we can not stop it
-module Live.Scene.Sampler.Engine
-  ( Clip (..)
-  , Part (..)
-  , ColumnId
-  , ClipInstr
-  , Engine (..)
-  , newEngine
-  , ExtraClipSize
-  ) where
+{-| Engine can play instruments in the loop syncronized on BPM.
 
-import Prelude hiding ((<*))
-import Data.Boolean
+Note that engine can play any instrument which has single
+argument: skip start time
+
+TOOD: interesting idea: we can make it more generic if we
+use csoundf opcode scoreline thus we can have just three arguments for clip:
+* instr id
+* arguments as a string
+* duration
+
+or even we can keep everything in single score, but this way we can not stop it
+-}
+module Live.Scene.Sampler.Engine (
+  Clip (..),
+  Part (..),
+  ColumnId,
+  ClipInstr,
+  Engine (..),
+  newEngine,
+  ExtraClipSize,
+) where
+
 import Csound.Core
+import Data.Boolean
+import Prelude hiding ((<*))
 
 -- | Single argument is start time of the loop in audio file
 type ClipInstr = Sig -- InstrRef D
@@ -34,11 +35,11 @@ data Clip = Clip
   , beatSize :: Sig
   , timeSize :: Sig
   , nextAction :: Sig
-    -- ^
-    --next actions:
-    --  0 - loop
-    --  1 - play next
-    --  2 - stop
+  -- ^
+  -- next actions:
+  --   0 - loop
+  --   1 - play next
+  --   2 - stop
   }
 
 playLoop, playNext, stopPlayback :: D
@@ -46,22 +47,28 @@ playLoop = 0
 playNext = 1
 stopPlayback = 2
 
+instance FromTuple Clip where
+  fromTuple (Clip a b c d e f) = fromTuple (a, b, c, d, e, f)
+
 instance Tuple Clip where
-  tupleMethods =
-    makeTupleMethods
-      (\(a, b, c, d, e, f) -> Clip a b c d e f)
-      (\(Clip a b c d e f) -> (a, b, c, d, e, f))
+  tupleArity = 6
+  tupleRates = replicate 6 Kr
+  defTuple = Clip 0 0 0 0 0 0
+  toTuple = (\(a, b, c, d, e, f) -> Clip a b c d e f) . toTuple
 
 data Part = Part
   { clip :: Clip
   , track :: ClipInstr
   }
 
+instance FromTuple Part where
+  fromTuple (Part a b) = fromTuple (a, b)
+
 instance Tuple Part where
-  tupleMethods =
-    makeTupleMethods
-      (\(a, b) -> Part a b)
-      (\(Part a b) -> (a, b))
+  tupleArity = tupleArity @(Clip, ClipInstr)
+  tupleRates = tupleRates @(Clip, ClipInstr)
+  defTuple = Part defTuple (-1)
+  toTuple = (\(a, b) -> Part a b) . toTuple
 
 type ColumnId = Sig
 
@@ -109,7 +116,7 @@ initExtraClips :: ExtraClipSize -> SE ExtraClips
 initExtraClips size = do
   currents <- initClipSt newColumn
   nexts <- initClipSt newColumn
-  pure ExtraClips {..}
+  pure ExtraClips{..}
   where
     newColumn value = Column <$> fillGlobalCtrlArr [size] (replicate size value)
 
@@ -129,13 +136,15 @@ data ClipSt f = ClipSt
   , nextAction :: f Sig
   }
 
--- | Column of clips. All clips in single column can not be played at the same time
--- so when next clip on given column starts previous one stops.
+{-| Column of clips. All clips in single column can not be played at the same time
+so when next clip on given column starts previous one stops.
+-}
 newtype Column a = Column (Arr Sig a)
 
 copyClipTo :: Update f -> ClipSt f -> ClipSt f -> SE ()
 copyClipTo update from to =
-  mapM_ copy
+  mapM_
+    copy
     [ (.track)
     , (.bpm)
     , (.startTime)
@@ -167,18 +176,20 @@ data Update f = Update
   }
 
 refUpdate :: Update Ref
-refUpdate = Update
-  { read = readRef
-  , write = writeRef
-  , modify = modifyRef
-  }
+refUpdate =
+  Update
+    { read = readRef
+    , write = writeRef
+    , modify = modifyRef
+    }
 
 columnUpdate :: ColumnId -> Update Column
-columnUpdate columnId = Update
-  { read = \(Column arr) -> readArr arr columnId
-  , write = \(Column arr) value -> writeArr arr columnId value
-  , modify = \(Column arr) f -> modifyArr arr columnId f
-  }
+columnUpdate columnId =
+  Update
+    { read = \(Column arr) -> readArr arr columnId
+    , write = \(Column arr) value -> writeArr arr columnId value
+    , modify = \(Column arr) f -> modifyArr arr columnId f
+    }
 
 nextCount :: Update f -> Counter f -> SE BoolSig
 nextCount update counter = do
@@ -190,7 +201,7 @@ nextCount update counter = do
 
 initSt :: GetNextPart -> ExtraClipSize -> SE St
 initSt getNextPart extraColumnSize = do
-  bpm <- Bpm  <$> newCtrlRef 120
+  bpm <- Bpm <$> newCtrlRef 120
   current <- initClipRef
   next <- initClipRef
   mainBeat <- initCounter newCtrlRef 1
@@ -199,7 +210,7 @@ initSt getNextPart extraColumnSize = do
       then pure Nothing
       else Just <$> initExtraClips extraColumnSize
   main <- newProc (\() -> mainInstr getNextPart bpm mainBeat current next extraClips)
-  pure St {..}
+  pure St{..}
 
 initClipRef :: SE ClipRef
 initClipRef = initClipSt newCtrlRef
@@ -213,7 +224,7 @@ initClipSt cons = do
   change <- initCounter cons 1
   loop <- initCounter cons 1
   nextAction <- cons (toSig playLoop)
-  pure ClipSt {..}
+  pure ClipSt{..}
 
 type GetNextPart = SE Part
 
@@ -274,7 +285,7 @@ onExtraClipLoop update bpm currents nexts = do
   nextAction <- update.read currents.nextAction
   whens
     [ (isPlayLoop nextAction, onExtraClipPlayLoop update bpm currents)
-    , (isPlayNext nextAction, pure ())  -- next action is not supported by extra clips
+    , (isPlayNext nextAction, pure ()) -- next action is not supported by extra clips
     , (isStopPlayback nextAction, onStopPlayback update currents nexts)
     ]
     (pure ())
@@ -390,12 +401,13 @@ updateCounters :: Update f -> ClipSt f -> SE IsBoundary
 updateCounters update clip = do
   isChange <- nextCount update clip.change
   isLoop <- nextCount update clip.loop
-  pure IsBoundary {..}
+  pure IsBoundary{..}
 
 periodic :: Bpm -> SE () -> SE ()
 periodic (Bpm bpmRef) onTick = do
   bpm <- readRef bpmRef
-  when1 (metro (toAbsTimeRate bpm 1) ==* 1)
+  when1
+    (metro (toAbsTimeRate bpm 1) ==* 1)
     onTick
 
 setTrackPartSt :: St -> Part -> SE ()
@@ -411,7 +423,7 @@ setClipPartSt st columnId part = do
       when1 (columnId <* int size) $
         setNextPart (writeColumn columnId) nexts part
 
-writeColumn :: Tuple a => ColumnId -> Column a -> a -> SE ()
+writeColumn :: (Tuple a) => ColumnId -> Column a -> a -> SE ()
 writeColumn columnId (Column arr) value =
   writeArr arr columnId value
 
@@ -445,5 +457,3 @@ readBpmSt :: St -> SE Sig
 readBpmSt st =
   case st.bpm of
     Bpm ref -> readRef ref
-
-

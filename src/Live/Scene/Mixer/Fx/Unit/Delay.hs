@@ -1,24 +1,25 @@
-module Live.Scene.Mixer.Fx.Unit.Delay
-  ( delayUnit
-  , pingPongUnit
-  , toDelayTime
-  ) where
+module Live.Scene.Mixer.Fx.Unit.Delay (
+  delayUnit,
+  pingPongUnit,
+  toDelayTime,
+) where
 
-import Live.Scene.Mixer.Fx.Unit
-import Live.Scene.Mixer.Fx.Config (DelayConfig (..), PingPongConfig (..))
 import Csound.Core
-import Csound.Core.Opcodes.Fx
+import Live.Scene.Mixer.Fx.Config (DelayConfig (..), PingPongConfig (..))
+import Live.Scene.Mixer.Fx.Unit
 
 delayUnit :: Unit DelayConfig
-delayUnit = Unit
-  { needsBpm = True
-  , getParams = delayParams
-  , apply = delayFx
-  }
+delayUnit =
+  Unit
+    { needsBpm = True
+    , getParams = delayParams
+    , apply = delayFx
+    }
 
 delayParams :: DelayConfig -> SE ParamMap
 delayParams config =
-  newParamMap config
+  newParamMap
+    config
     [ ("damp", (.damp))
     , ("feedback", (.feedback))
     , ("dryWet", (.dryWet))
@@ -37,15 +38,17 @@ delayFx (Bpm readBpm) params config ins = do
     param = readParam params
 
 pingPongUnit :: Unit PingPongConfig
-pingPongUnit = Unit
-  { needsBpm = True
-  , getParams = pingPongParams
-  , apply = pingPongFx
-  }
+pingPongUnit =
+  Unit
+    { needsBpm = True
+    , getParams = pingPongParams
+    , apply = pingPongFx
+    }
 
 pingPongParams :: PingPongConfig -> SE ParamMap
 pingPongParams config =
-  newParamMap config
+  newParamMap
+    config
     [ ("damp", (.damp))
     , ("feedback", (.feedback))
     , ("width", (.width))

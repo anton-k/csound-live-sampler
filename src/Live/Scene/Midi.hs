@@ -1,23 +1,23 @@
-module Live.Scene.Midi
-  ( setupMidi
-  ) where
+module Live.Scene.Midi (
+  setupMidi,
+) where
 
-import Data.Bifunctor
-import Live.Scene.Midi.Config
-import Csound.Core hiding (Note)
+import Csound.Core hiding (MidiChannel, Note)
 import Csound.Core qualified as Core
+import Data.Bifunctor
 import Data.Boolean
+import Data.Containers.ListUtils qualified as List
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe
+import Data.Text (Text)
 import Live.Scene.AudioCard
+import Live.Scene.Common (AudioInputId (..), ChannelId (..))
+import Live.Scene.Midi.Config
 import Live.Scene.Mixer
 import Live.Scene.Sampler
 import Live.Scene.Sampler.Playlist qualified as Playlist
 import Safe (atMay)
-import Data.Containers.ListUtils qualified as List
-import Data.Text (Text)
-import Live.Scene.Common (ChannelId (..), AudioInputId (..))
 
 setupMidi :: AudioCard -> Mixer -> Sampler -> MidiControllerConfig AudioInputId ChannelId Int -> SE ()
 setupMidi audio mixer sampler config = do
@@ -54,7 +54,7 @@ readNote = do
   (status, chan, data1, data2) <- midiin
   let
     isChange = changed [status, chan, data1, data2] ==* 1
-  pure Note {..}
+  pure Note{..}
 
 data Note = Note
   { isChange :: BoolSig
@@ -108,9 +108,9 @@ type ModifierNames = Map Text (MidiModifier Int)
 toCond :: ModifierNames -> ModifierMap -> Note -> MidiNote Int -> BoolSig
 toCond modNames mods actualNote expectedNote =
   withChan actualNote expectedNote.channel $
-      hasKey actualNote expectedNote.key
-  &&* hasNoteType
-  &&* hasModifier expectedNote.channel modNames mods expectedNote.modifier
+    hasKey actualNote expectedNote.key
+      &&* hasNoteType
+      &&* hasModifier expectedNote.channel modNames mods expectedNote.modifier
   where
     hasNoteType =
       case expectedNote.press of
@@ -127,7 +127,6 @@ hasModifier mChan modNames (ModifierMap mods) mModifier =
       modifier <- Map.lookup name modNames
       Map.lookup modifier mods
 
-
 toAct :: Mixer -> Sampler -> MidiAct ChannelId -> SE ()
 toAct mixer sampler = \case
   ToggleMute n ->
@@ -138,16 +137,15 @@ toAct mixer sampler = \case
   ShiftTrack n -> sampler.cursor.modifyTrack (+ toSig (int n))
   ShiftPart n -> sampler.cursor.modifyPart (+ toSig (int n))
   PlayExtraClip column clip -> sampler.playExtraClip column clip
-
   where
     withTrackId n cont = mapM_ cont $ atMay sampler.getTrackIds (n - 1)
 
 toKnobCond :: ModifierNames -> ModifierMap -> Note -> MidiKnob Int -> BoolSig
 toKnobCond modNames mods actualNote expectedNote =
   withChan actualNote expectedNote.channel $
-      hasKey actualNote expectedNote.key
-  &&* hasModifier expectedNote.channel modNames mods expectedNote.modifier
-  &&* isKnobStatus actualNote
+    hasKey actualNote expectedNote.key
+      &&* hasModifier expectedNote.channel modNames mods expectedNote.modifier
+      &&* isKnobStatus actualNote
 
 isKnobStatus :: Note -> BoolSig
 isKnobStatus note = note.status ==* 176
@@ -155,16 +153,21 @@ isKnobStatus note = note.status ==* 176
 toKnobAct :: AudioCard -> Mixer -> Note -> KnobWithRange AudioInputId ChannelId -> SE ()
 toKnobAct audio mixer note knob =
   case knob.on of
-    SetMasterVolume -> mixer.modifyMasterVolume $
-      const (applyRange $ gainslider (readKnobValue note))
-    SetChannelVolume n -> mixer.modifyChannelVolume n $
-      const (applyRange $ gainslider (readKnobValue note))
-    SetChannelSend config -> mixer.modifyChannelSend config.from config.to $
-      const (applyRange $ readKnobValue note / 127)
-    SetFxParam config -> mixer.modifyFxParam (toFxParamId config) $
-      const (applyRange $ readKnobValue note / 127)
-    SetAudioInputGain inputId -> audio.setInputGain inputId $
-      (applyRange $ readKnobValue note / 127)
+    SetMasterVolume ->
+      mixer.modifyMasterVolume $
+        const (applyRange $ gainslider (readKnobValue note))
+    SetChannelVolume n ->
+      mixer.modifyChannelVolume n $
+        const (applyRange $ gainslider (readKnobValue note))
+    SetChannelSend config ->
+      mixer.modifyChannelSend config.from config.to $
+        const (applyRange $ readKnobValue note / 127)
+    SetFxParam config ->
+      mixer.modifyFxParam (toFxParamId config) $
+        const (applyRange $ readKnobValue note / 127)
+    SetAudioInputGain inputId ->
+      audio.setInputGain inputId $
+        (applyRange $ readKnobValue note / 127)
   where
     toFxParamId :: SetFxParamConfig -> FxParamId
     toFxParamId SetFxParamConfig{..} = FxParamId{..}

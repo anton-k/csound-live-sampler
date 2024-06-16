@@ -1,36 +1,37 @@
--- | Playlist keeps information on track and clip order.
--- We can query clip info for the given track. And navigate through
--- parts.
-module Live.Scene.Sampler.Playlist
-  ( Playlist (..)
-  , Cursor (..)
-  , Part (..)
-  , ClipInstr
-  , Clip (..)
-  , newPlaylist
-  , TrackId (..)
-  , ClipId (..)
-  , nextTrack
-  , prevTrack
-  , nextPart
-  , prevPart
-  , setTrack
-  , setPart
-  ) where
+{-| Playlist keeps information on track and clip order.
+We can query clip info for the given track. And navigate through
+parts.
+-}
+module Live.Scene.Sampler.Playlist (
+  Playlist (..),
+  Cursor (..),
+  Part (..),
+  ClipInstr,
+  Clip (..),
+  newPlaylist,
+  TrackId (..),
+  ClipId (..),
+  nextTrack,
+  prevTrack,
+  nextPart,
+  prevPart,
+  setTrack,
+  setPart,
+) where
 
-import Prelude hiding ((<*))
-import Data.Boolean
 import Csound.Core
+import Data.Boolean
 import Live.Scene.Common (ChannelId (..))
-import Live.Scene.Sampler.Timing qualified as Timing
 import Live.Scene.Sampler.Config
-import Live.Scene.Sampler.Engine (Part (..), ClipInstr, Clip (..))
+import Live.Scene.Sampler.Engine (Clip (..), ClipInstr, Part (..))
+import Live.Scene.Sampler.Timing qualified as Timing
+import Prelude hiding ((<*))
 
 newtype TrackId = TrackId D
-  deriving newtype (Tuple, Arg)
+  deriving newtype (FromTuple, Tuple, Arg)
 
 newtype ClipId = ClipId D
-  deriving newtype (Tuple, Arg)
+  deriving newtype (FromTuple, Tuple, Arg)
 
 data Playlist = Playlist
   { getPart :: SE Part
@@ -43,13 +44,13 @@ data Cursor = Cursor
   }
 
 nextTrack :: Cursor -> SE ()
-nextTrack cursor = cursor.modifyTrack (+1)
+nextTrack cursor = cursor.modifyTrack (+ 1)
 
 prevTrack :: Cursor -> SE ()
 prevTrack cursor = cursor.modifyTrack (\x -> x - 1)
 
 nextPart :: Cursor -> SE ()
-nextPart cursor = cursor.modifyPart (+1)
+nextPart cursor = cursor.modifyPart (+ 1)
 
 prevPart :: Cursor -> SE ()
 prevPart cursor = cursor.modifyPart (\x -> x - 1)
@@ -102,22 +103,25 @@ modifyTrackSt st f = do
   -- trackStart <- readArr st.trackStarts trackId
   let
     nextTrackId = wrapArrayBounds st.trackStarts (f trackId)
-    {- diff = index - trackStart -}
+  {- diff = index - trackStart -}
   nextTrackStart <- readArr st.trackStarts nextTrackId
   writeRef st.index $ wrapArrayBounds st.infos $ nextTrackStart {- + diff -}
 
 modifyPartSt :: St -> (Sig -> Sig) -> SE ()
 modifyPartSt st f = do
-  modifyRef st.index (wrapArrayBounds st.infos .  f)
+  modifyRef st.index (wrapArrayBounds st.infos . f)
 
 -- | TODO: make wrap strategy configurtable: also consider loop
 wrapArrayBounds :: Arr Sig a -> Sig -> Sig
 wrapArrayBounds arr index =
-  ifB (index <* 0)
+  ifB
+    (index <* 0)
     0
-    (ifB (index >=* len)
-      (len - 1)
-      index)
+    ( ifB
+        (index >=* len)
+        (len - 1)
+        index
+    )
   where
     len = toSig (lenarray arr)
 
@@ -127,7 +131,7 @@ initSt config instrs = do
   trackStarts <- initTrackStartArray tracks
   clipToTrack <- initClipToTrackArray tracks
   index <- newCtrlRef 0
-  pure St {..}
+  pure St{..}
   where
     tracks = timeTracks config instrs
 
@@ -162,7 +166,7 @@ initClipToTrackArray :: [TimedTrack] -> SE ClipToTrackArray
 initClipToTrackArray tracks =
   fillGlobalCtrlArr [length ids] ids
   where
-    ids = concat $ zipWith clipToTrackIds [0..] tracks
+    ids = concat $ zipWith clipToTrackIds [0 ..] tracks
 
     clipToTrackIds :: Int -> TimedTrack -> [Sig]
     clipToTrackIds trackId track =

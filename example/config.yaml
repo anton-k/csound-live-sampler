@@ -163,15 +163,28 @@ sampler:
       slots:
         - bpm: 119
           measure: [4, 4]
-          changeRate: 4
+          changeRate: 1
+          timeScale: 4
           cues:
-            - dur: 16
+            - dur: 8
               nextAction: "next"
-            - dur: 16
+            - dur: 3
               nextAction: "next"
             - dur: 12
+            - dur: 0.5
               nextAction: "next"
-            - dur: 64
+            - dur: 18
+            - dur: 6
+              nextAction: "next"
+            - dur: 30
+            - dur: 10
+            - dur: 16
+            - dur: 8
+            - dur: 7
+            - dur: 5
+            - dur: 11.5
+            - dur: 12
+            - dur: 4
 
 # audio:
 #   csound: put-csound-flags-gere

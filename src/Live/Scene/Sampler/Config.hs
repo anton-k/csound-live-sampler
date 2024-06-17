@@ -1,24 +1,24 @@
-module Live.Scene.Sampler.Config
-  ( SamplerConfig (..)
-  , TrackConfig (..)
-  , StemConfig (..)
-  , TimeSlot (..)
-  , Cue (..)
-  , ClipsConfig (..)
-  , ClipColumnConfig (..)
-  , ClipName (..)
-  , ColumnName (..)
-  , ClipConfig (..)
-  , ClipGroupConfig (..)
-  , ClipMode (..)
-  , NextAction (..)
-  ) where
+module Live.Scene.Sampler.Config (
+  SamplerConfig (..),
+  TrackConfig (..),
+  StemConfig (..),
+  TimeSlot (..),
+  Cue (..),
+  ClipsConfig (..),
+  ClipColumnConfig (..),
+  ClipName (..),
+  ColumnName (..),
+  ClipConfig (..),
+  ClipGroupConfig (..),
+  ClipMode (..),
+  NextAction (..),
+) where
 
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson qualified as Json
+import Data.Aeson.TH qualified as Json
 import Data.Text (Text)
 import Data.Text qualified as Text
-import Data.Aeson.TH qualified as Json
 
 data SamplerConfig chan = SamplerConfig
   { tracks :: [TrackConfig chan]
@@ -47,14 +47,15 @@ data StemConfig chan = StemConfig
 
 data TimeSlot = TimeSlot
   { bpm :: Float
-  , measure :: Maybe (Int, Int)  -- default is 4/4
+  , measure :: Maybe (Int, Int) -- default is 4/4
   , changeRate :: Maybe Int
   , cues :: [Cue]
+  , timeScale :: Maybe Int
   }
 
 data Cue = Cue
-  { start :: Maybe Int
-  , dur :: Int
+  { start :: Maybe Float
+  , dur :: Float
   , nextAction :: Maybe NextAction
   }
 
@@ -86,7 +87,6 @@ newtype ClipName = ClipName
   { name :: Text
   }
   deriving newtype (FromJSON, ToJSON, Eq, Ord)
-
 
 data ClipGroupConfig = ClipGroupConfig
   { name :: Text
@@ -135,7 +135,6 @@ instance FromJSON NextAction where
     "stop" -> pure StopPlayback
     other -> fail $ Text.unpack ("Failed to parse: " <> other)
 
-
 $(Json.deriveJSON Json.defaultOptions ''ClipConfig)
 $(Json.deriveJSON Json.defaultOptions ''ClipGroupConfig)
 $(Json.deriveJSON Json.defaultOptions ''ClipColumnConfig)
@@ -145,5 +144,3 @@ $(Json.deriveJSON Json.defaultOptions ''TimeSlot)
 $(Json.deriveJSON Json.defaultOptions ''StemConfig)
 $(Json.deriveJSON Json.defaultOptions ''TrackConfig)
 $(Json.deriveJSON Json.defaultOptions ''SamplerConfig)
-
-

@@ -9,7 +9,7 @@ module Live.Config (
   inlineConfig,
 ) where
 
-import Csound.Core
+import Csound.Core hiding (Config)
 import Data.Default
 import Data.Maybe
 import Data.Text (Text)

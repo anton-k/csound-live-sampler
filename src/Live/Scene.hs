@@ -1,15 +1,15 @@
-module Live.Scene
-  ( runScene
-  , writeSceneCsd
-  ) where
+module Live.Scene (
+  runScene,
+  writeSceneCsd,
+) where
 
+import Csound.Core hiding (Config)
+import Data.Maybe
 import Live.Config
-import Csound.Core
+import Live.Scene.AudioCard
 import Live.Scene.Midi
 import Live.Scene.Mixer
 import Live.Scene.Sampler
-import Live.Scene.AudioCard
-import Data.Maybe
 
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
 writeSceneCsd config mFile =
@@ -49,15 +49,16 @@ execScene scene = do
 
 -- * init
 
--- | Note that order of definitions matters as we allocate
--- Csound instruments and instruments are executed in the order
--- of definition.
---
--- The order to define the instruments follows the flow of the signals:
---
--- * audio - reads audio inputs
--- * sampler - playback audio files
--- * mixer - mix signals to master outuput
+{-| Note that order of definitions matters as we allocate
+Csound instruments and instruments are executed in the order
+of definition.
+
+The order to define the instruments follows the flow of the signals:
+
+* audio - reads audio inputs
+* sampler - playback audio files
+* mixer - mix signals to master outuput
+-}
 loadScene :: Config -> SE Scene
 loadScene config = do
   channels <- newMixerChannels mixerConfig
@@ -69,7 +70,7 @@ loadScene config = do
   sampler <- newSampler samplerConfig (SamplerDeps appendMixer)
   mixer <- newMixer mixerConfig channels sampler.readBpm
   setupMidi audio mixer sampler midiConfig
-  pure $ Scene {audio, sampler, mixer}
+  pure $ Scene{audio, sampler, mixer}
   where
     (audioConfig, samplerConfig, mixerConfig, midiConfig) = convertConfig config
 
@@ -81,4 +82,3 @@ withCsoundFlags config = maybe id (<>) $ do
 
 withWriteCsd :: Maybe FilePath -> Options -> Options
 withWriteCsd mFile = maybe id (mappend . setWriteCsd) mFile
-

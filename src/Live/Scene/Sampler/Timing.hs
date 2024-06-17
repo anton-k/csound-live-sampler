@@ -1,12 +1,12 @@
 -- | Module to slice stems by cues
-module Live.Scene.Sampler.Timing
-  ( Clip (..)
-  , splitStem
-  ) where
+module Live.Scene.Sampler.Timing (
+  Clip (..),
+  splitStem,
+) where
 
+import Data.List qualified as List
 import Data.Maybe
 import Live.Scene.Sampler.Config
-import Data.List qualified as List
 
 data Clip = Clip
   { bpm :: Float
@@ -30,28 +30,33 @@ splitStem :: [TimeSlot] -> [Clip]
 splitStem slots =
   List.reverse . (.clips) $ List.foldl' go initSt slots
   where
-    initSt = St
-      { bpm_ = 120
-      , measure = (4, 4)
-      , lastTime = 0
-      , changeRate = 4
-      , clips = []
-      }
+    initSt =
+      St
+        { bpm_ = 120
+        , measure = (4, 4)
+        , lastTime = 0
+        , changeRate = 4
+        , clips = []
+        }
 
     go :: St -> TimeSlot -> St
     go st slot =
-      List.foldl' splitSlot (enterSlot slot st) slot.cues
+      List.foldl' (splitSlot timeScale) (enterSlot slot st) slot.cues
+      where
+        timeScale = fromMaybe 1 slot.timeScale
 
 enterSlot :: TimeSlot -> St -> St
 enterSlot slot st =
   st
     { bpm_ = slot.bpm
     , measure = fromMaybe st.measure slot.measure
-    , changeRate = fromMaybe st.changeRate slot.changeRate
+    , changeRate = timeScale * fromMaybe st.changeRate slot.changeRate
     }
+  where
+    timeScale = fromMaybe 1 slot.timeScale
 
-splitSlot :: St -> Cue -> St
-splitSlot st cue =
+splitSlot :: Int -> St -> Cue -> St
+splitSlot timeScale st cue =
   st
     { lastTime = st.lastTime + timeSize
     , clips = clip : st.clips
@@ -61,16 +66,17 @@ splitSlot st cue =
 
     beatSize = start + cue.dur
 
-    timeSize = toAbsTime st (fromIntegral beatSize)
+    timeSize = toAbsTime st (fromIntegral timeScale * beatSize)
 
-    clip = Clip
-      { bpm = st.bpm_
-      , start = st.lastTime + toAbsTime st (fromIntegral start)
-      , changeRate = st.changeRate
-      , beatSize = cue.dur
-      , timeSize = toAbsTime st (fromIntegral cue.dur)
-      , nextAction = fromMaybe PlayLoop cue.nextAction
-      }
+    clip =
+      Clip
+        { bpm = st.bpm_
+        , start = st.lastTime + toAbsTime st (fromIntegral timeScale * start)
+        , changeRate = timeScale * st.changeRate
+        , beatSize = round (fromIntegral timeScale * cue.dur)
+        , timeSize = toAbsTime st (fromIntegral timeScale * cue.dur)
+        , nextAction = fromMaybe PlayLoop cue.nextAction
+        }
 
 -- | Converts beats to seconds
 toAbsTime :: St -> Float -> Float

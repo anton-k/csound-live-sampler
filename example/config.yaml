@@ -22,7 +22,8 @@ mixer:
         - channel: reverb-bus
           gain: 0
       volume: 1
-    - volume: 1
+    - name: core
+      volume: 1
     - volume: 1
     - volume: 1
       name: reverb-bus
@@ -44,6 +45,12 @@ sampler:
     - Never Enough
     - Samurai
     - La melody
+    - Big Stones
+    - Pines around
+    - Stoe
+    - Mowgli
+    - Wade
+    - In focus
 
   dir: "../tracks"
   tracks :
@@ -83,53 +90,80 @@ sampler:
       slots:
         - bpm: 85
           measure: [4, 4]
-          changeRate: 4
+          changeRate: 1
+          timeScale: 4
+          # durs: [8, 16, 8, 8, 12, 8, 8, 4, 16, 10]
           cues:
+            - start: 0.125
+              dur: 8
+              nextAction: next
             - dur: 16
-            - dur: 32
-            - dur: 32
+            - dur: 8
+            - dur: 8
+            - dur: 12
+            - dur: 8
+            - dur: 8
+            - dur: 4
+            - dur: 16
+            - dur: 10
 
     - name: "Never Enough"
-      dir: "NE_Stems_85bpm"
+      dir: "NE_Stems2"
       stems:
-        - file: "Arp.wav"
-          channel: 4
-        - file: "MainSample.wav"
-          channel: 4
-        - file: "Atmo.wav"
-          channel: 7
+        - file: "Mainsample.wav"
+          channel: core
+        - file: "Atmos.wav"
+          channel: core
         - file: "Percussion.wav"
-          channel: 2
+          channel: perc
         - file: "Bass.wav"
-          channel: 3
+          channel: bass
         - file: "Piano.wav"
-          channel: 4
-        - file: "DrumLoop.wav"
-          channel: 1
-        - file: "RevGtrs.wav"
-          channel: 4
+          channel: pad
+        - file: "Kick.wav"
+          channel: drums
+        - file: "Snare.wav"
+          channel: drums
+        - file: "Drumloop.wav"
+          channel: drums
+        - file: "Gtrs1.wav"
+          channel: pad
         - file: "Flute.wav"
-          channel: 6
-        - file: "Shaker+Tamburine.wav"
-          channel: 2
-        - file: "Gtrs.wav"
-          channel: 4
+          channel: solo
+        - file: "Shaker.wav"
+          channel: perc
+        - file: "FxPercussion.wav"
+          channel: perc
+        - file: "Gtrs2.wav"
+          channel: pad
         - file: "Strings.wav"
-          channel: 5
+          channel: solo
         - file: "Hats.wav"
-          channel: 2
-        - file: "VocalsSample.wav"
-          channel: 5
+          channel: perc
+        - file: "Vocal+Arps.wav"
+          channel: solo
       slots:
         - bpm: 85
           measure: [4, 4]
-          changeRate: 8
+          changeRate: 2
+          timeScale: 4
+          # dur: [4, 8, 8, 8, 12, 1, 8, 16, 4, 8, 6]
           cues:
-            - dur: 16
+            - start: 1
+              dur: 4
               nextAction: next
-            - dur: 32
+            - dur: 8
               nextAction: next
+            - dur: 8
+            - dur: 8
+            - dur: 12
+            - dur: 1
+              nextAction: next
+            - dur: 8
             - dur: 16
+            - dur: 4
+            - dur: 8
+            - dur: 4 # 6
 
     - name: "Samurai"
       dir: "SamuraiStems119bpm"
@@ -186,6 +220,379 @@ sampler:
             - dur: 12
             - dur: 4
 
+    - name: "Big Stones"
+      dir: "PianoBeatStems-2-122-bpm/PianoBeatStems"
+      stems:
+        - file: "Accordion.wav"
+          channel: pad
+        - file: "Bass.wav"
+          channel: bass
+        - file: "DrumLoop.wav"
+          channel: drums
+        - file: "Flute.wav"
+          channel: solo
+        - file: "Hats.wav"
+          channel: perc
+        - file: "HeavyRain.wav"
+          channel: pad
+        - file: "KemancheLoop.wav"
+          channel: pad
+        - file: "Kick.wav"
+          channel: drums
+        - file: "Ngoni+Kora.wav"
+          channel: pad
+        - file: "Pads.wav"
+          channel: pad
+        - file: "Percussion.wav"
+          channel: perc
+        - file: "Piano.wav"
+          channel: core
+        - file: "Rim.wav"
+          channel: perc
+        - file: "Snare.wav"
+          channel: drums
+      slots:
+        - bpm: 122
+          measure: [4, 4]
+          changeRate: 1
+          timeScale: 4
+          # start: 2
+          #  durs: [6, 8, 16, 16, 16, 20, 16, 16, 24, 8, 10]
+          cues:
+            - start: 2
+              dur: 6
+              nextAction: next
+            - dur: 8
+            - dur: 16
+            - dur: 16
+            - dur: 16
+            - dur: 20
+            - dur: 16
+            - dur: 16
+            - dur: 24
+            - dur: 8
+            - dur: 10
+
+    - name: "Pines around"
+      dir: "64beatStems"
+      stems:
+        - file: "Bass.wav"
+          channel: bass
+        - file: "DrumLoop.wav"
+          channel: drums
+        - file: "Flute+Gtrs.wav"
+          channel: solo
+        - file: "GhostSticks.wav"
+          channel: perc
+        - file: "Hats.wav"
+          channel: perc
+        - file: "Kick.wav"
+          channel: drums
+        - file: "Percussion.wav"
+          channel: perc
+        - file: "Piano.wav"
+          channel: core
+        - file: "RIm.wav"
+          channel: perc
+        - file: "Snare.wav"
+          channel: drums
+        - file: "Strings.wav"
+          channel: solo
+        - file: "Tabla.wav"
+          channel: perc
+        - file: "Vibra+Glok+Celesta.wav"
+          channel: solo
+        - file: "Toms.wav"
+          channel: perc
+
+      slots:
+        - bpm: 124
+          measure: [6, 4]
+          timeScale: 6
+          changeRate: 1
+          # durs: [2, 4, 4, 8, 16, 8, 4, 4, 12, 8, 16, 8, 4, 8]
+          cues:
+            - start: 1
+              dur: 2
+              nextAction: next
+            - dur: 8
+              nextAction: next
+            - dur: 8
+              nextAction: next
+            - dur: 16
+              nextAction: next
+            - dur: 8
+              nextAction: next
+            - dur: 4
+              nextAction: next
+            - dur: 4
+              nextAction: next
+            - dur: 12
+              nextAction: next
+            - dur: 8
+              nextAction: next
+            - dur: 16
+            - dur: 8
+            - dur: 4
+            - dur: 8
+
+
+    - name: "Stoe"
+      dir: "StoeStems110bpm"
+      stems:
+        - file: BassPad.wav
+          channel: bass
+        - file: MainPercussion.wav
+          channel: perc
+        - file: COnga+SmallDrum.wav
+          channel: perc
+        - file: NoiseDrums.wav
+          channel: perc
+        - file: Drumloop.wav
+          channel: drums
+        - file: SFX&Pads.wav
+          channel: pad
+        - file: ExtraBass.wav
+          channel: bass
+        - file: Snare.wav
+          channel: drums
+        - file: Flute.wav
+          channel: solo
+        - file: SweepLead.wav
+          channel: pad
+        - file: Kick.wav
+          channel: drums
+        - file: Tambourine.wav
+          channel: perc
+        - file: LowBass.wav
+          channel: bass
+        - file: Vocals.wav
+          channel: solo
+
+      slots:
+        - bpm: 110
+          measure: [4, 4]
+          timeScale: 4
+          changeRate: 1
+          # durs: [2, 8, 17, 8, 8, 16, 7, 24, 16, 8, 8, 4]
+          cues:
+            - start: 0.25
+              dur: 2
+              nextAction: next
+            - dur: 8
+            - dur: 16
+            - dur: 1
+              nextAction: next
+            - dur: 8
+            - dur: 8
+            - dur: 16
+            - dur: 7
+              nextAction: next
+            - dur: 24
+            - dur: 16
+            - dur: 8
+            - dur: 8
+            - dur: 4
+              nextAction: stop
+
+    - name: "Mowgli"
+      dir: "MowgliStems94bpm"
+      stems:
+        - file: 808Perc.wav
+          channel: perc
+        - file: Fxs.wav
+          channel: core
+        - file: Percussion.wav
+          channel: perc
+        - file: AnkLungs.wav
+          channel: perc
+        - file: Gtr1.wav
+          channel: core
+        - file: RythmGtr.wav
+          channel: core
+        - file: Arps&Synth.wav
+          channel: pad
+        - file: Kick.wav
+          channel: drums
+        - file: Snare.wav
+          channel: drums
+        - file: Bass.wav
+          channel: bass
+        - file: OhsNTom.wav
+          channel: drums
+        - file: Flute&Lead.wav
+          channel: solo
+        - file: Pads.wav
+          channel: pad
+
+      slots:
+        - bpm: 94
+          measure: [4, 4]
+          changeRate: 1
+          timeScale: 4
+          # durs: [8, 16, 8, 8, 16, 8, 16, 8, 2]
+          cues:
+            - start: 1
+              dur: 8
+            - dur: 16
+            - dur: 8
+            - dur: 8
+            - dur: 16
+            - dur: 8
+            - dur: 16
+            - dur: 8
+            - dur: 2
+              nextAction: stop
+
+    - name: "Wade"
+      dir: "WadeStems105bpm"
+      stems:
+        - file: AllBass.wav
+          channel: bass
+        - file: Gtrs.wav
+          channel: solo
+          gain: 1.25
+        - file: Kick.wav
+          channel: drums
+        - file: Ohs+Room+Tom.wav
+          channel: perc
+        - file: Percussion+Claps.wav
+          channel: perc
+        - file: Piano bass+PianoTrumpetChords.wav
+          channel: core
+        - file: Piano.wav
+          channel: core
+        - file: Snare.wav
+          channel: drums
+        - file: Trumpets.wav
+          channel: pad
+        - file: Vocals.wav
+          channel: solo
+
+      slots:
+        - bpm: 105
+          measure: [4, 4]
+          changeRate: 1
+          timeScale: 4
+          # durs: [8, 16, 8, 8, 8, 16, 16, 8, 2]
+          cues:
+            - start: 1
+              dur: 8
+            - dur: 16
+            - dur: 8
+            - dur: 8
+            - dur: 8
+            - dur: 16
+            - dur: 16
+            - dur: 8
+            - dur: 2
+
+    - name: "In focus"
+      dir: "In-FocusStems"
+      stems:
+        - file: Arps.wav
+          channel: solo
+        - file: Kick.wav
+          channel: drums
+        - file: Bass.wav
+          channel: bass
+        - file: Percussion1.wav
+          channel: perc
+        - file: BridgePercussion.wav
+          channel: perc
+        - file: Percussion2.wav
+          channel: perc
+        - file: Cabasa.wav
+          channel: perc
+        - file: Robotic+Riser.wav
+          channel: pad
+        - file: CrashCymbalRise.wav
+          channel: pad
+        - file: Snare.wav
+          channel: drums
+        - file: Ghost.wav
+          channel: solo
+        - file: Strings.wav
+          channel: core
+        - file: Hats.wav
+          channel: perc
+        - file: Toms.wav
+          channel: perc
+        - file: HighPads.wav
+          channel: pad
+
+      slots:
+        - bpm: 124
+          measure: [4, 4]
+          changeRate: 1
+          timeScale: 4
+            # durs: [8, 8, 16, 40, 8, 16, 24, 32, 8, 4]
+          cues:
+            - dur: 4
+              start: 1
+              nextAction: next
+            - dur: 4
+            - dur: 16
+            - dur: 40
+            - dur: 8
+            - dur: 16
+            - dur: 24
+            - dur: 32
+            - dur: 8
+            - dur: 4
+
+    - name: "Na sinem more"
+      dir: "NaSinemMoreStems95bpm/NaSinemMoreStems95bpm"
+      stems:
+        - file: Arp.wav
+          channel: core
+        - file: Ngoni&Gtrs.wav
+          channel: core
+        - file: Bass.wav
+          channel: bass
+        - file: PadRiser1&Piano.wav
+          channel: pad
+        - file: BvsVocs.wav
+          channel: solo
+        - file: Pads.wav
+          channel: pad
+        - file: CongosTambourineGuiro.wav
+          channel: perc
+        - file: Pimak.wav
+          channel: solo
+        - file: Hats.wav
+          channel: perc
+        - file: Riser1.wav
+          channel: pad
+        - file: Kick.wav
+          channel: drums
+        - file: Shaker.wav
+          channel: perc
+        - file: MainVocs.wav
+          channel: solo
+        - file: Snare.wav
+          channel: drums
+
+      slots:
+        - bpm: 110
+          measure: [4, 4]
+          changeRate: 1
+          timeScale: 4
+          # TODO
+          cues:
+            - dur: 4
+              start: 1
+              nextAction: next
+            - dur: 4
+            - dur: 16
+            - dur: 40
+            - dur: 8
+            - dur: 16
+            - dur: 24
+            - dur: 32
+            - dur: 8
+            - dur: 4
+
 # audio:
 #   csound: put-csound-flags-gere
 controllers:
@@ -210,6 +617,14 @@ controllers:
       mute7: 19
       mute8: 22
       solo: 27
+      rec1: 3
+      rec2: 6
+      rec3: 9
+      rec4: 12
+      rec5: 15
+      rec6: 18
+      rec7: 21
+      rec8: 24
       bankRight: 26
       bankLeft: 25
       knob11: 16
@@ -240,6 +655,8 @@ controllers:
     modifiers:
       shift:
         key: solo
+      alt:
+        key: rec8
 
     knobs:
       - when:
@@ -359,20 +776,55 @@ controllers:
         act:
           - shiftTrack: 1
       - when:
-          key: 3
+          key: rec1
           modifier: shift
         act:
           - track: 1
       - when:
-          key: 6
+          key: rec2
           modifier: shift
         act:
           - track: 2
       - when:
-          key: 9
+          key: rec3
           modifier: shift
         act:
           - track: 3
+      - when:
+          key: rec4
+          modifier: shift
+        act:
+          - track: 4
+      - when:
+          key: rec5
+          modifier: shift
+        act:
+          - track: 5
+      - when:
+          key: rec6
+          modifier: shift
+        act:
+          - track: 6
+      - when:
+          key: rec1
+          modifier: alt
+        act:
+          - track: 7
+      - when:
+          key: rec2
+          modifier: alt
+        act:
+          - track: 8
+      - when:
+          key: rec3
+          modifier: alt
+        act:
+          - track: 9
+      - when:
+          key: rec4
+          modifier: alt
+        act:
+          - track: 10
 
       - when:
           key: mute1

@@ -19,6 +19,7 @@ import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Fx.Unit
 import Live.Scene.Osc.Config
 import Live.Scene.Sampler
+import Live.Scene.Sampler.Playlist
 import Live.Scene.Types
 
 data OscConfigs = OscConfigs
@@ -103,7 +104,42 @@ toChannelAddr :: Int -> String -> String
 toChannelAddr oscChannelId name = mconcat ["/channel/", show oscChannelId, "/", name]
 
 listenSampler :: Sampler -> OscHandle -> SE ()
-listenSampler _sampler _oscHandle = pure ()
+listenSampler sampler oscHandle = do
+  listenSetTrack sampler oscHandle
+  listenSetPart sampler oscHandle
+  listenShiftTrack sampler oscHandle
+  listenShiftPart sampler oscHandle
+
+-- listenPlayClip sampler oscHandle
+
+listenSetTrack :: Sampler -> OscHandle -> SE ()
+listenSetTrack sampler oscHandle =
+  listenFloat oscHandle "/track" 0 $ \trackId ->
+    setTrack sampler.cursor (TrackId $ toD trackId)
+
+listenSetPart :: Sampler -> OscHandle -> SE ()
+listenSetPart _sampler _oscHandle = pure () -- TODO
+{-
+  listenFloat oscHandle "/part" 0 $ \trackId ->
+    setPart sampler.cursor (TrackId $ toD trackId)
+-}
+
+listenShiftTrack :: Sampler -> OscHandle -> SE ()
+listenShiftTrack sampler oscHandle =
+  listenFloat oscHandle "/shiftTrack" 0 $ \steps ->
+    sampler.cursor.modifyTrack (+ steps)
+
+listenShiftPart :: Sampler -> OscHandle -> SE ()
+listenShiftPart sampler oscHandle =
+  listenFloat oscHandle "/shiftPart" 0 $ \steps ->
+    sampler.cursor.modifyPart (+ steps)
+
+{- TODO
+listenPlayClip :: Sampler -> OscHandle -> SE ()
+listenPlayClip sampler oscHandle =
+  listenFloat2 oscHandle "/playClip" (0, 0) $ \(columnId, clipId) ->
+    sampler.playExtraClip (ColumnName columnId) (ClipName clipId)
+-}
 
 listenAudioCard :: AudioCard -> AudioConfig ChannelId -> OscHandle -> SE ()
 listenAudioCard card cardConfig oscHandle =
@@ -122,6 +158,14 @@ listenFloat oscHandle addr initValue cont = do
   ref <- newLocalCtrlRef (float initValue)
   hasMessage <- oscListen oscHandle (fromString addr) ref
   when1 hasMessage $ cont =<< readRef ref
+
+{-
+listenFloat2 :: OscHandle -> String -> (Float, Float) -> (Sig2 -> SE ()) -> SE ()
+listenFloat2 oscHandle addr (initValue1, initValue2) cont = do
+  ref <- newLocalCtrlRef (float initValue1, float initValue2)
+  hasMessage <- oscListen oscHandle (fromString addr) ref
+  when1 hasMessage $ cont =<< readRef ref
+-}
 
 listenUnit :: OscHandle -> String -> SE () -> SE ()
 listenUnit oscHandle addr cont = do

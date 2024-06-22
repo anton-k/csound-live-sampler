@@ -1,44 +1,43 @@
-module Live.Scene.Mixer.Route
-  ( MixerRoute (..)
-  , MixerRouteFx (..)
-  , RouteDeps (..)
-  , FxParamId (..)
-  , toMixerRoute
-  , MixerInstrIds
-  ) where
+module Live.Scene.Mixer.Route (
+  MixerRoute (..),
+  MixerRouteFx (..),
+  RouteDeps (..),
+  FxParamId (..),
+  toMixerRoute,
+  MixerInstrIds,
+) where
 
-import Prelude hiding (read)
-import Data.Boolean ((==*))
-import Data.Text (Text)
 import Csound.Core
+import Data.Boolean ((==*))
 import Data.Default
-import Data.Maybe
-import Data.Map.Strict (Map)
-import Data.Map.Strict qualified as Map
 import Data.IntMap.Strict (IntMap)
 import Data.IntMap.Strict qualified as IntMap
-import Live.Scene.Mixer.Route.DependencyGraph
-import Live.Scene.Mixer.Config
-import Live.Scene.Mixer.Fx.Config
-import Live.Scene.Mixer.Fx (FxName (..), FxParams, Bpm (..), readParamMap, unitToFun)
-import Live.Scene.Mixer.Fx qualified as Fx
+import Data.Map.Strict (Map)
+import Data.Map.Strict qualified as Map
+import Data.Maybe
+import Data.Text (Text)
 import Live.Scene.Common (ChannelId (..))
+import Live.Scene.Mixer.Config
+import Live.Scene.Mixer.Fx (Bpm (..), FxName (..), FxParams, readParamMap, unitToFun)
+import Live.Scene.Mixer.Fx qualified as Fx
+import Live.Scene.Mixer.Fx.Config
+import Live.Scene.Mixer.Route.DependencyGraph
+import Prelude hiding (read)
 
 toMixerRoute :: RouteDeps -> Bpm -> MixerConfig ChannelId -> SE MixerRoute
 toMixerRoute deps bpm config = do
   ctx <- newRouteCtx deps config bpm
   let
     instrBodies = toRouteInstrBodies ctx route
-  pure $ MixerRoute
-    { setupInstr =
-        MixerInstrIds <$> mapM (toCsdInstr . getBody) instrBodies
-
-    , launchInstr = \(MixerInstrIds instrIds) -> do
-        mapM_ playCsdInstr instrIds
-        reloadOnBpmChange bpm (bpmSensitiveInstrs instrBodies instrIds)
-
-    , fxControls = initFxControls ctx instrBodies
-    }
+  pure $
+    MixerRoute
+      { setupInstr =
+          MixerInstrIds <$> mapM (toCsdInstr . getBody) instrBodies
+      , launchInstr = \(MixerInstrIds instrIds) -> do
+          mapM_ playCsdInstr instrIds
+          reloadOnBpmChange bpm (bpmSensitiveInstrs instrBodies instrIds)
+      , fxControls = initFxControls ctx instrBodies
+      }
   where
     route :: Route
     route = orderDependencies config
@@ -71,6 +70,7 @@ initFxControls :: RouteCtx -> [MixerInstr] -> MixerInstrIds -> MixerRouteFx
 initFxControls ctx bodies (MixerInstrIds instrIds) =
   MixerRouteFx
     { modifyFxParam = modifyFxParamSt ctx.fxParams
+    , setFxParam = setFxParamSt ctx.fxParams
     , startFx = \name -> withFxName name playCsdInstr
     , stopFx = \name -> withFxName name stopCsdInstr
     }
@@ -91,16 +91,20 @@ modifyFxParamSt :: FxParams -> FxParamId -> (Sig -> Sig) -> SE ()
 modifyFxParamSt fxParams paramId f =
   Fx.modifyFxParam fxParams (FxName paramId.name) paramId.param f
 
+setFxParamSt :: FxParams -> FxParamId -> Sig -> SE ()
+setFxParamSt fxParams paramId ins =
+  Fx.setFxParam fxParams (FxName paramId.name) paramId.param ins
+
 newRouteCtx :: RouteDeps -> MixerConfig ChannelId -> Bpm -> SE RouteCtx
 newRouteCtx deps config bpm = do
   fxParams <- initFxParams config
-  pure $ RouteCtx { deps, configs = configMap, masterConfig = fromMaybe def config.master, bpm, fxParams }
+  pure $ RouteCtx{deps, configs = configMap, masterConfig = fromMaybe def config.master, bpm, fxParams}
   where
     configMap = initConfigMap config
 
 initConfigMap :: MixerConfig ChannelId -> ChannelConfigMap
 initConfigMap config =
-  ChannelConfigMap $ IntMap.fromList $ zip [0..] config.channels
+  ChannelConfigMap $ IntMap.fromList $ zip [0 ..] config.channels
 
 initFxParams :: MixerConfig ChannelId -> SE FxParams
 initFxParams config =
@@ -181,6 +185,7 @@ data MixerRoute = MixerRoute
 
 data MixerRouteFx = MixerRouteFx
   { modifyFxParam :: FxParamId -> (Sig -> Sig) -> SE ()
+  , setFxParam :: FxParamId -> Sig -> SE ()
   , startFx :: FxName -> SE ()
   , stopFx :: FxName -> SE ()
   }
@@ -251,9 +256,10 @@ copySends :: RouteCtx -> ChannelId -> SE ()
 copySends ctx channel = withConfig ctx.configs channel $ \config -> do
   maybe
     (pure ())
-    (\sends -> do
+    ( \sends -> do
         asig <- ctx.deps.readChannel channel
-        mapM_ (\send -> writeSend asig send.channel) sends)
+        mapM_ (\send -> writeSend asig send.channel) sends
+    )
     config.sends
   where
     writeSend :: Sig2 -> ChannelId -> SE ()

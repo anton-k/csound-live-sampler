@@ -6,6 +6,7 @@ module Live.Scene.Mixer.Fx.Unit.Eq (
 import Control.Monad
 import Csound.Core hiding (mode)
 import Data.List qualified as List
+import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Monoid (Endo (..))
 import Data.Text qualified as Text
@@ -20,21 +21,22 @@ eqUnit =
   Unit
     { needsBpm = False
     , getParams = eqParams
+    , getName = (.name)
     , apply = \_bpm params config -> eqFx params config
     }
 
-eqParams :: EqConfig -> SE ParamMap
+eqParams :: EqConfig -> ParamNameInitMap
 eqParams config =
-  newParamMap config $ eqPointParams =<< (take (length config.points) [0 ..])
+  Map.fromList $ concat $ zipWithM eqPointParams [1 ..] config.points
   where
-    eqPointParams :: Int -> [(FxParamName, (EqConfig -> Float))]
-    eqPointParams index =
-      [ (nameIndex "frequency", \cfg -> (cfg.points !! index).frequency)
-      , (nameIndex "gain", \cfg -> (cfg.points !! index).gain)
-      , (nameIndex "width", \cfg -> fromMaybe 0 (cfg.points !! index).width)
+    eqPointParams :: Int -> EqPoint -> [(FxParamName, Float)]
+    eqPointParams index EqPoint{..} =
+      [ (nameIndex "frequency", frequency)
+      , (nameIndex "gain", gain)
+      , (nameIndex "width", fromMaybe 0.5 width)
       ]
       where
-        nameIndex name = name <> Text.pack (show (index + 1))
+        nameIndex name = name <> Text.pack (show index)
 
 eqFx :: ParamMap -> EqConfig -> Sig2 -> SE Sig2
 eqFx params config inputs = do
@@ -50,18 +52,19 @@ mixerEqUnit =
   Unit
     { needsBpm = False
     , getParams = mixerEqParams
+    , getName = (.name)
     , apply = \_bpm params config -> mixerEqFx params config
     }
 
-mixerEqParams :: MixerEqConfig -> SE ParamMap
+mixerEqParams :: MixerEqConfig -> ParamNameInitMap
 mixerEqParams config =
-  newParamMap config $ fmap toParams (take (length config.gains) [0 ..])
+  Map.fromList $ zipWith toParams [1 ..] config.gains
   where
-    toParams :: Int -> (FxParamName, (MixerEqConfig -> Float))
-    toParams index =
-      (nameIndex "gain", \cfg -> cfg.gains !! index)
+    toParams :: Int -> Float -> (FxParamName, Float)
+    toParams index gain =
+      (nameIndex "gain", gain)
       where
-        nameIndex name = name <> Text.pack (show (index + 1))
+        nameIndex name = name <> Text.pack (show index)
 
 data EqArgs = EqArgs
   { mode :: EqMode

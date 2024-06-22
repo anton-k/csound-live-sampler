@@ -16,12 +16,13 @@ V1 implements cli app that can run live performances with features:
 ### v2
 
 * [ ] OSC constrols
-* [ ] Looper FX synced on BPM
-* [ ] metronome output
+* [ ] haskell lib for OSC controlling from ghci
 * [ ] UI sketch to control over OSC
+* [ ] metronome output
+* [ ] Looper FX synced on BPM
 * [ ] OSC sensors for channels volumes, master volume, maybe spectrum
 * [ ] Pads playback. Play files that are not synced on bpm
-* [ ] Rhytmic tremlol FX
+* [ ] Rhytmic tremolo FX
 * [ ] Cross fade and XY-pad controls
 * [ ] play random short snippets of the file on event 
 
@@ -29,7 +30,6 @@ V1 implements cli app that can run live performances with features:
 
 * [ ] play random snippets in style of music for airports (for PADs and ambience)
 * [ ] UI app with OSC
-* [ ] haskell lib for OSC controlling from ghci
 * [ ] LFO controls
 * [ ] sound fonts
 * [ ] midi clips for sampler

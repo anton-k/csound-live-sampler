@@ -9,7 +9,9 @@ import Live.Config
 import Live.Scene.AudioCard
 import Live.Scene.Midi
 import Live.Scene.Mixer
+import Live.Scene.Osc
 import Live.Scene.Sampler
+import Live.Scene.Types
 
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
 writeSceneCsd config mFile =
@@ -23,12 +25,6 @@ runScene config mFile = do
 
 withOptions :: Config -> Maybe FilePath -> Options -> Options
 withOptions config mFile = withWriteCsd mFile . withCsoundFlags config
-
-data Scene = Scene
-  { mixer :: Mixer
-  , sampler :: Sampler
-  , audio :: AudioCard
-  }
 
 -- * audio playback
 
@@ -69,10 +65,14 @@ loadScene config = do
   audio <- newAudioCard audioConfig (AudioCardDeps appendMixer readMixer readMaster)
   sampler <- newSampler samplerConfig (SamplerDeps appendMixer)
   mixer <- newMixer mixerConfig channels sampler.readBpm
+  let
+    scene = Scene{audio, sampler, mixer}
   setupMidi audio mixer sampler midiConfig
-  pure $ Scene{audio, sampler, mixer}
+  mapM_ (\oscConfig -> setupOsc (OscConfigs oscConfig mixerConfig audioConfig) scene) mOscConfig
+  pure scene
   where
     (audioConfig, samplerConfig, mixerConfig, midiConfig) = convertConfig config
+    mOscConfig = config.controllers.osc
 
 withCsoundFlags :: Config -> Options -> Options
 withCsoundFlags config = maybe id (<>) $ do

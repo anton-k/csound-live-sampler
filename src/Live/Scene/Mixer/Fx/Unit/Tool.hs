@@ -1,27 +1,30 @@
-module Live.Scene.Mixer.Fx.Unit.Tool
-  ( toolUnit
-  ) where
+module Live.Scene.Mixer.Fx.Unit.Tool (
+  toolUnit,
+) where
 
-import Data.Boolean ((<=*), (==*))
-import Data.Maybe
-import Live.Scene.Mixer.Fx.Unit
-import Live.Scene.Mixer.Fx.Config (ToolConfig (..))
 import Csound.Core
+import Data.Boolean ((<=*), (==*))
+import Data.Map.Strict qualified as Map
+import Data.Maybe
+import Live.Scene.Mixer.Fx.Config (ToolConfig (..))
+import Live.Scene.Mixer.Fx.Unit
 
 toolUnit :: Unit ToolConfig
-toolUnit = Unit
-  { needsBpm = False
-  , getParams = toolParams
-  , apply = \_bpm params _config -> toolFx params
-  }
+toolUnit =
+  Unit
+    { needsBpm = False
+    , getName = (.name)
+    , getParams = toolParams
+    , apply = \_bpm params _config -> toolFx params
+    }
 
-toolParams :: ToolConfig -> SE ParamMap
+toolParams :: ToolConfig -> ParamNameInitMap
 toolParams config =
-  newParamMap config
-    [ ("volume", fromMaybe 1 . (.volume))
-    , ("gain", fromMaybe 1 . (.gain))
-    , ("pan", fromMaybe 0.5 . (.pan))
-    , ("width", fromMaybe 0.5 . (.width))
+  Map.fromList
+    [ ("volume", fromMaybe 1 config.volume)
+    , ("gain", fromMaybe 1 config.gain)
+    , ("pan", fromMaybe 0.5 config.pan)
+    , ("width", fromMaybe 0.5 config.width)
     ]
 
 toolFx :: ParamMap -> Sig2 -> SE Sig2
@@ -36,15 +39,19 @@ toolFx params ins = do
 
 stereoPan :: Sig -> Sig2 -> Sig2
 stereoPan k (left, right) =
-  ifB (k ==* 0.5)
+  ifB
+    (k ==* 0.5)
     (left, right)
-    (ifB (k <=* 0.5)
-      (left, right * 2 * k)
-      (left * 2 * (k - 0.5), right))
+    ( ifB
+        (k <=* 0.5)
+        (left, right * 2 * k)
+        (left * 2 * (k - 0.5), right)
+    )
 
 stereoWidth :: Sig -> Sig2 -> Sig2
 stereoWidth k (left, right) =
-  ifB (k ==* 0.5)
+  ifB
+    (k ==* 0.5)
     (left, right)
     (left2, right2)
   where
@@ -59,5 +66,3 @@ stereoWidth k (left, right) =
 
 sqrt2 :: Float
 sqrt2 = sqrt 2
-
-

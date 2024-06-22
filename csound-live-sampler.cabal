@@ -1,81 +1,90 @@
-cabal-version: 2.2
+cabal-version:      2.2
 
 -- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
-name:           csound-live-sampler
-version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/csound-live-sampler#readme>
-homepage:       https://github.com/githubuser/csound-live-sampler#readme
-bug-reports:    https://github.com/githubuser/csound-live-sampler/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2024 Author name here
-license:        BSD-3-Clause
-build-type:     Simple
-extra-source-files:
-    README.md
+name:               csound-live-sampler
+version:            0.1.0.0
+description:
+  Please see the README on GitHub at <https://github.com/githubuser/csound-live-sampler#readme>
+
+homepage:           https://github.com/githubuser/csound-live-sampler#readme
+bug-reports:        https://github.com/githubuser/csound-live-sampler/issues
+author:             Author name here
+maintainer:         example@example.com
+copyright:          2024 Author name here
+license:            BSD-3-Clause
+build-type:         Simple
+extra-source-files: README.md
 
 source-repository head
-  type: git
+  type:     git
   location: https://github.com/githubuser/csound-live-sampler
 
 library
   exposed-modules:
-      Live.Config
-      Live.Config.Types
-      Live.Config.Validate
-      Live.Scene
-      Live.Scene.AudioCard
-      Live.Scene.AudioCard.Config
-      Live.Scene.Common
-      Live.Scene.Common.Aeson
-      Live.Scene.Midi
-      Live.Scene.Midi.Config
-      Live.Scene.Mixer
-      Live.Scene.Mixer.Config
-      Live.Scene.Mixer.Fx
-      Live.Scene.Mixer.Fx.Config
-      Live.Scene.Mixer.Fx.Unit
-      Live.Scene.Mixer.Fx.Unit.Bbcuts
-      Live.Scene.Mixer.Fx.Unit.Compress
-      Live.Scene.Mixer.Fx.Unit.Delay
-      Live.Scene.Mixer.Fx.Unit.Eq
-      Live.Scene.Mixer.Fx.Unit.Filter
-      Live.Scene.Mixer.Fx.Unit.Reverb
-      Live.Scene.Mixer.Fx.Unit.Tool
-      Live.Scene.Mixer.Route
-      Live.Scene.Mixer.Route.DependencyGraph
-      Live.Scene.Sampler
-      Live.Scene.Sampler.Audio
-      Live.Scene.Sampler.Config
-      Live.Scene.Sampler.Engine
-      Live.Scene.Sampler.Playlist
-      Live.Scene.Sampler.Timing
-  other-modules:
-      Paths_csound_live_sampler
-  autogen-modules:
-      Paths_csound_live_sampler
-  hs-source-dirs:
-      src
+    Live.Config
+    Live.Config.Types
+    Live.Config.Validate
+    Live.Scene
+    Live.Scene.AudioCard
+    Live.Scene.AudioCard.Config
+    Live.Scene.Common
+    Live.Scene.Common.Aeson
+    Live.Scene.Midi
+    Live.Scene.Midi.Config
+    Live.Scene.Mixer
+    Live.Scene.Mixer.Config
+    Live.Scene.Mixer.Fx
+    Live.Scene.Mixer.Fx.Config
+    Live.Scene.Mixer.Fx.Unit
+    Live.Scene.Mixer.Fx.Unit.Bbcuts
+    Live.Scene.Mixer.Fx.Unit.Compress
+    Live.Scene.Mixer.Fx.Unit.Delay
+    Live.Scene.Mixer.Fx.Unit.Eq
+    Live.Scene.Mixer.Fx.Unit.Filter
+    Live.Scene.Mixer.Fx.Unit.Reverb
+    Live.Scene.Mixer.Fx.Unit.Tool
+    Live.Scene.Mixer.Route
+    Live.Scene.Mixer.Route.DependencyGraph
+    Live.Scene.Osc
+    Live.Scene.Osc.Config
+    Live.Scene.Osc.Input
+    Live.Scene.Osc.Output
+    Live.Scene.Sampler
+    Live.Scene.Sampler.Audio
+    Live.Scene.Sampler.Config
+    Live.Scene.Sampler.Engine
+    Live.Scene.Sampler.Playlist
+    Live.Scene.Sampler.Timing
+    Live.Scene.Types
+
+  other-modules:      Paths_csound_live_sampler
+  autogen-modules:    Paths_csound_live_sampler
+  hs-source-dirs:     src
   default-extensions:
-      DuplicateRecordFields
-      OverloadedStrings
-      OverloadedRecordDot
-      LambdaCase
-      DeriveAnyClass
-      RecordWildCards
-      DerivingStrategies
-      StrictData
-      DataKinds
-      TemplateHaskell
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+    DataKinds
+    DeriveAnyClass
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedRecordDot
+    OverloadedStrings
+    RecordWildCards
+    StrictData
+    TemplateHaskell
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wmissing-export-lists
+    -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+
   build-depends:
-      Boolean
     , aeson
     , array
     , base >=4.7 && <5
+    , Boolean
     , bytestring
     , containers
     , csound-core
@@ -86,34 +95,40 @@ library
     , safe
     , text
     , yaml
-  default-language: GHC2021
+
+  default-language:   GHC2021
 
 executable csound-live-sampler
-  main-is: Main.hs
+  main-is:            Main.hs
   other-modules:
-      Config
-      Paths_csound_live_sampler
-  autogen-modules:
-      Paths_csound_live_sampler
-  hs-source-dirs:
-      app
+    Config
+    Paths_csound_live_sampler
+
+  autogen-modules:    Paths_csound_live_sampler
+  hs-source-dirs:     app
   default-extensions:
-      DuplicateRecordFields
-      OverloadedStrings
-      OverloadedRecordDot
-      LambdaCase
-      DeriveAnyClass
-      RecordWildCards
-      DerivingStrategies
-      StrictData
-      DataKinds
-      TemplateHaskell
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+    DataKinds
+    DeriveAnyClass
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedRecordDot
+    OverloadedStrings
+    RecordWildCards
+    StrictData
+    TemplateHaskell
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wmissing-export-lists
+    -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+    -threaded -rtsopts -with-rtsopts=-N
+
   build-depends:
-      Boolean
     , aeson
     , array
     , base >=4.7 && <5
+    , Boolean
     , bytestring
     , containers
     , csound-core
@@ -126,36 +141,42 @@ executable csound-live-sampler
     , safe
     , text
     , yaml
-  default-language: GHC2021
+
+  default-language:   GHC2021
 
 test-suite csound-live-sampler-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  type:               exitcode-stdio-1.0
+  main-is:            Spec.hs
   other-modules:
-      Test.Route
-      Test.Timing
-      Paths_csound_live_sampler
-  autogen-modules:
-      Paths_csound_live_sampler
-  hs-source-dirs:
-      test
+    Paths_csound_live_sampler
+    Test.Route
+    Test.Timing
+
+  autogen-modules:    Paths_csound_live_sampler
+  hs-source-dirs:     test
   default-extensions:
-      DuplicateRecordFields
-      OverloadedStrings
-      OverloadedRecordDot
-      LambdaCase
-      DeriveAnyClass
-      RecordWildCards
-      DerivingStrategies
-      StrictData
-      DataKinds
-      TemplateHaskell
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+    DataKinds
+    DeriveAnyClass
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedRecordDot
+    OverloadedStrings
+    RecordWildCards
+    StrictData
+    TemplateHaskell
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wmissing-export-lists
+    -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+    -threaded -rtsopts -with-rtsopts=-N
+
   build-depends:
-      Boolean
     , aeson
     , array
     , base >=4.7 && <5
+    , Boolean
     , bytestring
     , containers
     , csound-core
@@ -169,4 +190,5 @@ test-suite csound-live-sampler-test
     , tasty-hunit
     , text
     , yaml
-  default-language: GHC2021
+
+  default-language:   GHC2021

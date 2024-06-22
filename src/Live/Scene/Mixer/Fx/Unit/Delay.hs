@@ -5,6 +5,7 @@ module Live.Scene.Mixer.Fx.Unit.Delay (
 ) where
 
 import Csound.Core
+import Data.Map.Strict qualified as Map
 import Live.Scene.Mixer.Fx.Config (DelayConfig (..), PingPongConfig (..))
 import Live.Scene.Mixer.Fx.Unit
 
@@ -13,16 +14,16 @@ delayUnit =
   Unit
     { needsBpm = True
     , getParams = delayParams
+    , getName = (.name)
     , apply = delayFx
     }
 
-delayParams :: DelayConfig -> SE ParamMap
-delayParams config =
-  newParamMap
-    config
-    [ ("damp", (.damp))
-    , ("feedback", (.feedback))
-    , ("dryWet", (.dryWet))
+delayParams :: DelayConfig -> ParamNameInitMap
+delayParams DelayConfig{..} =
+  Map.fromList
+    [ ("damp", damp)
+    , ("feedback", feedback)
+    , ("dryWet", dryWet)
     ]
 
 delayFx :: Bpm -> ParamMap -> DelayConfig -> Sig2 -> SE Sig2
@@ -41,18 +42,18 @@ pingPongUnit :: Unit PingPongConfig
 pingPongUnit =
   Unit
     { needsBpm = True
+    , getName = (.name)
     , getParams = pingPongParams
     , apply = pingPongFx
     }
 
-pingPongParams :: PingPongConfig -> SE ParamMap
-pingPongParams config =
-  newParamMap
-    config
-    [ ("damp", (.damp))
-    , ("feedback", (.feedback))
-    , ("width", (.width))
-    , ("dryWet", (.dryWet))
+pingPongParams :: PingPongConfig -> ParamNameInitMap
+pingPongParams PingPongConfig{..} =
+  Map.fromList
+    [ ("damp", damp)
+    , ("feedback", feedback)
+    , ("width", width)
+    , ("dryWet", dryWet)
     ]
 
 pingPongFx :: Bpm -> ParamMap -> PingPongConfig -> Sig2 -> SE Sig2

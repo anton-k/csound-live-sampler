@@ -1,14 +1,15 @@
-module Live.Config.Types
-  ( Config (..)
-  , ControllerConfig (..)
-  ) where
+module Live.Config.Types (
+  Config (..),
+  ControllerConfig (..),
+) where
 
-import Live.Scene.AudioCard.Config
-import Live.Scene.Sampler.Config
-import Live.Scene.Mixer.Config (MixerConfig (..))
-import Live.Scene.Midi.Config (MidiControllerConfig (..))
 import Data.Aeson.TH qualified as Json
+import Live.Scene.AudioCard.Config
 import Live.Scene.Common (NameRef)
+import Live.Scene.Midi.Config (MidiControllerConfig (..))
+import Live.Scene.Mixer.Config (MixerConfig (..))
+import Live.Scene.Osc.Config (OscConfig (..))
+import Live.Scene.Sampler.Config
 
 data Config = Config
   { mixer :: MixerConfig NameRef
@@ -19,6 +20,7 @@ data Config = Config
 
 data ControllerConfig audioInput channel key = ControllerConfig
   { midi :: MidiControllerConfig audioInput channel key
+  , osc :: Maybe OscConfig
   }
 
 $(Json.deriveJSON Json.defaultOptions ''ControllerConfig)

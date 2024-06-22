@@ -596,6 +596,9 @@ sampler:
 # audio:
 #   csound: put-csound-flags-gere
 controllers:
+  osc:
+    input:
+      port: 12400
   midi:
     # names for Akai MIDI MIX controller
     keys:

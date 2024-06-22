@@ -1,21 +1,24 @@
-module Live.Scene.Mixer.Fx.Unit.Reverb
-  ( reverbUnit
-  ) where
+module Live.Scene.Mixer.Fx.Unit.Reverb (
+  reverbUnit,
+) where
 
-import Live.Scene.Mixer.Fx.Unit
-import Live.Scene.Mixer.Fx.Config (ReverbConfig (..))
 import Csound.Core
+import Data.Map.Strict qualified as Map
+import Live.Scene.Mixer.Fx.Config (ReverbConfig (..))
+import Live.Scene.Mixer.Fx.Unit
 
 reverbUnit :: Unit ReverbConfig
-reverbUnit = Unit
-  { needsBpm = False
-  , getParams = reverbParams
-  , apply = \_bpm params _config -> reverbFx params
-  }
+reverbUnit =
+  Unit
+    { needsBpm = False
+    , getParams = reverbParams
+    , getName = (.name)
+    , apply = \_bpm params _config -> reverbFx params
+    }
 
-reverbParams :: ReverbConfig -> SE ParamMap
-reverbParams config =
-  newParamMap config [("size", (.size)), ("damp", (.damp)), ("dryWet", (.dryWet))]
+reverbParams :: ReverbConfig -> ParamNameInitMap
+reverbParams ReverbConfig{..} =
+  Map.fromList [("size", size), ("damp", damp), ("dryWet", dryWet)]
 
 reverbFx :: ParamMap -> Sig2 -> SE Sig2
 reverbFx params ins = do

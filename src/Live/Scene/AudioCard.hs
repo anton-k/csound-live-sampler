@@ -1,13 +1,14 @@
-module Live.Scene.AudioCard
-  ( AudioCard (..)
-  , AudioCardDeps (..)
-  , newAudioCard
-  ) where
+module Live.Scene.AudioCard (
+  AudioCard (..),
+  AudioCardDeps (..),
+  newAudioCard,
+  getInputGainConfig,
+) where
 
-import Data.Maybe
 import Csound.Core
-import Live.Scene.Common (ChannelId (..), AudioInputId (..))
+import Data.Maybe
 import Live.Scene.AudioCard.Config
+import Live.Scene.Common (AudioInputId (..), ChannelId (..))
 import Safe
 
 -- | Audio IO
@@ -17,19 +18,20 @@ data AudioCard = AudioCard
   }
 
 data AudioCardDeps = AudioCardDeps
-  { writeChannel :: ChannelId -> Sig2  -> SE ()
+  { writeChannel :: ChannelId -> Sig2 -> SE ()
   , readChannel :: ChannelId -> SE Sig2
   , readMaster :: SE Sig2
   }
 
-newAudioCard  :: AudioConfig ChannelId -> AudioCardDeps -> SE AudioCard
+newAudioCard :: AudioConfig ChannelId -> AudioCardDeps -> SE AudioCard
 newAudioCard config deps = do
   st <- newSt config
   updateAudio st deps
-  pure $ AudioCard
-    { setInputGain = setInputGainSt st
-    , setupOutputs = setupOutputsSt st deps
-    }
+  pure $
+    AudioCard
+      { setInputGain = setInputGainSt st
+      , setupOutputs = setupOutputsSt st deps
+      }
 
 -- | private state for Audio unit
 data St = St
@@ -59,26 +61,27 @@ newSt :: AudioConfig ChannelId -> SE St
 newSt config = do
   inputs <- mapM newAudioInput (fromMaybe [] config.inputs)
   outputs <- mapM newAudioOutput (fromMaybe [defaultMasterOutput] config.outputs)
-  pure St { inputs, outputs }
+  pure St{inputs, outputs}
 
 defaultMasterOutput :: AudioOutputConfig ChannelId
 defaultMasterOutput =
-  StereoAudioOutputConfig $ StereoOutputConfig
-    { name = Just "master"
-    , channel = Nothing -- output to master
-    , gain = Nothing
-    , stereo = Nothing -- use default card output
-    }
+  StereoAudioOutputConfig $
+    StereoOutputConfig
+      { name = Just "master"
+      , channel = Nothing -- output to master
+      , gain = Nothing
+      , stereo = Nothing -- use default card output
+      }
 
 newAudioInput :: AudioInputConfig ChannelId -> SE AudioInput
 newAudioInput config =
-  AudioInput (getChannelIdConfig config) (getCardInputId config) <$>
-    newCtrlRef (maybe 1 float (getInputGainConfig config))
+  AudioInput (getChannelIdConfig config) (getCardInputId config)
+    <$> newCtrlRef (maybe 1 float (getInputGainConfig config))
 
 newAudioOutput :: AudioOutputConfig ChannelId -> SE AudioOutput
 newAudioOutput config =
-  AudioOutput (getOutputTo config) (getCardOutputId config) <$>
-    newCtrlRef (maybe 1 float (getOutputGainConfig config))
+  AudioOutput (getOutputTo config) (getCardOutputId config)
+    <$> newCtrlRef (maybe 1 float (getOutputGainConfig config))
 
 getInputGainConfig :: AudioInputConfig a -> Maybe Float
 getInputGainConfig = \case
@@ -114,7 +117,7 @@ getOutputGainConfig = \case
 
 setInputGainSt :: St -> AudioInputId -> Sig -> SE ()
 setInputGainSt st (AudioInputId inputId) value =
-  mapM_ (\input -> writeRef input.gain value) (st.inputs `atMay` inputId )
+  mapM_ (\input -> writeRef input.gain value) (st.inputs `atMay` inputId)
 
 updateAudio :: St -> AudioCardDeps -> SE ()
 updateAudio st deps = do

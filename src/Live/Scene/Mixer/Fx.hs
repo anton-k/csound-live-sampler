@@ -1,34 +1,37 @@
-module Live.Scene.Mixer.Fx
-  ( FxName (..)
-  , FxParams (..)
-  , readParamMap
-  , modifyFxParam
-  , unitToFun
-  , Bpm (..)
-  , toFxParamMap
-  , isBpmSensitive
-  , newFxParams
-  , fxUnitName
-  ) where
+module Live.Scene.Mixer.Fx (
+  FxName (..),
+  FxParams (..),
+  readParamMap,
+  modifyFxParam,
+  setFxParam,
+  unitToFun,
+  Bpm (..),
+  toFxName,
+  toFxParamMap,
+  toFxParamNameInitMap,
+  isBpmSensitive,
+  newFxParams,
+  fxUnitName,
+) where
 
-import Prelude hiding (read)
-import Live.Scene.Mixer.Fx.Config
 import Csound.Core
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as Text
-import Data.Maybe
+import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Fx.Unit
-import Live.Scene.Mixer.Fx.Unit.Tool (toolUnit)
-import Live.Scene.Mixer.Fx.Unit.Reverb (reverbUnit)
-import Live.Scene.Mixer.Fx.Unit.Delay (delayUnit, pingPongUnit)
-import Live.Scene.Mixer.Fx.Unit.Filter (moogUnit, korgUnit)
-import Live.Scene.Mixer.Fx.Unit.Eq (eqUnit, mixerEqUnit)
-import Live.Scene.Mixer.Fx.Unit.Compress (limiterUnit)
 import Live.Scene.Mixer.Fx.Unit.Bbcuts (bbcutUnit)
+import Live.Scene.Mixer.Fx.Unit.Compress (limiterUnit)
+import Live.Scene.Mixer.Fx.Unit.Delay (delayUnit, pingPongUnit)
+import Live.Scene.Mixer.Fx.Unit.Eq (eqUnit, mixerEqUnit)
+import Live.Scene.Mixer.Fx.Unit.Filter (korgUnit, moogUnit)
+import Live.Scene.Mixer.Fx.Unit.Reverb (reverbUnit)
+import Live.Scene.Mixer.Fx.Unit.Tool (toolUnit)
+import Prelude hiding (read)
 
-newtype FxName = FxName { text :: Text }
+newtype FxName = FxName {text :: Text}
   deriving newtype (Eq, Ord, Show)
 
 newtype FxParams = FxParams (Map FxName ParamMap)
@@ -42,16 +45,40 @@ modifyFxParam (FxParams nameMap) name param f = do
       paramMap <- Map.lookup name nameMap
       Map.lookup param paramMap
 
+setFxParam :: FxParams -> FxName -> FxParamName -> Sig -> SE ()
+setFxParam (FxParams nameMap) name param ins = do
+  mapM_ (\ref -> writeRef ref ins) mParam
+  where
+    mParam = do
+      paramMap <- Map.lookup name nameMap
+      Map.lookup param paramMap
+
 newFxParams :: [FxUnit] -> SE FxParams
 newFxParams allUnits =
   FxParams . Map.fromList <$> mapM toNameMapItem allUnits
   where
     toNameMapItem :: FxUnit -> SE (FxName, ParamMap)
     toNameMapItem unit =
-      (FxName (fxUnitName unit), ) <$> toFxParamMap unit
+      (FxName (fxUnitName unit),) <$> toFxParamMap unit
 
 toFxParamMap :: FxUnit -> SE ParamMap
-toFxParamMap = \case
+toFxParamMap = newParamMap . toFxParamNameInitMap
+
+toFxName :: FxUnit -> Text
+toFxName = \case
+  ToolFx config -> toolUnit.getName config
+  ReverbFx config -> reverbUnit.getName config
+  DelayFx config -> delayUnit.getName config
+  PingPongFx config -> pingPongUnit.getName config
+  MoogFx config -> moogUnit.getName config
+  KorgFx config -> korgUnit.getName config
+  BbcutFx config -> bbcutUnit.getName config
+  LimiterFx config -> limiterUnit.getName config
+  EqFx config -> eqUnit.getName config
+  MixerEqFx config -> mixerEqUnit.getName config
+
+toFxParamNameInitMap :: FxUnit -> ParamNameInitMap
+toFxParamNameInitMap = \case
   ToolFx config -> toolUnit.getParams config
   ReverbFx config -> reverbUnit.getParams config
   DelayFx config -> delayUnit.getParams config

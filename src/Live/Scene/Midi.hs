@@ -154,17 +154,17 @@ toKnobAct :: AudioCard -> Mixer -> Note -> KnobWithRange AudioInputId ChannelId 
 toKnobAct audio mixer note knob =
   case knob.on of
     SetMasterVolume ->
-      mixer.modifyMasterVolume $
-        const (applyRange $ gainslider (readKnobValue note))
+      mixer.setMasterVolume $
+        (applyRange $ gainslider (readKnobValue note))
     SetChannelVolume n ->
-      mixer.modifyChannelVolume n $
-        const (applyRange $ gainslider (readKnobValue note))
+      mixer.setChannelVolume n $
+        (applyRange $ gainslider (readKnobValue note))
     SetChannelSend config ->
-      mixer.modifyChannelSend config.from config.to $
-        const (applyRange $ readKnobValue note / 127)
+      mixer.setChannelSend config.from config.to $
+        (applyRange $ readKnobValue note / 127)
     SetFxParam config ->
-      mixer.modifyFxParam (toFxParamId config) $
-        const (applyRange $ readKnobValue note / 127)
+      mixer.setFxParam (toFxParamId config) $
+        (applyRange $ readKnobValue note / 127)
     SetAudioInputGain inputId ->
       audio.setInputGain inputId $
         (applyRange $ readKnobValue note / 127)

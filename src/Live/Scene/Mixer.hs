@@ -1,57 +1,62 @@
--- | Mixer reads stereo audio from set of channels
--- and mixes them into single stereo audio output.
---
--- We can
---
--- * modify master volume
--- * modify individual channels volume
--- * toggle mute channels
--- * write audio to channels
--- * read output audio of the master bus
---
--- Mixer is an audio generator with inputs as channels and single output
-module Live.Scene.Mixer
-  ( Mixer (..)
-  , MixerConfig (..)
-  , MasterConfig (..)
-  , ChannelConfig (..)
-  , newMixer
-  , FxParamId (..)
-  , MixerChannels
-  , newMixerChannels
-  , appendMixerChannels
-  , readMixerMaster
-  , readMixerChannels
-  , module X
-  ) where
+{-| Mixer reads stereo audio from set of channels
+and mixes them into single stereo audio output.
 
+We can
+
+* modify master volume
+* modify individual channels volume
+* toggle mute channels
+* write audio to channels
+* read output audio of the master bus
+
+Mixer is an audio generator with inputs as channels and single output
+-}
+module Live.Scene.Mixer (
+  Mixer (..),
+  MixerConfig (..),
+  MasterConfig (..),
+  ChannelConfig (..),
+  newMixer,
+  FxParamId (..),
+  MixerChannels,
+  newMixerChannels,
+  appendMixerChannels,
+  readMixerMaster,
+  readMixerChannels,
+  module X,
+) where
+
+import Csound.Core
 import Data.Boolean
 import Data.Default
-import Data.Maybe
-import Csound.Core
-import Safe (atMay)
-import Live.Scene.Mixer.Config as X
-import Live.Scene.Mixer.Fx (Bpm (..))
-import Live.Scene.Mixer.Route
-  ( FxParamId (..)
-  , RouteDeps (..)
-  , toMixerRoute
-  , MixerRoute (..)
-  , MixerRouteFx (..)
-  )
 import Data.IntMap.Strict (IntMap)
 import Data.IntMap.Strict qualified as IntMap
+import Data.Maybe
 import Live.Scene.Common (ChannelId (..))
+import Live.Scene.Mixer.Config as X
+import Live.Scene.Mixer.Fx (Bpm (..))
+import Live.Scene.Mixer.Route (
+  FxParamId (..),
+  MixerRoute (..),
+  MixerRouteFx (..),
+  RouteDeps (..),
+  toMixerRoute,
+ )
+import Safe (atMay)
 
 data Mixer = Mixer
   -- audio
   { readMaster :: SE Sig2
-  -- control
-  , toggleChannelMute :: ChannelId -> SE ()
+  , -- control
+    toggleChannelMute :: ChannelId -> SE ()
   , modifyChannelVolume :: ChannelId -> (Sig -> Sig) -> SE ()
   , modifyChannelSend :: ChannelId -> ChannelId -> (Sig -> Sig) -> SE ()
   , modifyMasterVolume :: (Sig -> Sig) -> SE ()
   , modifyFxParam :: FxParamId -> (Sig -> Sig) -> SE ()
+  , setChannelVolume :: ChannelId -> Sig -> SE ()
+  , setChannelSend :: ChannelId -> ChannelId -> Sig -> SE ()
+  , setMasterVolume :: Sig -> SE ()
+  , setFxParam :: FxParamId -> Sig -> SE ()
   , clean :: SE ()
   }
 
@@ -88,15 +93,20 @@ newMixer config channels readBpm = do
   let
     fxControls = route.fxControls instrIds
   route.launchInstr instrIds
-  pure $ Mixer
-    { readMaster = readMixSt st
-    , modifyChannelVolume = modifyChannelVolumeSt st
-    , modifyChannelSend = modifyChannelSendSt st
-    , modifyMasterVolume = modifyMasterVolumeSt st
-    , toggleChannelMute = toggleChannelMuteSt st
-    , modifyFxParam = fxControls.modifyFxParam
-    , clean = cleanSt st
-    }
+  pure $
+    Mixer
+      { readMaster = readMixSt st
+      , modifyChannelVolume = modifyChannelVolumeSt st
+      , modifyChannelSend = modifyChannelSendSt st
+      , modifyMasterVolume = modifyMasterVolumeSt st
+      , modifyFxParam = fxControls.modifyFxParam
+      , setChannelVolume = setChannelVolumeSt st
+      , setChannelSend = setChannelSendSt st
+      , setMasterVolume = setMasterVolumeSt st
+      , setFxParam = fxControls.setFxParam
+      , toggleChannelMute = toggleChannelMuteSt st
+      , clean = cleanSt st
+      }
 
 -- * mixer internal state
 
@@ -126,8 +136,8 @@ lookupSend (ChannelId channelId) (SendMap refs) =
   IntMap.lookup channelId refs
 
 initSt :: MixerChannels -> SE St
-initSt MixerChannels {channels, master} =
-  pure St {channels, master}
+initSt MixerChannels{channels, master} =
+  pure St{channels, master}
 
 loadMaster :: MixerConfig ChannelId -> SE Master
 loadMaster config =
@@ -149,7 +159,7 @@ loadChannels config =
         gain = channelConfig.gain
       audio <- newRef 0
       sendGains <- initSends channelConfig
-      pure Channel {..}
+      pure Channel{..}
 
     initSends :: ChannelConfig ChannelId -> SE SendMap
     initSends channelConfig =
@@ -159,7 +169,7 @@ loadChannels config =
 
     toSendMapItem :: SendConfig ChannelId -> SE (Int, Ref Sig)
     toSendMapItem send =
-      fmap (send.channel.unChannelId, ) $ newCtrlRef (float send.gain)
+      fmap (send.channel.unChannelId,) $ newCtrlRef (float send.gain)
 
 readMixSt :: St -> SE Sig2
 readMixSt St{..} = do
@@ -175,11 +185,11 @@ writeChannelSt st channelId audio =
 getChannel :: St -> ChannelId -> Maybe Channel
 getChannel st (ChannelId n) = st.channels `atMay` n
 
-withChannel :: St -> ChannelId -> (Channel -> SE ()) -> SE ()
+withChannel :: St -> ChannelId -> (Channel -> SE ()) -> SE ()
 withChannel st channelId f =
   mapM_ f (getChannel st channelId)
 
-withChannelDef :: St -> ChannelId -> a -> (Channel -> SE a) -> SE a
+withChannelDef :: St -> ChannelId -> a -> (Channel -> SE a) -> SE a
 withChannelDef st channelId defValue f =
   maybe (pure defValue) f (getChannel st channelId)
 
@@ -193,16 +203,30 @@ modifyChannelVolumeSt st channelId f =
   withChannel st channelId $ \channel ->
     modifyRef channel.volume f
 
+setChannelVolumeSt :: St -> ChannelId -> Sig -> SE ()
+setChannelVolumeSt st channelId ins =
+  withChannel st channelId $ \channel ->
+    writeRef channel.volume ins
+
 modifyChannelSendSt :: St -> ChannelId -> ChannelId -> (Sig -> Sig) -> SE ()
 modifyChannelSendSt st fromChannelId toChannelId f =
   withChannel st fromChannelId $ \channel ->
     mapM_ (\ref -> modifyRef ref f) (lookupSend toChannelId channel.sendGains)
 
+setChannelSendSt :: St -> ChannelId -> ChannelId -> Sig -> SE ()
+setChannelSendSt st fromChannelId toChannelId ins =
+  withChannel st fromChannelId $ \channel ->
+    mapM_ (\ref -> writeRef ref ins) (lookupSend toChannelId channel.sendGains)
+
 modifyMasterVolumeSt :: St -> (Sig -> Sig) -> SE ()
 modifyMasterVolumeSt st f =
   modifyRef st.master.volume f
 
-withGain :: SigSpace a => Maybe Float -> a -> a
+setMasterVolumeSt :: St -> Sig -> SE ()
+setMasterVolumeSt st ins =
+  writeRef st.master.volume ins
+
+withGain :: (SigSpace a) => Maybe Float -> a -> a
 withGain mValue audio =
   case mValue of
     Nothing -> audio
@@ -234,24 +258,24 @@ initRouteDeps st =
     , writeMaster = writeMasterSt
     , appendMaster = appendMasterSt
     }
-    where
-      appendChannelSt channel input = do
-        val <- withChannelDef st channel 0 (readRef . (.audio))
-        writeChannelSt st channel (val + input)
+  where
+    appendChannelSt channel input = do
+      val <- withChannelDef st channel 0 (readRef . (.audio))
+      writeChannelSt st channel (val + input)
 
-      appendMasterSt input = do
-        val <- readRef st.master.audio
-        writeRef st.master.audio (val + input)
+    appendMasterSt input = do
+      val <- readRef st.master.audio
+      writeRef st.master.audio (val + input)
 
-      readMasterSt =
-        readRef st.master.audio
+    readMasterSt =
+      readRef st.master.audio
 
-      writeMasterSt input =
-        writeRef st.master.audio input
+    writeMasterSt input =
+      writeRef st.master.audio input
 
-      readChannelSendGainSt :: ChannelId -> ChannelId -> SE Sig
-      readChannelSendGainSt channelId sendId =
-        withChannelDef st channelId 1 $ \channel ->
-          case lookupSend sendId channel.sendGains of
-            Just sendRef -> readRef sendRef
-            Nothing -> pure 0
+    readChannelSendGainSt :: ChannelId -> ChannelId -> SE Sig
+    readChannelSendGainSt channelId sendId =
+      withChannelDef st channelId 1 $ \channel ->
+        case lookupSend sendId channel.sendGains of
+          Just sendRef -> readRef sendRef
+          Nothing -> pure 0

@@ -1,13 +1,14 @@
-module Live.Scene.Mixer.Fx.Unit.Filter
-  ( moogUnit
-  , korgUnit
-  , cutoffParam
-  ) where
+module Live.Scene.Mixer.Fx.Unit.Filter (
+  moogUnit,
+  korgUnit,
+  cutoffParam,
+) where
 
-import Live.Scene.Mixer.Fx.Unit
-import Live.Scene.Mixer.Fx.Config (MoogConfig, KorgConfig, ResonantFilterConfig (..))
 import Csound.Core
+import Data.Map.Strict qualified as Map
 import Data.Maybe
+import Live.Scene.Mixer.Fx.Config (KorgConfig, MoogConfig, ResonantFilterConfig (..))
+import Live.Scene.Mixer.Fx.Unit
 
 moogUnit :: Unit MoogConfig
 moogUnit =
@@ -23,14 +24,13 @@ resonantFilterUnit :: FilterFun -> Unit ResonantFilterConfig
 resonantFilterUnit f =
   Unit
     { needsBpm = False
-
-    , getParams = \config ->
-        newParamMap config
-          [ ("cutoff", (.cutoff))
-          , ("resonance", (.resonance))
-          , ("dryWet", fromMaybe 1 . (.dryWet))
+    , getName = (.name)
+    , getParams = \ResonantFilterConfig{..} ->
+        Map.fromList
+          [ ("cutoff", cutoff)
+          , ("resonance", resonance)
+          , ("dryWet", fromMaybe 1 dryWet)
           ]
-
     , apply = \_bpm params _config -> resonFx f params
     }
 
@@ -43,7 +43,7 @@ resonFx applyFilter params ins = do
   where
     param = readParam params
 
-cutoffFrequencyRange :: Num a => (a, a)
+cutoffFrequencyRange :: (Num a) => (a, a)
 cutoffFrequencyRange = (10, 20000)
 
 cutoffParam :: Sig -> Sig

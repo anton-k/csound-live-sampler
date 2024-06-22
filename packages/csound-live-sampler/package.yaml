@@ -1,0 +1,88 @@
+name:                csound-live-sampler
+version:             0.1.0.0
+github:              "githubuser/csound-live-sampler"
+license:             BSD-3-Clause
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2024 Author name here"
+
+  # extra-source-files:
+  # - README.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/csound-live-sampler#readme>
+
+language: GHC2021
+
+default-extensions:
+  - DuplicateRecordFields
+  - OverloadedStrings
+  - OverloadedRecordDot
+  - LambdaCase
+  - DeriveAnyClass
+  - RecordWildCards
+  - DerivingStrategies
+  - StrictData
+  - DataKinds
+  - TemplateHaskell
+
+dependencies:
+- base >= 4.7 && < 5
+- aeson
+- array
+- yaml
+- bytestring
+- text
+- csound-core
+- filepath
+- safe
+- Boolean
+- containers
+- mtl
+- directory
+- data-default
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  csound-live-sampler:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - csound-live-sampler
+    - optparse-applicative
+
+tests:
+  csound-live-sampler-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - csound-live-sampler
+    - tasty
+    - tasty-hunit

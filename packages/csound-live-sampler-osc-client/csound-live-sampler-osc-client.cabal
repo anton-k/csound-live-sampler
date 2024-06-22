@@ -1,0 +1,54 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:          csound-live-sampler-osc-client
+version:       0.1.0.0
+description:
+  Please see the README on GitHub at <https://github.com/githubuser/csound-live-sampler#readme>
+
+homepage:      https://github.com/githubuser/csound-live-sampler#readme
+bug-reports:   https://github.com/githubuser/csound-live-sampler/issues
+author:        Author name here
+maintainer:    example@example.com
+copyright:     2024 Author name here
+license:       BSD-3-Clause
+build-type:    Simple
+
+source-repository head
+  type:     git
+  location: https://github.com/githubuser/csound-live-sampler
+
+library
+  exposed-modules:    Csound.Live.Sampler.Osc
+  other-modules:
+    Csound.Live.Sampler.Osc.Client
+    Csound.Live.Sampler.Osc.Message
+
+  hs-source-dirs:     src
+  default-extensions:
+    DataKinds
+    DeriveAnyClass
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedRecordDot
+    OverloadedStrings
+    RecordWildCards
+    StrictData
+    TemplateHaskell
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wmissing-export-lists
+    -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+
+  build-depends:
+    , base >=4.7 && <5
+    , bytestring
+    , network
+    , vivid-osc
+
+  default-language:   GHC2021

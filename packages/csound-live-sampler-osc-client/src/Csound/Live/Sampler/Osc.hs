@@ -4,19 +4,35 @@ module Csound.Live.Sampler.Osc (
   newSampler,
   ChannelId,
   TrackId,
+  AudioInputId,
+  FxName,
+  ParamName,
 ) where
 
 import Csound.Live.Sampler.Osc.Client
-import Csound.Live.Sampler.Osc.Message (ChannelId, TrackId)
+import Csound.Live.Sampler.Osc.Message (
+  AudioInputId,
+  ChannelId,
+  FxName,
+  ParamName,
+  TrackId,
+ )
 import Csound.Live.Sampler.Osc.Message qualified as Message
 
 data Sampler = Sampler
+  -- mixer
   { setMasterVolume :: Double -> IO ()
   , setChannelVolume :: ChannelId -> Double -> IO ()
-  , setTrack :: TrackId -> IO ()
+  , toggleMute :: ChannelId -> IO ()
+  , setFxParam :: FxName -> ParamName -> Double -> IO ()
+  , setChannelSend :: ChannelId -> ChannelId -> Double -> IO ()
+  , -- sampler
+    setTrack :: TrackId -> IO ()
   , shiftPart :: Int -> IO ()
   , nextPart :: IO ()
   , prevPart :: IO ()
+  , -- audio card
+    setAudioInputGain :: AudioInputId -> Double -> IO ()
   }
 
 newSampler :: OscConfig -> IO Sampler
@@ -26,8 +42,12 @@ newSampler config = do
     Sampler
       { setMasterVolume = client.send . Message.setMasterVolumeMessage
       , setChannelVolume = \channelId volume -> client.send (Message.setChannelVolumeMessage channelId volume)
+      , toggleMute = \channelId -> client.send (Message.toggleMuteMessage channelId)
+      , setChannelSend = \channelFrom channelTo gain -> client.send (Message.setChannelSendMessage channelFrom channelTo gain)
       , setTrack = \trackId -> client.send (Message.setTrackMessage trackId)
       , shiftPart = \steps -> client.send (Message.shiftPartMessage steps)
       , nextPart = client.send Message.nextPartMessage
       , prevPart = client.send Message.prevPartMessage
+      , setFxParam = \unit param value -> client.send (Message.setFxParamMessage unit param value)
+      , setAudioInputGain = \inputId value -> client.send (Message.setAudioInputGainMessage inputId value)
       }

@@ -15,7 +15,7 @@ V1 implements cli app that can run live performances with features:
 
 ### v2
 
-* [ ] OSC constrols
+* [x] OSC constrols
 * [ ] haskell lib for OSC controlling from ghci
 * [ ] UI sketch to control over OSC
 * [ ] metronome output

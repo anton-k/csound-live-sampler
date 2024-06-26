@@ -11,6 +11,8 @@ module Csound.Live.Sampler.Osc.Message (
   shiftTrackMessage,
   nextPartMessage,
   prevPartMessage,
+  nextTrackMessage,
+  prevTrackMessage,
   setFxParamMessage,
   toggleMuteMessage,
   setChannelSendMessage,
@@ -64,6 +66,12 @@ nextPartMessage = shiftPartMessage 1
 
 prevPartMessage :: OSC
 prevPartMessage = shiftPartMessage (-1)
+
+nextTrackMessage :: OSC
+nextTrackMessage = shiftTrackMessage 1
+
+prevTrackMessage :: OSC
+prevTrackMessage = shiftTrackMessage (-1)
 
 shiftTrackMessage :: Int -> OSC
 shiftTrackMessage steps =

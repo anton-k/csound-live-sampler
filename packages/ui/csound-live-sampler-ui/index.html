@@ -1,0 +1,88 @@
+<!doctype>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Hello Concur!</title>
+
+ <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+  />
+  <link rel="stylesheet" 
+        href="./dist/simple-grid.min.css"
+  />
+  <link rel="stylesheet" 
+    href="https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css" type="text/css" 
+  />
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="./dist/NexusUI.js"></script>
+  <script src="./dist/pureknob.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jQuery-Knob/1.2.13/jquery.knob.min.js" integrity="sha512-NhRZzPdzMOMf005Xmd4JonwPftz4Pe99mRVcFeRDcdCtfjv46zPIi/7ZKScbpHD/V0HB1Eb+ZWigMqw94VUVaw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/progressbar.js/0.6.1/progressbar.min.js" integrity="sha512-7IoDEsIJGxz/gNyJY/0LRtS45wDSvPFXGPuC7Fo4YueWMNOmWKMAllEqo2Im3pgOjeEwsOoieyliRgdkZnY0ow==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+</head>
+<body>
+<!--  <script>
+    $(function() {
+        $("#instrument1").knob();
+    });
+    $(function() {
+        $("#instrument2").knob();
+    });
+  </script>
+  -->
+  <script type="application/javascript" src="index.js"></script>
+  <!--
+  <div id="dial"> </div>
+  <div id="progress"> </div>
+<script>
+  function ready() {
+
+    $(function() {
+      const knob = pureknob.createKnob(100, 100);
+      // Set properties.
+      knob.setProperty('angleStart', -0.85 * Math.PI);
+      knob.setProperty('angleEnd', 0.85 * Math.PI);
+      knob.setProperty('colorFG', '#3D9970');
+      knob.setProperty('trackWidth', 0.5);
+      knob.setProperty('valMin', 0);
+      knob.setProperty('valMax', 10000);
+      knob.setProperty('fnValueToString', v => '');
+
+      // Set initial value.
+      knob.setValue(50);
+      const listener = function(knob, value) {
+	      console.log(value);
+      };
+
+knob.addListener(listener);
+
+// Create element node.
+const node = knob.node();
+
+// Add it to the DOM.
+const elem = document.getElementById('dial');
+elem.appendChild(node);
+
+    /*
+      $(".dial").knob({
+        'min': 0,
+        'max': 100,
+        'stopper': true  
+      });
+    });
+*/
+    });
+    var progressBar = new ProgressBar.Line('#progress', {
+      strokeWidth: 2
+    });
+    progressBar.animate(0.3);
+    progressBar.animate(0.5);
+  };
+
+    document.addEventListener('DOMContentLoaded', ready, false);
+</script>
+    -->
+</body>
+</html>

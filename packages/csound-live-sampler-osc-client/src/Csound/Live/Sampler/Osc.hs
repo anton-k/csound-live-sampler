@@ -31,6 +31,8 @@ data Sampler = Sampler
   , shiftPart :: Int -> IO ()
   , nextPart :: IO ()
   , prevPart :: IO ()
+  , nextTrack :: IO ()
+  , prevTrack :: IO ()
   , -- audio card
     setAudioInputGain :: AudioInputId -> Double -> IO ()
   }
@@ -48,6 +50,8 @@ newSampler config = do
       , shiftPart = \steps -> client.send (Message.shiftPartMessage steps)
       , nextPart = client.send Message.nextPartMessage
       , prevPart = client.send Message.prevPartMessage
+      , nextTrack = client.send Message.nextTrackMessage
+      , prevTrack = client.send Message.prevTrackMessage
       , setFxParam = \unit param value -> client.send (Message.setFxParamMessage unit param value)
       , setAudioInputGain = \inputId value -> client.send (Message.setAudioInputGainMessage inputId value)
       }

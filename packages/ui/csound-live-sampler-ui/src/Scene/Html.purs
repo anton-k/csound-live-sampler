@@ -4,6 +4,7 @@ module Scene.Html
   , container
   , row
   , col
+  , textButton
   ) where
 
 import Prelude
@@ -16,3 +17,10 @@ divId name a = HH.div [HP.id name] a
 container a = divClasses ["container"] a
 row a = divClasses ["row"] a
 col n a = divClasses ["col-" <> show n] a
+
+textButton label =
+    HH.button
+      [ HP.title label
+      -- , HE.onClick \_ -> Hooks.pure unit
+      ]
+      [ HH.text label ]

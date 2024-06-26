@@ -10,7 +10,7 @@ import Data.Maybe (Maybe(..))
 scene :: Scene
 scene =
   { mixer:
-      { items: map (\n -> { channel: n, volume: 0.5, fxs: [] }) (range 1 8)
+      { items: map (\n -> { channel: n, volume: 0.5, fxs: [], name: Nothing }) (range 1 8)
       }
 
   , sampler:

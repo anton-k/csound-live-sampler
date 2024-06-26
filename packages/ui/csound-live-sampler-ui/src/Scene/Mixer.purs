@@ -40,6 +40,7 @@ type MixerUiItem =
   { channel :: Int
   , volume :: Number
   , fxs :: Array Fx
+  , name :: Maybe String
   }
 
 type Fx =
@@ -81,26 +82,21 @@ initChannel item =
         , divId "space1" [HH.p_ [HH.text " "]]
         , divId dialTarget []
         , divId "space1" [HH.p_ [HH.text " "]]
+        , case item.name of
+              Just name -> divClasses [] [HH.text name]
+              Nothing -> divClasses [] []
         , if not (Array.null item.fxs) then button else divClasses [] []
         ]
   }
   where
     barTarget = "bar" <> show item.channel
     dialTarget = "dial" <> show item.channel
-
-    button =
-        HH.button
-          [ HP.title label
-          -- , HE.onClick \_ -> Hooks.pure unit
-          ]
-          [ HH.text label ]
-      where
-        label = "FX"
+    button = textButton "FX"
 
 initBar :: String -> Int -> Number -> Effect Ui.Multislider
 initBar target n initValue = do
   bar <- Ui.newMultisliderBy target
-    { size: 60.0 /\ 200.0
+    { size: 60.0 /\ 300.0
     , min: 0.0
     , max: 1.0
     , step: 0.0

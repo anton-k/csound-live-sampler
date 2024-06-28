@@ -1,5 +1,5 @@
 module Scene
-  ( Scene
+  ( SceneUi
   , initScene
   ) where
 
@@ -10,14 +10,15 @@ import Scene.Elem
 import Scene.Html
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import Action
 
-type Scene =
+type SceneUi =
   { mixer :: MixerUi
   , sampler :: SamplerUi
   }
 
-initScene :: forall a b . Scene -> Elem a b
-initScene scene =
+initScene :: forall a b . SceneUi -> Scene -> Elem a b
+initScene sceneUi sceneAct =
   { setup: do
       mixer.setup
       sampler.setup
@@ -30,6 +31,6 @@ initScene scene =
         ]
   }
   where
-    sampler = initSampler scene.sampler
-    mixer = initMixer scene.mixer
+    sampler = initSampler sceneUi.sampler
+    mixer = initMixer sceneUi.mixer sceneAct.mixer
 

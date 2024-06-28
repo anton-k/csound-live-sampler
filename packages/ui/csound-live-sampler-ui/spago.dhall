@@ -24,6 +24,7 @@ to generate this file without the comments in this block.
   , "aff"
   , "arrays"
   , "foldable-traversable"
+  , "dom-indexed"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

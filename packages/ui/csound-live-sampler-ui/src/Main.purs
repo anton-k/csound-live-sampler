@@ -16,21 +16,24 @@ import Data.Tuple.Nested ((/\))
 import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Scene (initScene)
-import Scene.Config (scene)
+import Scene.Config (sceneUi, oscConfig)
+import Osc.Client (newOscEcho)
+import Action
 
 main :: Effect Unit
-main =
+main = do
+  sceneAct <- newOscEcho oscConfig
   HA.runHalogenAff do
     body <- HA.awaitBody
-    void $ runUI hookComponent Nothing body
+    void $ runUI (hookComponent sceneAct) Nothing body
 
 hookComponent
   :: forall unusedQuery unusedInput unusedOutput
-   . H.Component unusedQuery unusedInput unusedOutput Aff
-hookComponent = Hooks.component \_ _ -> Hooks.do
+   . Scene -> H.Component unusedQuery unusedInput unusedOutput Aff
+hookComponent sceneAct = Hooks.component \_ _ -> Hooks.do
   enabled /\ enabledIdx <- Hooks.useState false
   let label = if enabled then "On" else "Off"
-      ui = initScene scene
+      ui = initScene sceneUi sceneAct
   Hooks.useLifecycleEffect do
     liftEffect $ ui.setup
 

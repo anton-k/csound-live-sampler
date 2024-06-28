@@ -1,14 +1,22 @@
 module Scene.Config
-  ( scene
+  ( sceneUi
+  , oscConfig
   ) where
 
 import Prelude
-import Scene (Scene)
+import Scene (SceneUi)
 import Data.Array (range)
 import Data.Maybe (Maybe(..))
+import Osc.Client
 
-scene :: Scene
-scene =
+oscConfig :: OscConfig
+oscConfig =
+  { address: "127.0.0.1"
+  , port: 12400
+  }
+
+sceneUi :: SceneUi
+sceneUi =
   { mixer:
       { items: map (\n -> { channel: n, volume: 0.5, fxs: [], name: Nothing }) (range 1 8)
       }

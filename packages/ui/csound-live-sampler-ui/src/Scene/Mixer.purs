@@ -31,6 +31,7 @@ import Data.Array (range)
 import Scene.Elem
 import Scene.Html
 import Data.Array as Array
+import Action
 
 type MixerUi =
   { items :: Array MixerUiItem
@@ -53,28 +54,27 @@ type FxParam =
   , value :: Number
   }
 
-initMixer :: forall w s . MixerUi -> Elem w s
-initMixer mixer =
+initMixer :: forall w s . MixerUi -> Mixer -> Elem w s
+initMixer mixer act =
   { setup: traverse_ (_.setup) items
   , html:
       divClasses ["grid"] (map (\item -> toColumn item.html) items)
   }
   where
-    items = map initChannel mixer.items
+    items = map (initChannel act) mixer.items
 
     toColumn x = divClasses [] [x]
 
-initChannel :: forall w s . MixerUiItem -> Elem w s
-initChannel item =
+initChannel :: forall w s . Mixer -> MixerUiItem -> Elem w s
+initChannel act item =
   { setup: do
       dial <- Ui.newDial ("#" <> dialTarget)
       dial.setValue item.volume
       bar <- initBar ("#" <> barTarget) item.channel item.volume
       dial.on Ui.Change (\val -> do
-          log ("Dial" <> show item.channel <> ": " <> show val)
+          act.setChannelVolume item.channel val
           bar.setAllSliders [val]
         )
-
 
   , html:
       divClasses []

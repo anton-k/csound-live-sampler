@@ -108,3 +108,8 @@ in  upstream
       , repo = "https://github.com/anton-k/purescript-nexus-ui.git"
       , version = "46f8ea052a2269166fc09a9efa74e4d9fd9ce209"
       }
+  with osc =
+      { dependencies = [ "console", "effect", "prelude", "tuples", "json" ]
+      , repo = "https://github.com/anton-k/purescript-osc.git"
+      , version = "25ca6a383dbb20ebef3af64d386ab9abed25393b"
+      }

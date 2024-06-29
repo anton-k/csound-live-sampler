@@ -598,7 +598,7 @@ sampler:
 controllers:
   osc:
     input:
-      port: 12400
+      port: 3334
   midi:
     # names for Akai MIDI MIX controller
     keys:

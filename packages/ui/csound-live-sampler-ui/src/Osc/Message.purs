@@ -1,7 +1,7 @@
 -- | OSC messages for csound-live-sampler
 module Osc.Message
-  ( setMasterVolumeMessage
-  , setChannelVolumeMessage
+  ( setMasterVolume
+  , setChannelVolume
   , setTrack
   , nextTrack
   , prevTrack
@@ -15,16 +15,16 @@ import Prelude
 import Network.Osc (Osc, OscValue (..))
 import Action (ChannelId, TrackId)
 
-setMasterVolumeMessage :: Number -> Osc
-setMasterVolumeMessage volume =
+setMasterVolume :: Number -> Osc
+setMasterVolume volume =
   { address: "/master/volume"
-  , args: [OscFloat volume]
+  , args: [OscDouble volume]
   }
 
-setChannelVolumeMessage :: ChannelId -> Number -> Osc
-setChannelVolumeMessage channelId volume =
-  { address: "/channell/" <> show channelId <> "/volume"
-  , args: [OscFloat volume]
+setChannelVolume :: ChannelId -> Number -> Osc
+setChannelVolume channelId volume =
+  { address: "/channel/" <> show channelId <> "/volume"
+  , args: [OscDouble volume]
   }
 
 setTrack :: TrackId -> Osc

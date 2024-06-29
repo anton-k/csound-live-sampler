@@ -17,12 +17,13 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Scene (initScene)
 import Scene.Config (sceneUi, oscConfig)
-import Osc.Client (newOscEcho)
+import Osc.Client (newOscClient)
 import Action
+import Scene.Sampler
 
 main :: Effect Unit
 main = do
-  sceneAct <- newOscEcho oscConfig
+  sceneAct <- newOscClient oscConfig
   HA.runHalogenAff do
     body <- HA.awaitBody
     void $ runUI (hookComponent sceneAct) Nothing body
@@ -36,6 +37,9 @@ hookComponent sceneAct = Hooks.component \_ _ -> Hooks.do
       ui = initScene sceneUi sceneAct
   Hooks.useLifecycleEffect do
     liftEffect $ ui.setup
+    let
+      samplerUi = initSetSamplerUi sceneUi.sampler
+    liftEffect $ samplerUi.setBpm 2
 
     pure Nothing
   let

@@ -26,6 +26,9 @@ to generate this file without the comments in this block.
   , "foldable-traversable"
   , "dom-indexed"
   , "osc"
+  , "web-dom"
+  , "web-html"
+  , "integers"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

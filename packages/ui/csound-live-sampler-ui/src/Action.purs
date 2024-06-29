@@ -29,4 +29,3 @@ type Sampler =
   , shiftTrack :: Int -> Effect Unit
   , shiftPart :: Int -> Effect Unit
   }
-

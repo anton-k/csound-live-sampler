@@ -57,14 +57,6 @@ initSampler sampler =
   }
   where
     bpmLights _n = divId "bpm" []
-{-
-      HH.fieldset_ (toBpmLight =<< (Array.range 1 n))
-
-    toBpmLight index =
-      [  HH.input [HP.type_ InputRadio, HP.id (toBpmName index), HP.name "bpm", HP.checked (index == 1)]
---      , HH.label [HP.htmlFor name] [HH.text " "]
-      ]
--}
 
     tracks =
       HH.select [HP.name "select", HP.required true] $

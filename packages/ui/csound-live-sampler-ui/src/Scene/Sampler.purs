@@ -51,12 +51,12 @@ initSampler sampler =
   , html:
 
       HH.nav_ $ map (\items -> HH.ul_ (map (HH.li_ <<< pure) items))
-        [ [bpmLights sampler.measure]
+        [ [bpmLights]
         , [ tracks, prev, next, sep, sizes, prev, next ]
         ]
   }
   where
-    bpmLights _n = divId "bpm" []
+    bpmLights = divId "bpm" []
 
     tracks =
       HH.select [HP.name "select", HP.required true] $

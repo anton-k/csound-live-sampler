@@ -1,8 +1,8 @@
 module Scene.Sampler
   ( SamplerUi
+  , SetSampler
   , Track
   , initSampler
-  , initSetSamplerUi
   ) where
 
 import Prelude
@@ -15,13 +15,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Data.Array as Array
 import DOM.HTML.Indexed.InputType (InputType (..))
-import Web.DOM.NonElementParentNode as Dom
-import Web.DOM.Element as Dom
 import Data.Foldable
-import Web.HTML as Dom
-import Web.DOM.Document as Dom
-import Web.HTML.HTMLDocument as Html
-import Web.HTML.Window as Html
 import Nexus.Ui.General.RadioButton
 import Data.Int (toNumber)
 
@@ -38,35 +32,20 @@ type Track =
   , current :: Int
   }
 
-type SetSamplerUi =
+type SetSampler =
   { setBpm :: Int -> Effect Unit
   }
 
-initSetSamplerUi :: SamplerUi -> SetSamplerUi
-initSetSamplerUi config =
-  { setBpm: \index -> do
-      traverse_ clearChecked (Array.range 1 config.measure)
-      setCheck index
-  }
-  where
-    clearChecked index = do
-      doc <- map (Dom.toNonElementParentNode <<< Html.toDocument) (Html.document =<< Dom.window)
-      mElem <- Dom.getElementById (toBpmName index) doc
-      traverse_ (Dom.removeAttribute "checked") mElem
-
-    setCheck index = do
-      doc <- map (Dom.toNonElementParentNode <<< Html.toDocument) (Html.document =<< Dom.window)
-      mElem <- Dom.getElementById (toBpmName index) doc
-      traverse_ (Dom.setAttribute "checked" "checked") mElem
-
-
-initSampler :: forall a b . SamplerUi -> Elem a b
+initSampler :: forall a b . SamplerUi -> Elem a b SetSampler
 initSampler sampler =
   { setup: do
-      void $ newRadioButtonBy "#bpm"
+      bpm <- newRadioButtonBy "#bpm"
         { size: (25.0 * 1.15 * toNumber sampler.measure) /\ 25.0
         , numberOfButtons: sampler.measure
         , active: 0
+        }
+      pure
+        { setBpm: bpm.select
         }
 
   , html:

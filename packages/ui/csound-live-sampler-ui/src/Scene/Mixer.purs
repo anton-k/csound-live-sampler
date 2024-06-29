@@ -54,7 +54,7 @@ type FxParam =
   , value :: Number
   }
 
-initMixer :: forall w s . MixerUi -> Mixer -> Elem w s
+initMixer :: forall w s . MixerUi -> Mixer -> Elem w s Unit
 initMixer mixer act =
   { setup: traverse_ (_.setup) items
   , html:
@@ -65,7 +65,7 @@ initMixer mixer act =
 
     toColumn x = divClasses [] [x]
 
-initChannel :: forall w s . Mixer -> MixerUiItem -> Elem w s
+initChannel :: forall w s . Mixer -> MixerUiItem -> Elem w s Unit
 initChannel act item =
   { setup: do
       dial <- Ui.newDial ("#" <> dialTarget)

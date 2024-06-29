@@ -17,11 +17,18 @@ type SceneUi =
   , sampler :: SamplerUi
   }
 
-initScene :: forall a b . SceneUi -> Scene -> Elem a b
+type SetScene =
+  { sampler :: SetSampler
+  }
+
+initScene :: forall a b . SceneUi -> Scene -> Elem a b SetScene
 initScene sceneUi sceneAct =
   { setup: do
       mixer.setup
-      sampler.setup
+      sampler <- sampler.setup
+      pure
+        { sampler: sampler
+        }
 
   , html:
       divId "root"

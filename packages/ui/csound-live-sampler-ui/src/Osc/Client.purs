@@ -1,7 +1,9 @@
 module Osc.Client
   ( OscConfig
+  , OscClient
   , newOscEcho
   , newOscClient
+  , SetListen
   ) where
 
 import Prelude
@@ -11,19 +13,47 @@ import Data.Tuple.Nested ((/\))
 import Action
 import Network.Osc as Osc
 import Osc.Message as Osc
+import Effect.Ref
 
 type OscConfig =
   { address :: String
   , port :: Int
   }
 
-newOscClient :: OscConfig -> Effect Scene
+type Listen =
+  { bpm :: Int -> Effect Unit
+  }
+
+emptyListen :: Listen
+emptyListen =
+  { bpm: const (pure unit)
+  }
+
+type SetListen =
+  { bpm :: (Int -> Effect Unit) -> Effect Unit
+  }
+
+type OscClient  =
+  { send :: Scene
+  , listen :: SetListen
+  }
+
+newOscClient :: OscConfig -> Effect OscClient
 newOscClient _config = do
   client <- Osc.newWebsocketPort "ws://localhost:9090"
-  pure
-    { mixer: initMixer client
-    , sampler: initSampler client
+  listener <- new emptyListen
+  pure $
+    { send:
+        { mixer: initMixer client
+        , sampler: initSampler client
+        }
+    , listen: setListeners listener
     }
+
+setListeners :: Ref Listen -> SetListen
+setListeners ref =
+  { bpm: \f -> modify_ (\s -> s { bpm = f }) ref
+  }
 
 initMixer :: Osc.Port -> Mixer
 initMixer port =

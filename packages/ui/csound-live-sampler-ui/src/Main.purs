@@ -9,7 +9,6 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
--- import Effect.Console (log)
 import Effect.Class (liftEffect)
 import Halogen.Hooks as Hooks
 import Data.Tuple.Nested ((/\))
@@ -17,9 +16,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Scene (initScene)
 import Scene.Config (sceneUi, oscConfig)
-import Osc.Client (newOscClient)
-import Action
-import Scene.Sampler
+import Osc.Client (OscClient, newOscClient)
 
 main :: Effect Unit
 main = do
@@ -30,16 +27,15 @@ main = do
 
 hookComponent
   :: forall unusedQuery unusedInput unusedOutput
-   . Scene -> H.Component unusedQuery unusedInput unusedOutput Aff
+   . OscClient -> H.Component unusedQuery unusedInput unusedOutput Aff
 hookComponent sceneAct = Hooks.component \_ _ -> Hooks.do
   enabled /\ enabledIdx <- Hooks.useState false
   let label = if enabled then "On" else "Off"
-      ui = initScene sceneUi sceneAct
+      ui = initScene sceneUi sceneAct.send
   Hooks.useLifecycleEffect do
-    liftEffect $ ui.setup
-    let
-      samplerUi = initSetSamplerUi sceneUi.sampler
-    liftEffect $ samplerUi.setBpm 2
+    liftEffect $ do
+      setter <- ui.setup
+      sceneAct.listen.bpm setter.sampler.setBpm
 
     pure Nothing
   let

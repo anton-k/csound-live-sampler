@@ -5,6 +5,7 @@ module Live.Scene.Osc.Config (
 ) where
 
 import Data.Aeson.TH qualified as Json
+import Data.Text (Text)
 
 data OscConfig = OscConfig
   { input :: Maybe OscInputConfig
@@ -16,7 +17,8 @@ data OscInputConfig = OscInputConfig
   }
 
 data OscOutputConfig = OscOutputConfig
-  { port :: Int
+  { address :: Text
+  , port :: Int
   }
 
 $(Json.deriveJSON Json.defaultOptions ''OscInputConfig)

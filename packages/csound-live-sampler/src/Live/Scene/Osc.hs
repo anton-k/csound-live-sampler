@@ -12,4 +12,4 @@ import Live.Scene.Types
 setupOsc :: OscConfigs -> Scene -> SE ()
 setupOsc config scene = do
   mapM_ (setupOscInput scene config) config.osc.input
-  mapM_ setupOscOutput config.osc.output
+  mapM_ (setupOscOutput scene) config.osc.output

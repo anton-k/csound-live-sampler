@@ -97,6 +97,7 @@ data ClipConfig a = ClipConfig
   { name :: ClipName
   , file :: FilePath
   , bpm :: Float
+  , measure :: Maybe (Int, Int)
   , changeRate :: Maybe Int
   , start :: Maybe Int
   , dur :: Int

@@ -599,6 +599,10 @@ controllers:
   osc:
     input:
       port: 3334
+    output:
+      address: "127.0.0.1"
+      port: 3333
+
   midi:
     # names for Akai MIDI MIX controller
     keys:

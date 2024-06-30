@@ -15,6 +15,7 @@ data Clip = Clip
   , beatSize :: Int
   , timeSize :: Float
   , nextAction :: NextAction
+  , measure :: Int
   }
   deriving (Eq, Show)
 
@@ -41,9 +42,10 @@ splitStem slots =
 
     go :: St -> TimeSlot -> St
     go st slot =
-      List.foldl' (splitSlot timeScale) (enterSlot slot st) slot.cues
+      List.foldl' (splitSlot timeScale measure) (enterSlot slot st) slot.cues
       where
         timeScale = fromMaybe 1 slot.timeScale
+        measure = fromMaybe (4, 4) slot.measure
 
 enterSlot :: TimeSlot -> St -> St
 enterSlot slot st =
@@ -55,8 +57,8 @@ enterSlot slot st =
   where
     timeScale = fromMaybe 1 slot.timeScale
 
-splitSlot :: Int -> St -> Cue -> St
-splitSlot timeScale st cue =
+splitSlot :: Int -> (Int, Int) -> St -> Cue -> St
+splitSlot timeScale measure st cue =
   st
     { lastTime = st.lastTime + timeSize
     , clips = clip : st.clips
@@ -76,6 +78,7 @@ splitSlot timeScale st cue =
         , beatSize = round (fromIntegral timeScale * cue.dur)
         , timeSize = toAbsTime st (fromIntegral timeScale * cue.dur)
         , nextAction = fromMaybe PlayLoop cue.nextAction
+        , measure = fst measure
         }
 
 -- | Converts beats to seconds

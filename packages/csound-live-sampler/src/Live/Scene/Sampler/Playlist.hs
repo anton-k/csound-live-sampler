@@ -153,6 +153,7 @@ initPartArray tracks =
               , beatSize = int clip.beatSize
               , timeSize = float clip.timeSize
               , nextAction = int $ fromEnum clip.nextAction
+              , measure = int clip.measure
               }
         }
 

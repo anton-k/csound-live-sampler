@@ -10,7 +10,7 @@ import Csound.Live.Sampler.Osc
 import System.IO.Unsafe
 
 sampler :: Sampler
-sampler = unsafePerformIO $ newSampler (OscConfig "127.0.0.1" 12400)
+sampler = unsafePerformIO $ newSampler (OscConfig "127.0.0.1" 3333)
 
 (=:) :: Item -> Double -> IO ()
 (=:) = \case

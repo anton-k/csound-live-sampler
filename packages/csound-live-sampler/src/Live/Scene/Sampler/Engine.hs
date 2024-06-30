@@ -429,12 +429,9 @@ updateCounters update clip = do
 periodic :: Bpm -> Ref Sig -> SE () -> SE ()
 periodic (Bpm bpmRef) tickRef onTick = do
   bpm <- readRef bpmRef
-  let
-    isTick = metro (toAbsTimeRate bpm 1)
-  writeRef tickRef isTick
-  when1
-    (isTick ==* 1)
-    onTick
+  writeRef tickRef (metro (toAbsTimeRate bpm 1))
+  isTick <- readRef tickRef
+  when1 (isTick ==* 1) onTick
 
 setTrackPartSt :: St -> Part -> SE ()
 setTrackPartSt st part = do

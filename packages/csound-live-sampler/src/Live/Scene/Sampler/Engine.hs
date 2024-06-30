@@ -226,7 +226,7 @@ initSt getNextPart extraColumnSize = do
     if extraColumnSize == 0
       then pure Nothing
       else Just <$> initExtraClips extraColumnSize
-  main <- newProc (\() -> mainInstr getNextPart bpm beatCounter isTick mainBeat current next extraClips)
+  main <- newProc (\() -> mainInstr getNextPart bpm beatCounter isTick current next extraClips)
   pure St{..}
 
 initClipRef :: SE ClipRef
@@ -246,18 +246,24 @@ initClipSt cons = do
 
 type GetNextPart = SE Part
 
-mainInstr :: GetNextPart -> Bpm -> Counter Ref -> Ref Sig -> Counter Ref -> ClipRef -> ClipRef -> Maybe ExtraClips -> SE ()
-mainInstr getNextPart bpm beatCounter isTickRef mainBeat current next extraClips =
+getIsMainBeat :: Counter Ref -> SE BoolSig
+getIsMainBeat ref = do
+  step <- readRef ref.step
+  size <- readRef ref.size
+  pure (size ==* step)
+
+mainInstr :: GetNextPart -> Bpm -> Counter Ref -> Ref Sig -> ClipRef -> ClipRef -> Maybe ExtraClips -> SE ()
+mainInstr getNextPart bpm beatCounter isTickRef current next extraClips =
   periodic bpm isTickRef $ do
-    isMainBeat <- nextCount refUpdate mainBeat
+    isMainBeat <- getIsMainBeat beatCounter
     void $ nextCount refUpdate beatCounter
-    updateMainClip getNextPart bpm beatCounter mainBeat current next
+    updateMainClip getNextPart bpm beatCounter current next
     mapM_ (updateExtraClips bpm isMainBeat) extraClips
 
-updateMainClip :: GetNextPart -> Bpm -> Counter Ref -> Counter Ref -> ClipRef -> ClipRef -> SE ()
-updateMainClip getNextPart bpm beatCounter mainBeat current next = do
+updateMainClip :: GetNextPart -> Bpm -> Counter Ref -> ClipRef -> ClipRef -> SE ()
+updateMainClip getNextPart bpm beatCounter current next = do
   isBoundary <- updateCounters refUpdate current
-  onChanges getNextPart isBoundary bpm beatCounter mainBeat current next
+  onChanges getNextPart isBoundary bpm beatCounter current next
 
 updateExtraClips :: Bpm -> BoolSig -> ExtraClips -> SE ()
 updateExtraClips bpm isMainBeat clips =
@@ -316,11 +322,11 @@ onExtraClipPlayLoop update (Bpm bpmRef) current = do
   when1 (trackId.track >* 0) $
     play (instrRefFromNum $ toD trackId.track) [Note 0 (toD $ trackId.dur * trackId.bpm / mainBpm) (toD mainBpm, toD trackId.start)]
 
-onChanges :: GetNextPart -> IsBoundary -> Bpm -> Counter Ref -> Counter Ref -> ClipRef -> ClipRef -> SE ()
-onChanges getNextPart boundary bpm beatCounter mainBeat current next = do
+onChanges :: GetNextPart -> IsBoundary -> Bpm -> Counter Ref -> ClipRef -> ClipRef -> SE ()
+onChanges getNextPart boundary bpm beatCounter current next = do
   isClip <- isClipChange refUpdate current next
   whens
-    [ (boundary.isChange &&* isClip, onChange bpm beatCounter mainBeat current next)
+    [ (boundary.isChange &&* isClip, onChange bpm beatCounter current next)
     , (boundary.isLoop, onLoop getNextPart bpm current next)
     ]
     (pure ())
@@ -331,8 +337,8 @@ isClipChange update current next = do
   nextTrackId <- readTrackId update next
   pure (notB $ equalTrackId currentTrackId nextTrackId)
 
-onChange :: Bpm -> Counter Ref -> Counter Ref -> ClipRef -> ClipRef -> SE ()
-onChange bpm beatCounter mainBeat current next = do
+onChange :: Bpm -> Counter Ref -> ClipRef -> ClipRef -> SE ()
+onChange bpm beatCounter current next = do
   currentTrackId <- readTrackId refUpdate current
   nextTrackId <- readTrackId refUpdate next
 
@@ -340,7 +346,6 @@ onChange bpm beatCounter mainBeat current next = do
     stopClip refUpdate current
     scheduleClip bpm next
     copyClipTo refUpdate next current
-    resetCounter mainBeat =<< readRef next.timeSize
     resetCounter beatCounter nextTrackId.measure
 
 stopClip :: Update f -> ClipSt f -> SE ()

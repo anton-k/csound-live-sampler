@@ -109,7 +109,7 @@ in  upstream
       , version = "e8c5c74d87942c2705cd51c6e37c046fa6bc0412"
       }
   with osc =
-      { dependencies = [ "console", "effect", "prelude", "tuples", "json" ]
+      { dependencies = [ "console", "effect", "prelude", "tuples", "json", "foldable-traversable", "maybe" ]
       , repo = "https://github.com/anton-k/purescript-osc.git"
-      , version = "f80d503e03c3b43780d29bd1b0b9622880c2a7a4"
+      , version = "644237e9e24e6f9064023d48aee45f569e806035"
       }

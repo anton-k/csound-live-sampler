@@ -14,6 +14,8 @@ import Action
 import Network.Osc as Osc
 import Osc.Message as Osc
 import Effect.Ref
+import Data.Maybe
+import Data.Int (round)
 
 type OscConfig =
   { address :: String
@@ -42,6 +44,7 @@ newOscClient :: OscConfig -> Effect OscClient
 newOscClient _config = do
   client <- Osc.newWebsocketPort "ws://localhost:9090"
   listener <- new emptyListen
+  runListener client listener
   pure $
     { send:
         { mixer: initMixer client
@@ -49,6 +52,21 @@ newOscClient _config = do
         }
     , listen: setListeners listener
     }
+
+runListener :: Osc.Port -> Ref Listen -> Effect Unit
+runListener port ref =
+  port.listen $ \msg -> do
+    case msg.address of
+      "/bpm/beats" ->
+        case msg.args of
+          [Osc.OscDouble n] -> do
+            listen <- read ref
+            listen.bpm (round n)
+          _ -> unknown msg
+
+      _ -> unknown msg
+  where
+    unknown msg = log ("Unrecognized message: " <> show msg)
 
 setListeners :: Ref Listen -> SetListen
 setListeners ref =

@@ -23,7 +23,7 @@ import Live.Scene.Sampler.Playlist
 import Live.Scene.Types
 
 data OscConfigs = OscConfigs
-  { osc :: OscConfig
+  { osc :: OscConfig ChannelId
   , mixer :: MixerConfig ChannelId
   , card :: AudioConfig ChannelId
   }

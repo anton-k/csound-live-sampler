@@ -111,5 +111,5 @@ in  upstream
   with osc =
       { dependencies = [ "console", "effect", "prelude", "tuples", "json", "foldable-traversable", "maybe" ]
       , repo = "https://github.com/anton-k/purescript-osc.git"
-      , version = "644237e9e24e6f9064023d48aee45f569e806035"
+      , version = "193d29248543be5aa815d5b392a4c4d0820f83b7"
       }

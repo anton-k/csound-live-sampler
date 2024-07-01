@@ -19,6 +19,7 @@ module Live.Scene.Sampler.Engine (
   Engine (..),
   newEngine,
   ExtraClipSize,
+  toAbsTimeRate,
 ) where
 
 import Control.Monad
@@ -108,7 +109,6 @@ data St = St
   , bpm :: Bpm
   , current :: ClipRef
   , next :: ClipRef
-  , mainBeat :: Counter Ref
   , extraClips :: Maybe ExtraClips
   , isTick :: Ref Sig
   , beatCounter :: Counter Ref
@@ -219,7 +219,6 @@ initSt getNextPart extraColumnSize = do
   bpm <- Bpm <$> newCtrlRef 120
   current <- initClipRef
   next <- initClipRef
-  mainBeat <- initCounter newCtrlRef 1
   isTick <- newCtrlRef 0
   beatCounter <- initCounter newCtrlRef 1
   extraClips <-
@@ -479,7 +478,7 @@ stopSt st =
   turnoff2_i st.main 0 0.05
 
 -- | Converts beats to seconds
-toAbsTimeRate :: Sig -> Sig -> Sig
+toAbsTimeRate :: (SigOrD a) => a -> a -> a
 toAbsTimeRate bpm beats = bpm / (60 * beats)
 
 readBpmSt :: St -> SE Sig

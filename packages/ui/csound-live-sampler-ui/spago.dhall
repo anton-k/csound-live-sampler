@@ -28,6 +28,7 @@ to generate this file without the comments in this block.
   , "osc"
   , "integers"
   , "refs"
+  , "ordered-collections"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

@@ -1,6 +1,7 @@
 module Scene.Mixer
   ( MixerUi
   , MixerUiItem
+  , SetMixer
   , initMixer
   , initChannel
   , Fx
@@ -22,16 +23,20 @@ import Nexus.Ui.General.Multislider as Ui
 import Effect.Console (log)
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen.Hooks as Hooks
+import Data.Tuple (Tuple (..))
 import Data.Tuple.Nested ((/\))
 import Data.Maybe (Maybe(..))
 import Control.Monad.Trans.Class (class MonadTrans)
 import Effect.Aff (Aff)
 import Data.Traversable (traverse_)
+import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Array (range)
 import Scene.Elem
 import Scene.Html
 import Data.Array as Array
 import Action
+import Data.Map (Map)
+import Data.Map as Map
 
 type MixerUi =
   { items :: Array MixerUiItem
@@ -54,9 +59,26 @@ type FxParam =
   , value :: Number
   }
 
-initMixer :: forall w s . MixerUi -> Mixer -> Elem w s Unit
+type SetMixer =
+  { setVolumeEnvelope :: Int -> Number -> Effect Unit
+  }
+
+type SetChannel =
+  { setVolumeEnvelope :: Number -> Effect Unit
+  }
+
+initMixer :: forall w s . MixerUi -> Mixer -> Elem w s SetMixer
 initMixer mixer act =
-  { setup: traverse_ (_.setup) items
+  { setup: do
+      channelMap <- map Map.fromFoldable $ traverseWithIndex (\index item -> map (Tuple (index + 1)) item.setup) items
+      let
+        withChannel chanId cont =
+          traverse_ cont (Map.lookup chanId channelMap)
+      pure
+        { setVolumeEnvelope:
+            \chanId volume -> withChannel chanId $
+                \chan -> chan.setVolumeEnvelope volume
+        }
   , html:
       divClasses ["grid"] (map (\item -> toColumn item.html) items)
   }
@@ -65,16 +87,18 @@ initMixer mixer act =
 
     toColumn x = divClasses [] [x]
 
-initChannel :: forall w s . Mixer -> MixerUiItem -> Elem w s Unit
+initChannel :: forall w s . Mixer -> MixerUiItem -> Elem w s SetChannel
 initChannel act item =
   { setup: do
       dial <- Ui.newDial ("#" <> dialTarget)
       dial.setValue item.volume
-      bar <- initBar ("#" <> barTarget) item.channel item.volume
+      bar <- initBar ("#" <> barTarget) item.channel 0.0
       dial.on Ui.Change (\val -> do
           act.setChannelVolume item.channel val
-          bar.setAllSliders [val]
         )
+      pure $
+        { setVolumeEnvelope: \volume -> bar.setAllSliders [volume]
+        }
 
   , html:
       divClasses []

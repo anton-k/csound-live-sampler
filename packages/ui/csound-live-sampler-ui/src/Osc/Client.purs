@@ -9,6 +9,7 @@ module Osc.Client
 import Prelude
 import Effect (Effect)
 import Effect.Console (log)
+import Data.Tuple (Tuple (..))
 import Data.Tuple.Nested ((/\))
 import Action
 import Network.Osc as Osc
@@ -24,15 +25,18 @@ type OscConfig =
 
 type Listen =
   { bpm :: Int -> Effect Unit
+  , volumeEnvelope :: Int -> Number -> Effect Unit
   }
 
 emptyListen :: Listen
 emptyListen =
   { bpm: const (pure unit)
+  , volumeEnvelope: const (const $ pure unit)
   }
 
 type SetListen =
   { bpm :: (Int -> Effect Unit) -> Effect Unit
+  , volumeEnvelope :: (Int -> Number -> Effect Unit) -> Effect Unit
   }
 
 type OscClient  =
@@ -55,22 +59,34 @@ newOscClient _config = do
 
 runListener :: Osc.Port -> Ref Listen -> Effect Unit
 runListener port ref =
-  port.listen $ \msg -> do
-    case msg.address of
-      "/bpm/beats" ->
-        case msg.args of
-          [Osc.OscDouble n] -> do
-            listen <- read ref
-            listen.bpm (round n)
-          _ -> unknown msg
-
-      _ -> unknown msg
+  port.listen $ \msg ->
+    Osc.oscCase_ msg caseExpr onUnknown
   where
-    unknown msg = log ("Unrecognized message: " <> show msg)
+    onUnknown :: Osc.Osc -> Effect Unit
+    onUnknown msg = log ("Unrecognized message: " <> show msg)
+
+    caseExpr :: Array (Osc.OscCase (Effect Unit))
+    caseExpr =
+      [ Osc.toOscCase "/bpm/beats" onBpm
+      , Osc.toOscCase "/channel/$d/volume/envelope" onChannelVolumeEnvelope
+      ]
+
+    onBpm :: Int -> Effect Unit
+    onBpm n = withListen $ \listen -> listen.bpm n
+
+    onChannelVolumeEnvelope :: Tuple Number Number -> Effect Unit
+    onChannelVolumeEnvelope (Tuple channelId volume) =
+      withListen $ \listen -> listen.volumeEnvelope (round channelId) volume
+
+    withListen :: (Listen -> Effect Unit) -> Effect Unit
+    withListen cont = do
+      listen <- read ref
+      cont listen
 
 setListeners :: Ref Listen -> SetListen
 setListeners ref =
   { bpm: \f -> modify_ (\s -> s { bpm = f }) ref
+  , volumeEnvelope: \f -> modify_ (\s -> s { volumeEnvelope = f }) ref
   }
 
 initMixer :: Osc.Port -> Mixer

@@ -28,15 +28,6 @@ withOptions config mFile = withWriteCsd mFile . withCsoundFlags config
 
 -- * audio playback
 
-{-
-toAudio :: Scene -> SE Sig2
-toAudio scene = do
-  scene.sampler.start
-  result <- scene.mixer.readMaster
-  scene.mixer.clean
-  pure result
--}
-
 execScene :: Scene -> SE ()
 execScene scene = do
   scene.sampler.start
@@ -71,8 +62,7 @@ loadScene config = do
   mapM_ (\oscConfig -> setupOsc (OscConfigs oscConfig mixerConfig audioConfig) scene) mOscConfig
   pure scene
   where
-    (audioConfig, samplerConfig, mixerConfig, midiConfig) = convertConfig config
-    mOscConfig = config.controllers.osc
+    (audioConfig, samplerConfig, mixerConfig, midiConfig, mOscConfig) = convertConfig config
 
 withCsoundFlags :: Config -> Options -> Options
 withCsoundFlags config = maybe id (<>) $ do

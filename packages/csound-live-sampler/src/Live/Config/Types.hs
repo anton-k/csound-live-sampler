@@ -20,7 +20,7 @@ data Config = Config
 
 data ControllerConfig audioInput channel key = ControllerConfig
   { midi :: MidiControllerConfig audioInput channel key
-  , osc :: Maybe OscConfig
+  , osc :: Maybe (OscConfig channel)
   }
 
 $(Json.deriveJSON Json.defaultOptions ''ControllerConfig)

@@ -22,6 +22,7 @@ import Live.Scene.AudioCard.Config
 import Live.Scene.Common
 import Live.Scene.Midi.Config
 import Live.Scene.Mixer.Config
+import Live.Scene.Osc.Config
 import Live.Scene.Sampler.Config
 import Live.Scene.Sampler.Config qualified as ClipColumnConfig (ClipColumnConfig (..))
 import Live.Scene.Sampler.Config qualified as ClipConfig (ClipConfig (..))
@@ -81,13 +82,15 @@ convertConfig ::
   , SamplerConfig ChannelId
   , MixerConfig ChannelId
   , MidiControllerConfig AudioInputId ChannelId Int
+  , Maybe (OscConfig ChannelId)
   )
-convertConfig config = (audioConfig, samplerConfig, mixerConfig, midiConfig)
+convertConfig config = (audioConfig, samplerConfig, mixerConfig, midiConfig, oscConfig)
   where
     mixerConfig = fmap convertChannel config.mixer
     samplerConfig = fmap convertChannel config.sampler
     midiConfig = mapMidiControllerConfig convertAudioInput convertChannel convertMidiKey config.controllers.midi
     audioConfig = fmap convertChannel (fromMaybe def config.audio)
+    oscConfig = fmap (fmap convertChannel) (config.controllers.osc)
 
     audioInputNames = getAudioInputNames config
 

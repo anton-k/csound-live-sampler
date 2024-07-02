@@ -25,18 +25,24 @@ type OscConfig =
 
 type Listen =
   { bpm :: Int -> Effect Unit
-  , volumeEnvelope :: Int -> Number -> Effect Unit
+  , channelVolumeEnvelope :: Int -> Number -> Effect Unit
+  , channelVolume :: Int -> Number -> Effect Unit
+  , channelMute :: Int -> Boolean -> Effect Unit
   }
 
 emptyListen :: Listen
 emptyListen =
   { bpm: const (pure unit)
-  , volumeEnvelope: const (const $ pure unit)
+  , channelVolumeEnvelope: const (const $ pure unit)
+  , channelVolume: const (const $ pure unit)
+  , channelMute: const (const $ pure unit)
   }
 
 type SetListen =
   { bpm :: (Int -> Effect Unit) -> Effect Unit
-  , volumeEnvelope :: (Int -> Number -> Effect Unit) -> Effect Unit
+  , channelVolumeEnvelope :: (Int -> Number -> Effect Unit) -> Effect Unit
+  , channelVolume :: (Int -> Number -> Effect Unit) -> Effect Unit
+  , channelMute :: (Int -> Boolean -> Effect Unit) -> Effect Unit
   }
 
 type OscClient  =
@@ -69,6 +75,8 @@ runListener port ref =
     caseExpr =
       [ Osc.toOscCase "/bpm/beats" onBpm
       , Osc.toOscCase "/channel/$d/volume/envelope" onChannelVolumeEnvelope
+      , Osc.toOscCase "/channel/$d/volume/change" onChannelVolumeChange
+      , Osc.toOscCase "/channel/$d/mute/change" onChannelMuteChange
       ]
 
     onBpm :: Int -> Effect Unit
@@ -76,7 +84,15 @@ runListener port ref =
 
     onChannelVolumeEnvelope :: Tuple Number Number -> Effect Unit
     onChannelVolumeEnvelope (Tuple channelId volume) =
-      withListen $ \listen -> listen.volumeEnvelope (round channelId) volume
+      withListen $ \listen -> listen.channelVolumeEnvelope (round channelId) volume
+
+    onChannelVolumeChange :: Tuple Number Number -> Effect Unit
+    onChannelVolumeChange (Tuple channelId volume) =
+      withListen $ \listen -> listen.channelVolume (round channelId) volume
+
+    onChannelMuteChange :: Tuple Number Number -> Effect Unit
+    onChannelMuteChange (Tuple channelId flag) =
+      withListen $ \listen -> listen.channelMute (round channelId) (round flag == 1)
 
     withListen :: (Listen -> Effect Unit) -> Effect Unit
     withListen cont = do
@@ -86,7 +102,9 @@ runListener port ref =
 setListeners :: Ref Listen -> SetListen
 setListeners ref =
   { bpm: \f -> modify_ (\s -> s { bpm = f }) ref
-  , volumeEnvelope: \f -> modify_ (\s -> s { volumeEnvelope = f }) ref
+  , channelVolumeEnvelope: \f -> modify_ (\s -> s { channelVolumeEnvelope = f }) ref
+  , channelVolume: \f -> modify_ (\s -> s { channelVolume = f }) ref
+  , channelMute: \f -> modify_ (\s -> s { channelMute = f }) ref
   }
 
 initMixer :: Osc.Port -> Mixer

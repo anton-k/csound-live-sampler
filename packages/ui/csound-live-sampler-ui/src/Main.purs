@@ -36,7 +36,12 @@ hookComponent sceneAct = Hooks.component \_ _ -> Hooks.do
     liftEffect $ do
       setter <- ui.setup
       sceneAct.listen.bpm setter.sampler.setBpm
-      sceneAct.listen.volumeEnvelope setter.mixer.setVolumeEnvelope
+      sceneAct.listen.channelVolumeEnvelope
+        (\chanId val -> (setter.mixer.setChannel chanId).setVolumeEnvelope val)
+      sceneAct.listen.channelVolume
+        (\chanId val -> (setter.mixer.setChannel chanId).setVolume val)
+      sceneAct.listen.channelMute
+        (\chanId val -> (setter.mixer.setChannel chanId).setMute val)
 
     pure Nothing
   let

@@ -20,7 +20,7 @@ setupOscOutput scene config = do
     bpm <- scene.sampler.readBpm
     let
       isTick = metro (toAbsTimeRate bpm 0.25)
-    mapM_ (sendVolume config isTick bpm scene.mixer) (fromMaybe [] config.channels)
+    mapM_ (sendChannelInfo config isTick scene.mixer) (fromMaybe [] config.channels)
   play instr [Note 0 (-1) ()]
 
 sendTicks :: Sampler -> OscOutputConfig ChannelId -> SE ()
@@ -29,17 +29,36 @@ sendTicks sampler config = do
   ticks <- sampler.readTicks
   send config ticks "/bpm/beats" currentBeat
 
-sendVolume :: OscOutputConfig ChannelId -> Sig -> Sig -> Mixer -> ChannelId -> SE ()
-sendVolume config isTick bpm mixer channelId = do
-  asig <- mixer.readChannel channelId
+sendChannelInfo :: OscOutputConfig ChannelId -> Sig -> Mixer -> ChannelId -> SE ()
+sendChannelInfo config isTick mixer channelId = do
+  sendVolumeEnvelope config isTick mixer channelId
+  sendVolumeChange config isTick mixer channelId
+  sendVolumeMute config isTick mixer channelId
 
+sendVolumeEnvelope :: OscOutputConfig ChannelId -> Sig -> Mixer -> ChannelId -> SE ()
+sendVolumeEnvelope config isTick mixer channelId = do
+  asig <- mixer.readChannel channelId
   let
-    dt = recip $ toAbsTimeRate bpm 2
-    env = 5 * follow2 (toMono asig) 0.1 0.5 -- dt dt
-  send config isTick addr env
-  where
-    addr = (fromString $ "/channel/" <> toChannelAddr channelId <> "/volume/envelope")
-    toChannelAddr (ChannelId n) = show (n + 1)
+    env = 5 * follow2 (toMono asig) 0.1 0.5
+  send config isTick (toChannelAddr channelId "volume/envelope") env
+
+sendVolumeChange :: OscOutputConfig ChannelId -> Sig -> Mixer -> ChannelId -> SE ()
+sendVolumeChange config isTick mixer channelId = do
+  vol <- mixer.readChannelVolume channelId
+  let
+    isChange = changed [vol]
+  send config isChange (toChannelAddr channelId "volume/change") vol
+
+sendVolumeMute :: OscOutputConfig ChannelId -> Sig -> Mixer -> ChannelId -> SE ()
+sendVolumeMute config isTick mixer channelId = do
+  mute <- mixer.readChannelMute channelId
+  let
+    isChange = changed [mute]
+  send config isChange (toChannelAddr channelId "mute/change") (1 - mute)
+
+toChannelAddr :: ChannelId -> String -> Str
+toChannelAddr (ChannelId n) path =
+  fromString $ "/channel/" <> show (n + 1) <> "/" <> path
 
 --  when1 (ticks `equals` 1) $
 --    printks "Beat: %d\n" 0 currentBeat

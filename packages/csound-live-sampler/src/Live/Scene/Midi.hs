@@ -155,10 +155,10 @@ toKnobAct audio mixer note knob =
   case knob.on of
     SetMasterVolume ->
       mixer.setMasterVolume $
-        (applyRange $ gainslider (readKnobValue note))
+        (applyRange $ volumeCurve (readKnobValue note / 127))
     SetChannelVolume n ->
       mixer.setChannelVolume n $
-        (applyRange $ gainslider (readKnobValue note))
+        (applyRange $ volumeCurve (readKnobValue note / 127))
     SetChannelSend config ->
       mixer.setChannelSend config.from config.to $
         (applyRange $ readKnobValue note / 127)
@@ -174,6 +174,10 @@ toKnobAct audio mixer note knob =
 
     applyRange :: Sig -> Sig
     applyRange = maybe id (rescaleUnitRangeTo . bimap float float) knob.range
+
+-- input is [0, 1]
+volumeCurve :: Sig -> Sig
+volumeCurve x = expcurve x 7
 
 rescaleUnitRangeTo :: (Sig, Sig) -> Sig -> Sig
 rescaleUnitRangeTo (minVal, maxVal) x =

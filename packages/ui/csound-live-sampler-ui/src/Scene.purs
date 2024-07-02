@@ -40,6 +40,6 @@ initScene sceneUi sceneAct =
         ]
   }
   where
-    sampler = initSampler sceneUi.sampler
+    sampler = initSampler sceneUi.sampler sceneAct.sampler
     mixer = initMixer sceneUi.mixer sceneAct.mixer
 

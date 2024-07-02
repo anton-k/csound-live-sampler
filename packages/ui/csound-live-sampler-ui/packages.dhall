@@ -106,10 +106,23 @@ in  upstream
   with nexus-ui =
       { dependencies = [ "console", "effect", "prelude", "tuples" ]
       , repo = "https://github.com/anton-k/purescript-nexus-ui.git"
-      , version = "e8c5c74d87942c2705cd51c6e37c046fa6bc0412"
+      , version = "2ff2b426c083be7ae3964b7e78a1300d273922d4"
       }
   with osc =
-      { dependencies = [ "console", "effect", "prelude", "tuples", "json", "foldable-traversable", "maybe" ]
+      { dependencies = 
+          [ "effect"
+          , "prelude"
+          , "json"
+          , "tuples"
+          , "foldable-traversable"
+          , "maybe"
+          , "strings"
+          , "arrays"
+          , "either"
+          , "spec"
+          , "aff"
+          , "integers"
+          ]
       , repo = "https://github.com/anton-k/purescript-osc.git"
       , version = "193d29248543be5aa815d5b392a4c4d0820f83b7"
       }

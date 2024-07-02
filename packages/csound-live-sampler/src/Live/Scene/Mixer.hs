@@ -50,7 +50,9 @@ data Mixer = Mixer
   , readChannel :: ChannelId -> SE Sig2
   , -- control
     toggleChannelMute :: ChannelId -> SE ()
+  , readChannelMute :: ChannelId -> SE Sig
   , modifyChannelVolume :: ChannelId -> (Sig -> Sig) -> SE ()
+  , readChannelVolume :: ChannelId -> SE Sig
   , modifyChannelSend :: ChannelId -> ChannelId -> (Sig -> Sig) -> SE ()
   , modifyMasterVolume :: (Sig -> Sig) -> SE ()
   , modifyFxParam :: FxParamId -> (Sig -> Sig) -> SE ()
@@ -99,6 +101,7 @@ newMixer config channels readBpm = do
       { readMaster = readMixSt st
       , readChannel = readChannelSt st
       , modifyChannelVolume = modifyChannelVolumeSt st
+      , readChannelVolume = readChannelVolumeSt st
       , modifyChannelSend = modifyChannelSendSt st
       , modifyMasterVolume = modifyMasterVolumeSt st
       , modifyFxParam = fxControls.modifyFxParam
@@ -107,6 +110,7 @@ newMixer config channels readBpm = do
       , setMasterVolume = setMasterVolumeSt st
       , setFxParam = fxControls.setFxParam
       , toggleChannelMute = toggleChannelMuteSt st
+      , readChannelMute = readChannelMuteSt st
       , clean = cleanSt st
       }
 
@@ -211,6 +215,14 @@ modifyChannelVolumeSt :: St -> ChannelId -> (Sig -> Sig) -> SE ()
 modifyChannelVolumeSt st channelId f =
   withChannel st channelId $ \channel ->
     modifyRef channel.volume f
+
+readChannelVolumeSt :: St -> ChannelId -> SE Sig
+readChannelVolumeSt st channelId =
+  withChannelDef st channelId 0 $ \channel -> readRef channel.volume
+
+readChannelMuteSt :: St -> ChannelId -> SE Sig
+readChannelMuteSt st channelId =
+  withChannelDef st channelId 0 $ \channel -> readRef channel.mute
 
 setChannelVolumeSt :: St -> ChannelId -> Sig -> SE ()
 setChannelVolumeSt st channelId ins =

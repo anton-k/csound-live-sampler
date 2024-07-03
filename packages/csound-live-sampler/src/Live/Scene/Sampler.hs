@@ -34,6 +34,8 @@ data Sampler = Sampler
   , readBpm :: SE Sig
   , readTicks :: SE Sig
   , currentBeat :: SE Sig
+  , readIsMainClipChange :: SE Sig
+  , readClip :: SE Clip
   }
 
 data SamplerDeps = SamplerDeps
@@ -59,6 +61,8 @@ newSampler configUnordered deps = do
       , readBpm = engine.readBpm
       , readTicks = engine.readTicks
       , currentBeat = engine.currentBeat
+      , readIsMainClipChange = engine.readIsMainClipChange
+      , readClip = engine.readClip
       }
   where
     config = orderTracks configUnordered
@@ -115,6 +119,8 @@ findExtraPart clipMap columnName clipName = do
             , timeSize = float $ toAbsTime clip.config.bpm (fromIntegral clip.config.dur)
             , nextAction = int $ maybe 0 fromEnum clip.config.nextAction
             , measure = int $ maybe 4 fst $ clip.config.measure
+            , trackIndex = int 0
+            , partIndex = int 0
             }
       , track = toSig (getInstrRefIdNum clip.instr)
       }

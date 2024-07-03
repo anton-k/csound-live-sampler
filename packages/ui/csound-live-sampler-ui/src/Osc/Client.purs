@@ -4,6 +4,7 @@ module Osc.Client
   , newOscEcho
   , newOscClient
   , SetListen
+  , Clip (..)
   ) where
 
 import Prelude
@@ -28,6 +29,7 @@ type Listen =
   , channelVolumeEnvelope :: Int -> Number -> Effect Unit
   , channelVolume :: Int -> Number -> Effect Unit
   , channelMute :: Int -> Boolean -> Effect Unit
+  , partChange :: Clip -> Effect Unit
   }
 
 emptyListen :: Listen
@@ -36,6 +38,7 @@ emptyListen =
   , channelVolumeEnvelope: const (const $ pure unit)
   , channelVolume: const (const $ pure unit)
   , channelMute: const (const $ pure unit)
+  , partChange: const (pure unit)
   }
 
 type SetListen =
@@ -43,6 +46,7 @@ type SetListen =
   , channelVolumeEnvelope :: (Int -> Number -> Effect Unit) -> Effect Unit
   , channelVolume :: (Int -> Number -> Effect Unit) -> Effect Unit
   , channelMute :: (Int -> Boolean -> Effect Unit) -> Effect Unit
+  , partChange :: (Clip -> Effect Unit) -> Effect Unit
   }
 
 type OscClient  =
@@ -77,6 +81,7 @@ runListener port ref =
       , Osc.toOscCase "/channel/$d/volume/envelope" onChannelVolumeEnvelope
       , Osc.toOscCase "/channel/$d/volume/change" onChannelVolumeChange
       , Osc.toOscCase "/channel/$d/mute/change" onChannelMuteChange
+      , Osc.toOscCase "/part/change" onPartChange
       ]
 
     onBpm :: Int -> Effect Unit
@@ -99,12 +104,48 @@ runListener port ref =
       listen <- read ref
       cont listen
 
+    onPartChange :: Clip -> Effect Unit
+    onPartChange (Clip val) =
+      withListen $ \listen -> do
+        log (show val)
+        listen.partChange (Clip val)
+
+newtype Clip = Clip
+   { bpm :: Number
+   , start :: Number
+   , changeRate :: Number
+   , beatSize :: Number
+   , timeSize :: Number
+   , measure :: Number
+   , trackIndex :: Number
+   , partIndex :: Number
+   , nextAction :: Number
+   }
+
+derive newtype instance Show Clip
+
+instance Osc.ReadOsc Clip where
+  oscArity _ = 9
+  readOsc =  case _ of
+    [ Osc.OscDouble bpm
+    , Osc.OscDouble start
+    , Osc.OscDouble changeRate
+    , Osc.OscDouble beatSize
+    , Osc.OscDouble timeSize
+    , Osc.OscDouble measure
+    , Osc.OscDouble trackIndex
+    , Osc.OscDouble partIndex
+    , Osc.OscDouble nextAction
+    ] -> Just (Clip {bpm, start, changeRate, beatSize, timeSize, measure, trackIndex, partIndex, nextAction})
+    _ -> Nothing
+
 setListeners :: Ref Listen -> SetListen
 setListeners ref =
   { bpm: \f -> modify_ (\s -> s { bpm = f }) ref
   , channelVolumeEnvelope: \f -> modify_ (\s -> s { channelVolumeEnvelope = f }) ref
   , channelVolume: \f -> modify_ (\s -> s { channelVolume = f }) ref
   , channelMute: \f -> modify_ (\s -> s { channelMute = f }) ref
+  , partChange: \f -> modify_ (\s -> s { partChange = f }) ref
   }
 
 initMixer :: Osc.Port -> Mixer

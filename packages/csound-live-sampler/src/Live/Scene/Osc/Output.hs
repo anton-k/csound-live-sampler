@@ -15,7 +15,7 @@ import Live.Scene.Types
 setupOscOutput :: Scene -> OscOutputConfig ChannelId -> SE ()
 setupOscOutput scene config = do
   instr <- newProc $ \() -> do
-    sendTicks scene.sampler config
+    sendSampler scene.sampler config
     -- isTick <- scene.sampler.readTicks
     bpm <- scene.sampler.readBpm
     let
@@ -23,11 +23,22 @@ setupOscOutput scene config = do
     mapM_ (sendChannelInfo config isTick scene.mixer) (fromMaybe [] config.channels)
   play instr [Note 0 (-1) ()]
 
+sendSampler :: Sampler -> OscOutputConfig ChannelId -> SE ()
+sendSampler sampler config = do
+  sendTicks sampler config
+  sendTrackChange sampler config
+
 sendTicks :: Sampler -> OscOutputConfig ChannelId -> SE ()
 sendTicks sampler config = do
   currentBeat <- sampler.currentBeat
   ticks <- sampler.readTicks
   send config ticks "/bpm/beats" currentBeat
+
+sendTrackChange :: Sampler -> OscOutputConfig ChannelId -> SE ()
+sendTrackChange sampler config = do
+  isClipChange <- sampler.readIsMainClipChange
+  clip <- sampler.readClip
+  send config isClipChange "/part/change" clip
 
 sendChannelInfo :: OscOutputConfig ChannelId -> Sig -> Mixer -> ChannelId -> SE ()
 sendChannelInfo config isTick mixer channelId = do

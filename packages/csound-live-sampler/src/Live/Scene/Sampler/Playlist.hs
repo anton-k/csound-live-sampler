@@ -21,6 +21,7 @@ module Live.Scene.Sampler.Playlist (
 
 import Csound.Core
 import Data.Boolean
+import Data.List qualified as List
 import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Sampler.Config
 import Live.Scene.Sampler.Engine (Clip (..), ClipInstr, Part (..))
@@ -154,6 +155,8 @@ initPartArray tracks =
               , timeSize = float clip.timeSize
               , nextAction = int $ fromEnum clip.nextAction
               , measure = int clip.measure
+              , trackIndex = int clip.trackIndex
+              , partIndex = int clip.partIndex
               }
         }
 
@@ -181,12 +184,12 @@ data TimedTrack = TimedTrack
 
 timeTracks :: SamplerConfig ChannelId -> [ClipInstr] -> [TimedTrack]
 timeTracks config instrs =
-  zipWith toTimedTrack instrs config.tracks
+  List.zipWith3 toTimedTrack instrs [0 ..] config.tracks
 
-toTimedTrack :: ClipInstr -> TrackConfig ChannelId -> TimedTrack
-toTimedTrack instr config =
+toTimedTrack :: ClipInstr -> Int -> TrackConfig ChannelId -> TimedTrack
+toTimedTrack instr trackIndex config =
   TimedTrack
     { track = config
-    , clips = Timing.splitStem config.slots
+    , clips = Timing.splitStem trackIndex config.slots
     , instr
     }

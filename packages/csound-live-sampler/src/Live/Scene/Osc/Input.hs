@@ -113,7 +113,10 @@ listenSampler sampler oscHandle = do
 listenSetTrack :: Sampler -> OscHandle -> SE ()
 listenSetTrack sampler oscHandle =
   listenFloat oscHandle "/track" 0 $ \trackId ->
-    setTrack sampler.cursor (TrackId $ toD trackId)
+    setTrack sampler.cursor (toTrackId trackId)
+
+toTrackId :: Sig -> TrackId
+toTrackId trackId = TrackId $ toD (trackId - 1)
 
 listenSetPart :: Sampler -> OscHandle -> SE ()
 listenSetPart _sampler _oscHandle = pure () -- TODO

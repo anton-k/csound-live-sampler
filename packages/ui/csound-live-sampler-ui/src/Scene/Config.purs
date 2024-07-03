@@ -26,6 +26,7 @@ sceneUi =
           [ track1
           , track2
           , track3
+          , track4
           ]
       , current: Nothing
       , bpm: 120.0
@@ -34,19 +35,25 @@ sceneUi =
   }
   where
     track1 =
-      { name: "foo"
+      { name: "Never Enough"
       , size: 4
       , current: 0
       }
 
     track2 =
-      { name: "bar"
+      { name: "Samurai"
       , size: 4
       , current: 0
       }
 
     track3 =
-      { name: "baz"
+      { name: "La melody"
+      , size: 6
+      , current: 0
+      }
+
+    track4 =
+      { name: "Big stones"
       , size: 6
       , current: 0
       }

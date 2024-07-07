@@ -28,21 +28,7 @@ import JSON as J
 main :: Effect Unit
 main = do
   oscPort <- newOscPort Const.oscConfig
-  {-
-  log "1"
-  -- runAff_ (const $ pure unit) $ delay $ Milliseconds 5000000.0
-  _ <- setTimeout 5000 (pure unit)
-  log "2"
-  oscPort.send $ setTrack 1
-  log "3"
-  -- withUiInfo oscPort (const $ pure unit)
-  -}
   withUiInfoExample (runApp oscPort)
-
-{-
-withUiInfo :: OscConfig -> (SceneUi -> Effect Unit) -> Effect Unit
-withUiInfo cont = cont Const.sceneUi
--}
 
 withUiInfoExample :: (SceneUi -> Effect Unit) -> Effect Unit
 withUiInfoExample cont = cont Const.sceneUi
@@ -66,9 +52,9 @@ hookComponent
   :: forall unusedQuery unusedInput unusedOutput
    . SceneUi -> OscClient -> H.Component unusedQuery unusedInput unusedOutput Aff
 hookComponent sceneUi sceneAct = Hooks.component \_ _ -> Hooks.do
-  enabled /\ enabledIdx <- Hooks.useState false
-  let label = if enabled then "On" else "Off"
-      ui = initScene sceneUi sceneAct.send
+  _enabled /\ _enabledIdx <- Hooks.useState false
+  let
+    ui = initScene sceneUi sceneAct.send
   Hooks.useLifecycleEffect do
     liftEffect $ do
       setter <- ui.setup
@@ -84,16 +70,5 @@ hookComponent sceneUi sceneAct = Hooks.component \_ _ -> Hooks.do
 
     pure Nothing
   let
-    button =
-        HH.button
-          [ HP.title label
-          , HE.onClick \_ -> Hooks.modify_ enabledIdx not
-          ]
-          [ HH.text label ]
-
-    view =
-      HH.div_
-        [ ui.html
-        , button
-        ]
+    view =  ui.html
   Hooks.pure view

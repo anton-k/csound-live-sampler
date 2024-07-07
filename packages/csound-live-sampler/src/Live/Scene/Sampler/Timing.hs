@@ -18,6 +18,7 @@ data Clip = Clip
   , measure :: Int
   , trackIndex :: Int
   , partIndex :: Int
+  , numOfParts :: Int
   }
   deriving (Eq, Show)
 
@@ -32,7 +33,7 @@ data St = St
 
 splitStem :: Int -> [TimeSlot] -> [Clip]
 splitStem trackIndex slots =
-  List.reverse . (.clips) $ List.foldl' go initSt slots
+  fillPartSize $ List.reverse . (.clips) $ List.foldl' go initSt slots
   where
     initSt =
       St
@@ -50,6 +51,11 @@ splitStem trackIndex slots =
       where
         timeScale = fromMaybe 1 slot.timeScale
         measure = fromMaybe (4, 4) slot.measure
+
+    fillPartSize :: [Clip] -> [Clip]
+    fillPartSize xs = fmap (\clip -> clip{numOfParts = size}) xs
+      where
+        size = length xs
 
 enterSlot :: TimeSlot -> St -> St
 enterSlot slot st =
@@ -86,6 +92,7 @@ splitSlot trackIndex timeScale measure st cue =
         , measure = fst measure
         , trackIndex
         , partIndex = st.partCounter
+        , numOfParts = 0 -- fill at the last step
         }
 
 -- | Converts beats to seconds

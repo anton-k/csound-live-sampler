@@ -5,6 +5,8 @@ module Osc.Client
   , newOscClient
   , SetListen
   , Clip (..)
+  , newOscPort
+  , readUiInfo
   ) where
 
 import Prelude
@@ -18,7 +20,14 @@ import Osc.Message as Osc
 import Effect.Ref
 import Data.Maybe
 import Data.Int (round)
+import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_, Canceler, makeAff, nonCanceler)
+import Data.Either
+import Scene.Config
+import Effect.Exception (Error)
+import Effect.Class (liftEffect)
+import JSON as J
 
+-- | Websocket address
 type OscConfig =
   { address :: String
   , port :: Int
@@ -54,9 +63,12 @@ type OscClient  =
   , listen :: SetListen
   }
 
-newOscClient :: OscConfig -> Effect OscClient
-newOscClient _config = do
-  client <- Osc.newWebsocketPort "ws://localhost:9090"
+newOscPort :: OscConfig -> Effect Osc.Port
+newOscPort config =
+  Osc.newWebsocketPort "ws://localhost:9090"-- (config.address <> ":" <> show config.port)
+
+newOscClient :: Osc.Port -> Effect OscClient
+newOscClient client = do
   listener <- new emptyListen
   runListener client listener
   pure $
@@ -119,6 +131,7 @@ newtype Clip = Clip
    , measure :: Number
    , trackIndex :: Number
    , partIndex :: Number
+   , numOfParts :: Number
    , nextAction :: Number
    }
 
@@ -135,8 +148,9 @@ instance Osc.ReadOsc Clip where
     , Osc.OscDouble measure
     , Osc.OscDouble trackIndex
     , Osc.OscDouble partIndex
+    , Osc.OscDouble numOfParts
     , Osc.OscDouble nextAction
-    ] -> Just (Clip {bpm, start, changeRate, beatSize, timeSize, measure, trackIndex, partIndex, nextAction})
+    ] -> Just (Clip {bpm, start, changeRate, beatSize, timeSize, measure, trackIndex, partIndex, numOfParts, nextAction})
     _ -> Nothing
 
 setListeners :: Ref Listen -> SetListen
@@ -183,3 +197,22 @@ initSamplerEcho =
 
 logValue :: forall a . Show a => String -> a -> Effect Unit
 logValue title value = log $ title <> ": " <> show value
+
+readUiInfo :: Osc.Port -> Aff (Either String SceneUi)
+readUiInfo oscPort = map toResult $ makeAff go
+  where
+    go :: (Either Error String -> Effect Unit) -> Effect Canceler
+    go cont = do
+      liftEffect $ oscPort.listen $ \msg -> do
+        Osc.oscCase_ msg
+          [ Osc.toOscCase "/ui/info/put" (cont <<< Right)
+          ] (const $ pure unit)
+      liftEffect $ oscPort.send { address: "/ui/info/get", args: [] }
+      pure $ nonCanceler
+
+    toResult :: String -> Either String SceneUi
+    toResult str = do
+      json <- J.parse str
+      note (errMNessage json) (sceneUiFromJson json)
+      where
+        errMNessage js = "Failed to parswe SceneUi from JSON: " <> J.printIndented js

@@ -121,6 +121,7 @@ findExtraPart clipMap columnName clipName = do
             , measure = int $ maybe 4 fst $ clip.config.measure
             , trackIndex = int 0
             , partIndex = int 0
+            , numOfParts = int 1
             }
       , track = toSig (getInstrRefIdNum clip.instr)
       }

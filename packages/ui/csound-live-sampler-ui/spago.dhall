@@ -29,6 +29,9 @@ to generate this file without the comments in this block.
   , "integers"
   , "refs"
   , "ordered-collections"
+  , "json"
+  , "either"
+  , "exceptions"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

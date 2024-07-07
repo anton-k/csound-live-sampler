@@ -1,12 +1,9 @@
 module Scene.Mixer
-  ( MixerUi
-  , MixerUiItem
-  , SetMixer
+  ( SetMixer
   , SetChannel
   , initMixer
   , initChannel
-  , Fx
-  , FxParam
+  , module Scene.Mixer.Config
   ) where
 
 import Prelude
@@ -39,27 +36,7 @@ import Action
 import Data.Map (Map)
 import Data.Map as Map
 import Effect.Ref (new, read, write)
-
-type MixerUi =
-  { items :: Array MixerUiItem
-  }
-
-type MixerUiItem =
-  { channel :: Int
-  , volume :: Number
-  , fxs :: Array Fx
-  , name :: Maybe String
-  }
-
-type Fx =
-  { name :: String
-  , params :: Array FxParam
-  }
-
-type FxParam =
-  { name :: String
-  , value :: Number
-  }
+import Scene.Mixer.Config
 
 type SetMixer =
   { setChannel :: Int -> SetChannel
@@ -87,7 +64,7 @@ emptySetChannel =
 initMixer :: forall w s . MixerUi -> Mixer -> Elem w s SetMixer
 initMixer mixer act =
   { setup: do
-      channelMap <- map Map.fromFoldable $ traverseWithIndex (\index item -> map (Tuple (index + 1)) item.setup) items
+      channelMap <- map Map.fromFoldable $ traverseWithIndex (\index item -> map (Tuple (index + 1)) item.setup) channels
       let
         getChannelSetters chanId =
           fromMaybe emptySetChannel (Map.lookup chanId channelMap)
@@ -95,10 +72,10 @@ initMixer mixer act =
         { setChannel: getChannelSetters
         }
   , html:
-      divClasses ["grid"] (map (\item -> toColumn item.html) items)
+      divClasses ["grid"] (map (\item -> toColumn item.html) channels)
   }
   where
-    items = map (initChannel act) mixer.items
+    channels = map (initChannel act) mixer.channels
 
     toColumn x = divClasses [] [x]
 
@@ -133,9 +110,10 @@ initChannel act item =
         , divId dialTarget []
         , divId "space1" [HH.p_ [HH.text " "]]
         , case item.name of
-              Just name -> divClasses [] [HH.text name]
+              Just name -> HH.div [HP.style "text-align:center"] [HH.text name]
               Nothing -> divClasses [] []
-        , if not (Array.null item.fxs) then button else divClasses [] []
+        -- TODO: display FXs with accordeon
+        -- , if not (Array.null item.fxs) then button else divClasses [] []
         ]
   }
   where

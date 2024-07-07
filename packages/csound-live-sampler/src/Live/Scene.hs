@@ -59,7 +59,7 @@ loadScene config = do
   let
     scene = Scene{audio, sampler, mixer}
   setupMidi audio mixer sampler midiConfig
-  mapM_ (\oscConfig -> setupOsc (OscConfigs oscConfig mixerConfig audioConfig) scene) mOscConfig
+  mapM_ (\oscConfig -> setupOsc (OscConfigs oscConfig mixerConfig samplerConfig audioConfig) scene) mOscConfig
   pure scene
   where
     (audioConfig, samplerConfig, mixerConfig, midiConfig, mOscConfig) = convertConfig config

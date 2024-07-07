@@ -1,8 +1,7 @@
 module Scene.Sampler
-  ( SamplerUi
-  , SetSampler
-  , Track
+  ( SetSampler
   , initSampler
+  , module Scene.Sampler.Config
   ) where
 
 import Prelude
@@ -28,23 +27,13 @@ import Effect.Console
 import Osc.Client (Clip (..))
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
+import Scene.Sampler.Config (SamplerUi, TrackUi)
 
 loopColor = "#24bcbc"
 playNextColor = "#001f3f"
 stopColor = "#FF4136"
-
-type SamplerUi =
-  { tracks :: Array Track
-  , current :: Maybe Int
-  , bpm :: Number
-  , measure :: Int
-  }
-
-type Track =
-  { name :: String
-  , size :: Int
-  , current :: Int
-  }
+partLabelColor = "#3D9970"
+partLabelLastPartColor = "#FF851B"
 
 type SetSampler =
   { setBpm :: Int -> Effect Unit
@@ -55,8 +44,8 @@ initSampler :: forall a b . SamplerUi -> Sampler -> Elem a b SetSampler
 initSampler sampler act =
   { setup: do
       bpm <- newRadioButtonBy "#bpm"
-        { size: (25.0 * 1.15 * toNumber sampler.measure) /\ 25.0
-        , numberOfButtons: sampler.measure
+        { size: (25.0 * 1.15 * toNumber defaultMeasure) /\ 25.0
+        , numberOfButtons: defaultMeasure
         , active: 0
         }
       prevTrack <- navButton "#prevTrack" "<<="
@@ -68,21 +57,14 @@ initSampler sampler act =
       prevPart.on Change $ onButtonOn $ act.shiftPart (-1)
       nextPart <- navButton "#nextPart" ">>"
       nextPart.on Change $ onButtonOn $ act.shiftPart 1
-      partLabel <- navButton "#partLabel" "1 : 4"
+      partLabel <- navDial "#partLabel"
+      partLabel.colorize AccentColor "#3D9970"
 
       trackList <- navSelect "#trackList" (map (_.name) sampler.tracks)
       trackList.on Change (\item -> do
                             act.setTrack (item.index + 1)
                             log (show item.index))
-      loopDial <- newDialBy "#loopDial"
-        { size: 37.0 /\ 37.0
-        , interaction: Radial
-        , mode: AbsoluteDial
-        , min: 0.0
-        , max: 1.0
-        , step: 0.0
-        , value: 0.25
-        }
+      loopDial <- navDial "#loopDial"
       loopCounter <- initLoopCounter 16
 
       pure
@@ -115,10 +97,10 @@ setBpm bpm counter loopDial n = do
   bpm.select n
   nextStep counter
 
-updatePart :: RadioButton -> Select -> TextButton -> LoopCounter -> Dial -> Clip -> Effect Unit
+updatePart :: RadioButton -> Select -> Dial -> LoopCounter -> Dial -> Clip -> Effect Unit
 updatePart bpm trackList partLabel loopCounter loopDial (Clip clip) = do
   updateBpm bpm (round clip.measure)
-  updatePartLabel partLabel (round clip.partIndex)
+  updatePartLabel partLabel (round clip.partIndex) (round clip.numOfParts)
   updateTrackList trackList (round clip.trackIndex)
   updateLoopDial loopDial (round clip.nextAction)
   resetCounter loopCounter (round clip.beatSize * 2) -- why do we need to multiply???
@@ -131,9 +113,15 @@ updateBpm bpm measure = do
     bpm.resize ((25.0 * 1.15 * toNumber measure) /\ 25.0)
 
 -- | TODO use part maximum per track from config
-updatePartLabel :: TextButton -> Int -> Effect Unit
-updatePartLabel partLabel n =
-  partLabel.setText (show (n + 1))
+updatePartLabel :: Dial -> Int -> Int -> Effect Unit
+updatePartLabel partLabel partIndex numOfParts = do
+  partLabel.setValue $
+    if numOfParts > 0
+      then toNumber (partIndex + 1) / toNumber numOfParts
+      else 0.0
+  if partIndex + 1 == numOfParts
+    then partLabel.colorize AccentColor partLabelLastPartColor
+    else partLabel.colorize AccentColor partLabelColor
 
 -- | TODO do not send OSC on update
 updateTrackList :: Select -> Int -> Effect Unit
@@ -173,6 +161,17 @@ navSelect target options = newSelectBy target
   , options: options
   }
 
+navDial :: String -> Effect Dial
+navDial target = newDialBy target
+  { size: 37.0 /\ 37.0
+  , interaction: Radial
+  , mode: AbsoluteDial
+  , min: 0.0
+  , max: 1.0
+  , step: 0.0
+  , value: 0.25
+  }
+
 type LoopCounter =
   { size :: Ref Int
   , step :: Ref Int
@@ -203,3 +202,6 @@ getCounterRatio counter = do
   pure $ if (size > 2)
     then toNumber (step + 1) / toNumber (size)
     else 0.0
+
+defaultMeasure :: Int
+defaultMeasure = 4

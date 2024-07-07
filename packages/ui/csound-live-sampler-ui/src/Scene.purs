@@ -1,6 +1,6 @@
 module Scene
-  ( SceneUi
-  , initScene
+  ( initScene
+  , module Scene.Config
   ) where
 
 import Prelude
@@ -11,11 +11,8 @@ import Scene.Html
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Action
-
-type SceneUi =
-  { mixer :: MixerUi
-  , sampler :: SamplerUi
-  }
+import Scene.Mixer.Config
+import Scene.Config
 
 type SetScene =
   { sampler :: SetSampler
@@ -42,4 +39,3 @@ initScene sceneUi sceneAct =
   where
     sampler = initSampler sceneUi.sampler sceneAct.sampler
     mixer = initMixer sceneUi.mixer sceneAct.mixer
-

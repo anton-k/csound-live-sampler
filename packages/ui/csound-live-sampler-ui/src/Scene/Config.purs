@@ -1,60 +1,27 @@
 module Scene.Config
-  ( sceneUi
-  , oscConfig
+  ( SceneUi
+  , sceneUiFromJson
   ) where
 
 import Prelude
-import Scene (SceneUi)
-import Data.Array (range)
 import Data.Maybe (Maybe(..))
-import Osc.Client
+import JSON (JSON)
+import JSON as Json
+import JSON.Object as Json
+import Data.Traversable (traverse)
+import JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt)
+import Scene.Mixer.Config (MixerUi, mixerUiFromJson)
+import Scene.Sampler.Config (SamplerUi, samplerUiFromJson)
 
-oscConfig :: OscConfig
-oscConfig =
-  { address: "127.0.0.1"
-  , port: 12400
+type SceneUi =
+  { mixer :: MixerUi
+  , sampler :: SamplerUi
   }
 
-sceneUi :: SceneUi
-sceneUi =
-  { mixer:
-      { items: map (\n -> { channel: n, volume: 0.5, fxs: [], name: Nothing }) (range 1 8)
-      }
-
-  , sampler:
-      { tracks:
-          [ track1
-          , track2
-          , track3
-          , track4
-          ]
-      , current: Nothing
-      , bpm: 120.0
-      , measure: 4
-      }
-  }
-  where
-    track1 =
-      { name: "Never Enough"
-      , size: 4
-      , current: 0
-      }
-
-    track2 =
-      { name: "Samurai"
-      , size: 4
-      , current: 0
-      }
-
-    track3 =
-      { name: "La melody"
-      , size: 6
-      , current: 0
-      }
-
-    track4 =
-      { name: "Big stones"
-      , size: 6
-      , current: 0
-      }
+sceneUiFromJson :: JSON -> Maybe SceneUi
+sceneUiFromJson json = do
+  obj <- Json.toJObject json
+  mixer <- mixerUiFromJson =<< Json.lookup "mixer" obj
+  sampler <- samplerUiFromJson =<< Json.lookup "sampler" obj
+  pure { mixer, sampler }
 

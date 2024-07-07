@@ -157,6 +157,7 @@ initPartArray tracks =
               , measure = int clip.measure
               , trackIndex = int clip.trackIndex
               , partIndex = int clip.partIndex
+              , numOfParts = int clip.numOfParts
               }
         }
 

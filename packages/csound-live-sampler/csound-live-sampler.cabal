@@ -51,6 +51,7 @@ library
     Live.Scene.Osc.Config
     Live.Scene.Osc.Input
     Live.Scene.Osc.Output
+    Live.Scene.Osc.Ui
     Live.Scene.Sampler
     Live.Scene.Sampler.Audio
     Live.Scene.Sampler.Config

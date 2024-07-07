@@ -1,5 +1,6 @@
 module Live.Scene.Osc.Output (
   setupOscOutput,
+  send,
 ) where
 
 import Csound.Core

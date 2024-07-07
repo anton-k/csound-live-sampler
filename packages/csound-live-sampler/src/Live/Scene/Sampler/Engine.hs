@@ -39,6 +39,7 @@ data Clip = Clip
   , measure :: Sig
   , trackIndex :: Sig
   , partIndex :: Sig
+  , numOfParts :: Sig
   , nextAction :: Sig
   -- ^
   -- next actions:
@@ -53,13 +54,13 @@ playNext = 1
 stopPlayback = 2
 
 instance FromTuple Clip where
-  fromTuple (Clip a b c d e f g h i) = fromTuple ((a, b, c, d), (e, f, g, h, i))
+  fromTuple (Clip a b c d e f g h i j) = fromTuple ((a, b, c, d), (e, f, g, h, i, j))
 
 instance Tuple Clip where
-  tupleArity = 9
-  tupleRates = replicate 9 Kr
-  defTuple = Clip 0 0 0 0 0 0 0 0 0
-  toTuple = (\((a, b, c, d), (e, f, g, h, i)) -> Clip a b c d e f g h i) . toTuple
+  tupleArity = 10
+  tupleRates = replicate 10 Kr
+  defTuple = Clip 0 0 0 0 0 0 0 0 0 0
+  toTuple = (\((a, b, c, d), (e, f, g, h, i, j)) -> Clip a b c d e f g h i j) . toTuple
 
 data Part = Part
   { clip :: Clip
@@ -152,6 +153,7 @@ data ClipSt f = ClipSt
   , measure :: f Sig
   , trackIndex :: f Sig
   , partIndex :: f Sig
+  , numOfParts :: f Sig
   }
 
 {-| Column of clips. All clips in single column can not be played at the same time
@@ -175,6 +177,7 @@ copyClipTo update from to =
     , (.measure)
     , (.trackIndex)
     , (.partIndex)
+    , (.numOfParts)
     ]
   where
     copy f = update.write (f to) =<< update.read (f from)
@@ -251,6 +254,7 @@ readClipSt st = do
   nextAction <- readRef st.current.nextAction
   trackIndex <- readRef st.current.trackIndex
   partIndex <- readRef st.current.partIndex
+  numOfParts <- readRef st.current.numOfParts
   pure Clip{..}
 
 initClipRef :: SE ClipRef
@@ -268,6 +272,7 @@ initClipSt cons = do
   measure <- cons 1
   trackIndex <- cons 0
   partIndex <- cons 0
+  numOfParts <- cons 1
   pure ClipSt{..}
 
 type GetNextPart = SE Part
@@ -369,7 +374,7 @@ onChanges getNextPart boundary bpm beatCounter isMainClipChange current next = d
   isClip <- isClipChange refUpdate current next
   whens
     [
-      ( boundary.isChange &&* isClip
+      ( (boundary.isChange ||* boundary.isLoop) &&* isClip
       , do
           onChange bpm beatCounter current next
           writeRef isMainClipChange 1
@@ -386,14 +391,11 @@ isClipChange update current next = do
 
 onChange :: Bpm -> Counter Ref -> ClipRef -> ClipRef -> SE ()
 onChange bpm beatCounter current next = do
-  currentTrackId <- readTrackId refUpdate current
   nextTrackId <- readTrackId refUpdate next
-
-  when1 (notB $ equalTrackId currentTrackId nextTrackId) $ do
-    stopClip refUpdate current
-    scheduleClip bpm next
-    copyClipTo refUpdate next current
-    resetCounter beatCounter nextTrackId.measure
+  stopClip refUpdate current
+  scheduleClip bpm next
+  copyClipTo refUpdate next current
+  resetCounter beatCounter nextTrackId.measure
 
 stopClip :: Update f -> ClipSt f -> SE ()
 stopClip update clip = do
@@ -521,6 +523,7 @@ setNextPart writeTo next part = do
   write (.measure) part.clip.measure
   write (.trackIndex) part.clip.trackIndex
   write (.partIndex) part.clip.partIndex
+  write (.numOfParts) part.clip.numOfParts
   where
     write f = writeTo (f next)
 

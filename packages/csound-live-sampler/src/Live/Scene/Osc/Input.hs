@@ -1,6 +1,7 @@
 module Live.Scene.Osc.Input (
   setupOscInput,
   OscConfigs (..),
+  OscInputDep (..),
 ) where
 
 import Control.Monad
@@ -25,19 +26,25 @@ import Live.Scene.Types
 data OscConfigs = OscConfigs
   { osc :: OscConfig ChannelId
   , mixer :: MixerConfig ChannelId
+  , sampler :: SamplerConfig ChannelId
   , card :: AudioConfig ChannelId
   }
 
-setupOscInput :: Scene -> OscConfigs -> OscInputConfig -> SE ()
-setupOscInput scene oscConfig config = do
-  instrRef <- newProc (\() -> oscInputInstr scene oscConfig config)
+data OscInputDep = OscInputDep
+  { sendUiInfo :: BoolSig -> Str -> SE ()
+  }
+
+setupOscInput :: Scene -> OscConfigs -> OscInputDep -> OscInputConfig -> SE ()
+setupOscInput scene oscConfig dep config = do
+  instrRef <- newProc (\() -> oscInputInstr scene oscConfig dep config)
   play instrRef [Note 0 (-1) ()]
 
-oscInputInstr :: Scene -> OscConfigs -> OscInputConfig -> SE ()
-oscInputInstr scene oscConfig config = do
+oscInputInstr :: Scene -> OscConfigs -> OscInputDep -> OscInputConfig -> SE ()
+oscInputInstr scene oscConfig dep config = do
   listenMixer scene.mixer oscConfig.mixer oscHandle
   listenSampler scene.sampler oscHandle
   listenAudioCard scene.audio oscConfig.card oscHandle
+  listenUiInfo oscHandle dep
   where
     oscHandle = oscInit (int config.port)
 
@@ -173,3 +180,9 @@ listenUnit oscHandle addr cont = do
   ref <- newLocalCtrlRef ()
   hasMessage <- oscListen oscHandle (fromString addr) ref
   when1 hasMessage cont
+
+listenUiInfo :: OscHandle -> OscInputDep -> SE ()
+listenUiInfo oscHandle dep = do
+  ref <- newLocalCtrlRef ()
+  hasMessage <- oscListen oscHandle "/ui/info/get" ref
+  dep.sendUiInfo hasMessage "/ui/info/put"

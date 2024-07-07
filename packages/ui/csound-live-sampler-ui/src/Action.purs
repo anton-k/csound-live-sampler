@@ -5,6 +5,7 @@ module Action
   , Scene
   , Mixer
   , Sampler
+  , Info
   ) where
 
 import Prelude
@@ -17,6 +18,7 @@ type TrackId = Int
 type Scene =
   { mixer :: Mixer
   , sampler :: Sampler
+  , info :: Info
   }
 
 type Mixer =
@@ -28,4 +30,8 @@ type Sampler =
   { setTrack :: TrackId -> Effect Unit
   , shiftTrack :: Int -> Effect Unit
   , shiftPart :: Int -> Effect Unit
+  }
+
+type Info =
+  { getCurrentPart :: Effect Unit
   }

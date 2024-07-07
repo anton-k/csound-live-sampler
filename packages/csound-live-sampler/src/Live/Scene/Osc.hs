@@ -4,6 +4,7 @@ module Live.Scene.Osc (
 ) where
 
 import Csound.Core
+import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Osc.Config
 import Live.Scene.Osc.Input
 import Live.Scene.Osc.Output
@@ -17,11 +18,17 @@ setupOsc config scene = do
   where
     inputDep =
       OscInputDep
-        { sendUiInfo = \isSend address ->
-            case config.osc.output of
-              Just outputConfig -> send outputConfig (ifB isSend 1 0) address uiInfo
-              Nothing -> pure ()
+        { sendUiInfo = \isSend address -> withOutput $ \outputConfig ->
+            send outputConfig (ifB isSend 1 0) address uiInfo
+        , sendCurrentPart = \isSend -> withOutput $ \outputConfig ->
+            sendCurrentSamplerPart outputConfig scene.sampler (ifB isSend 1 0)
         }
 
     uiInfo :: Str
     uiInfo = getUiOscMessage config.mixer config.sampler
+
+    withOutput :: (OscOutputConfig ChannelId -> SE ()) -> SE ()
+    withOutput cont =
+      case config.osc.output of
+        Just outputConfig -> cont outputConfig
+        Nothing -> pure ()

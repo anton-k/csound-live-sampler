@@ -9,6 +9,7 @@ module Osc.Message
   , prevPart
   , shiftTrack
   , shiftPart
+  , getCurrentPart
   ) where
 
 import Prelude
@@ -56,3 +57,9 @@ nextPart = shiftPart 1
 
 prevPart :: Osc
 prevPart = shiftPart (-1)
+
+getCurrentPart :: Osc
+getCurrentPart =
+  { address: "/getCurrentPart"
+  , args: []
+  }

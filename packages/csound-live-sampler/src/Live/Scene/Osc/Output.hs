@@ -1,6 +1,7 @@
 module Live.Scene.Osc.Output (
   setupOscOutput,
   send,
+  sendCurrentSamplerPart,
 ) where
 
 import Csound.Core
@@ -38,6 +39,10 @@ sendTicks sampler config = do
 sendTrackChange :: Sampler -> OscOutputConfig ChannelId -> SE ()
 sendTrackChange sampler config = do
   isClipChange <- sampler.readIsMainClipChange
+  sendCurrentSamplerPart config sampler isClipChange
+
+sendCurrentSamplerPart :: OscOutputConfig ChannelId -> Sampler -> Sig -> SE ()
+sendCurrentSamplerPart config sampler isClipChange = do
   clip <- sampler.readClip
   send config isClipChange "/part/change" clip
 

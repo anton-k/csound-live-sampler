@@ -75,6 +75,7 @@ newOscClient client = do
     { send:
         { mixer: initMixer client
         , sampler: initSampler client
+        , info: initInfo client
         }
     , listen: setListeners listener
     }
@@ -175,11 +176,17 @@ initSampler port =
   , shiftPart: port.send <<< Osc.shiftPart
   }
 
+initInfo :: Osc.Port -> Info
+initInfo port =
+  { getCurrentPart: port.send Osc.getCurrentPart
+  }
+
 newOscEcho :: OscConfig -> Effect Scene
 newOscEcho _config = do
   pure
     { mixer: initMixerEcho
     , sampler: initSamplerEcho
+    , info: initInfoEcho
     }
 
 initMixerEcho :: Mixer
@@ -193,6 +200,11 @@ initSamplerEcho =
   { setTrack: logValue "Set track"
   , shiftTrack: logValue "Shift track"
   , shiftPart: logValue "Shift part"
+  }
+
+initInfoEcho :: Info
+initInfoEcho =
+  { getCurrentPart: log "Get current track"
   }
 
 logValue :: forall a . Show a => String -> a -> Effect Unit

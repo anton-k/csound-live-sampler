@@ -32,6 +32,7 @@ data OscConfigs = OscConfigs
 
 data OscInputDep = OscInputDep
   { sendUiInfo :: BoolSig -> Str -> SE ()
+  , sendCurrentPart :: BoolSig -> SE ()
   }
 
 setupOscInput :: Scene -> OscConfigs -> OscInputDep -> OscInputConfig -> SE ()
@@ -45,6 +46,7 @@ oscInputInstr scene oscConfig dep config = do
   listenSampler scene.sampler oscHandle
   listenAudioCard scene.audio oscConfig.card oscHandle
   listenUiInfo oscHandle dep
+  listenGetCurrentPart oscHandle dep
   where
     oscHandle = oscInit (int config.port)
 
@@ -186,3 +188,9 @@ listenUiInfo oscHandle dep = do
   ref <- newLocalCtrlRef ()
   hasMessage <- oscListen oscHandle "/ui/info/get" ref
   dep.sendUiInfo hasMessage "/ui/info/put"
+
+listenGetCurrentPart :: OscHandle -> OscInputDep -> SE ()
+listenGetCurrentPart oscHandle dep = do
+  ref <- newLocalCtrlRef ()
+  hasMessage <- oscListen oscHandle "/getCurrentPart" ref
+  dep.sendCurrentPart hasMessage

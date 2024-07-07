@@ -80,6 +80,7 @@ hookComponent sceneUi sceneAct = Hooks.component \_ _ -> Hooks.do
       sceneAct.listen.channelMute
         (\chanId val -> (setter.mixer.setChannel chanId).setMute val)
       sceneAct.listen.partChange setter.sampler.setPart
+      sceneAct.send.info.getCurrentPart
 
     pure Nothing
   let

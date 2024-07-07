@@ -37,6 +37,7 @@ import Data.Map (Map)
 import Data.Map as Map
 import Effect.Ref (new, read, write)
 import Scene.Mixer.Config
+import Osc.Client (newOscControl)
 
 type SetMixer =
   { setChannel :: Int -> SetChannel
@@ -120,25 +121,6 @@ initChannel act item =
     barTarget = "bar" <> show item.channel
     dialTarget = "dial" <> show item.channel
     button = textButton "FX"
-
-type Control =
-  { set :: Number -> Effect Unit
-  , silent :: Effect Unit -> Effect Unit
-  }
-
-newOscControl :: (Number -> Effect Unit) -> Effect Control
-newOscControl setter = do
-  isActiveRef <- new true
-  pure $
-    { set: \value -> do
-        isActive <- read isActiveRef
-        when isActive $ setter value
-    , silent: \act -> do
-        write false isActiveRef
-        res <- act
-        write true isActiveRef
-        pure res
-    }
 
 initBar :: String -> Int -> Number -> Effect Ui.Multislider
 initBar target n initValue = do

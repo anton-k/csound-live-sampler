@@ -7,6 +7,8 @@ module Osc.Client
   , Clip (..)
   , newOscPort
   , readUiInfo
+  , Control
+  , newOscControl
   ) where
 
 import Prelude
@@ -228,3 +230,22 @@ readUiInfo oscPort = map toResult $ makeAff go
       note (errMNessage json) (sceneUiFromJson json)
       where
         errMNessage js = "Failed to parswe SceneUi from JSON: " <> J.printIndented js
+
+type Control a =
+  { set :: a -> Effect Unit
+  , silent :: Effect Unit -> Effect Unit
+  }
+
+newOscControl :: forall a . (a -> Effect Unit) -> Effect (Control a)
+newOscControl setter = do
+  isActiveRef <- new true
+  pure $
+    { set: \value -> do
+        isActive <- read isActiveRef
+        when isActive $ setter value
+    , silent: \act -> do
+        write false isActiveRef
+        res <- act
+        write true isActiveRef
+        pure res
+    }

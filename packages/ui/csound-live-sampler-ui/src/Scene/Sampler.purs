@@ -28,6 +28,7 @@ import Osc.Client (Clip (..))
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Scene.Sampler.Config (SamplerUi, TrackUi)
+import Osc.Client (Control, newOscControl)
 
 loopColor = "#24bcbc"
 playNextColor = "#001f3f"
@@ -61,15 +62,15 @@ initSampler sampler act =
       partLabel.colorize AccentColor "#3D9970"
 
       trackList <- navSelect "#trackList" (map (_.name) sampler.tracks)
-      trackList.on Change (\item -> do
-                            act.setTrack (item.index + 1)
-                            log (show item.index))
+      sendOscTrack <- newOscControl $ \item ->
+        act.setTrack (item.index + 1)
+      trackList.on Change sendOscTrack.set
       loopDial <- navDial "#loopDial"
       loopCounter <- initLoopCounter 16
 
       pure
         { setBpm: setBpm bpm loopCounter loopDial
-        , setPart: updatePart bpm trackList partLabel loopCounter loopDial
+        , setPart: updatePart bpm trackList sendOscTrack partLabel loopCounter loopDial
         }
 
   , html:
@@ -97,11 +98,11 @@ setBpm bpm counter loopDial n = do
   bpm.select n
   nextStep counter
 
-updatePart :: RadioButton -> Select -> Dial -> LoopCounter -> Dial -> Clip -> Effect Unit
-updatePart bpm trackList partLabel loopCounter loopDial (Clip clip) = do
+updatePart :: RadioButton -> Select -> Control SelectItem -> Dial -> LoopCounter -> Dial -> Clip -> Effect Unit
+updatePart bpm trackList sendOscTrack partLabel loopCounter loopDial (Clip clip) = do
   updateBpm bpm (round clip.measure)
   updatePartLabel partLabel (round clip.partIndex) (round clip.numOfParts)
-  updateTrackList trackList (round clip.trackIndex)
+  updateTrackList trackList sendOscTrack (round clip.trackIndex)
   updateLoopDial loopDial (round clip.nextAction)
   resetCounter loopCounter (round clip.beatSize * 2) -- why do we need to multiply???
 
@@ -124,11 +125,11 @@ updatePartLabel partLabel partIndex numOfParts = do
     else partLabel.colorize AccentColor partLabelColor
 
 -- | TODO do not send OSC on update
-updateTrackList :: Select -> Int -> Effect Unit
-updateTrackList trackList trackIndex = do
+updateTrackList :: Select -> Control SelectItem -> Int -> Effect Unit
+updateTrackList trackList sendOscTrack trackIndex = do
   index <- trackList.getSelectedIndex
   when (index /= trackIndex) $
-    trackList.setSelectedIndex trackIndex
+    sendOscTrack.silent $ trackList.setSelectedIndex trackIndex
 
 updateLoopDial :: Dial -> Int -> Effect Unit
 updateLoopDial loopDial n = case n of

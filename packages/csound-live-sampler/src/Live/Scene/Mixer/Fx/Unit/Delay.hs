@@ -33,8 +33,8 @@ delayFx (Bpm readBpm) params config ins = do
   feedback <- param "feedback"
   damp <- param "damp"
   let
-    time = toSig (toDelayTime bpm (float config.repeatTime))
-  pure $ at (\x -> analogDelay x dryWet time feedback damp) ins
+    time = toDelayTime bpm (float config.repeatTime)
+  pure $ at (\x -> analogDelay x dryWet (toSig time) feedback damp (1.1 * time)) ins
   where
     param = readParam params
 
@@ -65,7 +65,7 @@ pingPongFx (Bpm readBpm) params config ins = do
   damp <- param "damp"
   let
     time = toDelayTime bpm (float config.repeatTime)
-  pure $ pingPongDelay ins (toSig time) feedback dryWet width damp (time * 2)
+  pure $ pingPongDelay ins (toSig time) feedback dryWet width damp (time * 1.1)
   where
     param = readParam params
 

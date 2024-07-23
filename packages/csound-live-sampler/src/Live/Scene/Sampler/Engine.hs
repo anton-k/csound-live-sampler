@@ -73,7 +73,7 @@ instance FromTuple Part where
 instance Tuple Part where
   tupleArity = tupleArity @(Clip, ClipInstr)
   tupleRates = tupleRates @(Clip, ClipInstr)
-  defTuple = Part defTuple (-1)
+  defTuple = Part defTuple 0
   toTuple = (\(a, b) -> Part a b) . toTuple
 
 type ColumnId = Sig
@@ -393,21 +393,21 @@ onChange :: Bpm -> Counter Ref -> ClipRef -> ClipRef -> SE ()
 onChange bpm beatCounter current next = do
   nextTrackId <- readTrackId refUpdate next
   stopClip refUpdate current
-  scheduleClip bpm next
   copyClipTo refUpdate next current
   resetCounter beatCounter nextTrackId.measure
+  scheduleClip bpm next
 
 stopClip :: Update f -> ClipSt f -> SE ()
 stopClip update clip = do
   track <- update.read clip.track
-  when1 (track >=* 0) $
+  when1 (track >* 0) $
     turnoff2 (instrRefFromNum @D $ toD track) 0 0.05
 
 scheduleClip :: Bpm -> ClipRef -> SE ()
 scheduleClip (Bpm bpmRef) clip = do
   writeRef bpmRef =<< readRef clip.bpm
   TrackId track start dur _bpm _measure <- readTrackId refUpdate clip
-  when1 (track >=* 0) $ play (instrRefFromNum $ toD track) [Note 0 (toD dur) (toD start)]
+  when1 (track >* 0) $ eventD "i" (toD track) 0 dur start
 
 data TrackId = TrackId
   { track :: Sig
@@ -471,8 +471,8 @@ isStopPlayback x = x ==* toSig stopPlayback
 
 onStopPlayback :: Update f -> ClipSt f -> ClipSt f -> SE ()
 onStopPlayback update current next = do
-  update.write current.track (-1)
-  update.write next.track (-1)
+  update.write current.track 0
+  update.write next.track 0
 
 data IsBoundary = IsBoundary
   { isChange :: BoolSig

@@ -23,3 +23,4 @@ extra-deps:
 
   - temporal-media-0.6.3@sha256:7a27d711a786c3dc9163433627e51efcc4b3fce3a947b71c29f3e388f37cae59,857
 
+notify-if-nix-on-path: false

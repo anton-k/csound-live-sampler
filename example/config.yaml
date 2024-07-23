@@ -28,12 +28,14 @@ mixer:
     - volume: 1
       name: reverb-bus
       fxs:
+        # TODO: AnalogDelay UDO causes segmentation fault **sometimes**
+        #   probably from usage of ftgentmp opcodes
         - delay:
             name: delay-bus
             repeatTime: 2
             damp: 0.7
             feedback: 0.5
-            dryWet: 0.3
+            dryWet: 0.2
         - reverb:
             name: reverb-bus
             size: 0.5
@@ -711,30 +713,6 @@ controllers:
         act:
           - on:
               channelVolume: 8
-
-      - when:
-          key: knob11
-        act:
-          - on:
-              fxParam:
-                name: drum-delay-1
-                param: dryWet
-
-      - when:
-          key: knob12
-        act:
-          - on:
-              fxParam:
-                name: drum-delay-2
-                param: dryWet
-
-      - when:
-          key: knob13
-        act:
-          - on:
-              fxParam:
-                name: drum-delay-3
-                param: dryWet
 
       - when:
           key: knob23

@@ -19,17 +19,26 @@ V1 implements cli app that can run live performances with features:
 * [x] haskell lib for OSC controlling from ghci
 * [x] UI sketch to control over OSC
 * [x] metronome output
+* [ ] UI FXs (accordion)
 * [ ] Looper FX synced on BPM
 * [ ] OSC sensors for channels volumes, master volume, maybe spectrum
 * [ ] Pads playback. Play files that are not synced on bpm
 * [ ] Rhytmic tremolo FX
 * [ ] Cross fade and XY-pad controls
 * [ ] Envelops that depend on clip-transitions (for pre-tackts)
-* [ ] play random short snippets of the file on event 
+* [ ] configurable UI 
+       * [ ] colors
+       * [ ] layout of the elements
+* [ ] Beat-repeater effect
 
 ### v3
 
 * [ ] play random snippets in style of music for airports (for PADs and ambience)
+* [ ] play random short snippets of the file on event 
+* [ ] play random short files from the list
+
+### v4
+
 * [ ] UI app with OSC
 * [ ] LFO controls
 * [ ] sound fonts

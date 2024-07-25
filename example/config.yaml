@@ -55,10 +55,9 @@ sampler:
     - Wade
     - In focus
 
-  metronome:
-    tone:
-      stick
-    channel: metronome
+  # metronome:
+  #  tone: stick
+  #  channel: metronome
 
   dir: "../tracks"
   tracks :

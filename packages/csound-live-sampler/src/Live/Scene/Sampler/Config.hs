@@ -12,6 +12,8 @@ module Live.Scene.Sampler.Config (
   ClipGroupConfig (..),
   ClipMode (..),
   NextAction (..),
+  MetronomeConfig (..),
+  MetronomeToneConfig (..),
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -19,12 +21,14 @@ import Data.Aeson qualified as Json
 import Data.Aeson.TH qualified as Json
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Live.Scene.Common.Aeson (dropSuffix)
 
 data SamplerConfig chan = SamplerConfig
   { tracks :: [TrackConfig chan]
   , clips :: Maybe (ClipsConfig chan)
   , dir :: Maybe FilePath
   , playlist :: Maybe [Text]
+  , metronome :: Maybe (MetronomeConfig chan)
   }
   deriving (Functor)
 
@@ -110,6 +114,17 @@ data ClipConfig a = ClipConfig
 
 data ClipMode = Diskin | Flooper -- TODO: Mincer
 
+data MetronomeConfig chan = MetronomeConfig
+  { tone :: Maybe MetronomeToneConfig
+  , channel :: chan
+  }
+  deriving (Functor)
+
+data MetronomeToneConfig
+  = NoiseMetronomeTone
+  | BeepMetronomeTone
+  | StickMetronomeTone
+
 -- JSON instances
 
 instance ToJSON ClipMode where
@@ -136,6 +151,8 @@ instance FromJSON NextAction where
     "stop" -> pure StopPlayback
     other -> fail $ Text.unpack ("Failed to parse: " <> other)
 
+$(Json.deriveJSON (Json.defaultOptions{Json.constructorTagModifier = dropSuffix "MetronomeTone"}) ''MetronomeToneConfig)
+$(Json.deriveJSON Json.defaultOptions ''MetronomeConfig)
 $(Json.deriveJSON Json.defaultOptions ''ClipConfig)
 $(Json.deriveJSON Json.defaultOptions ''ClipGroupConfig)
 $(Json.deriveJSON Json.defaultOptions ''ClipColumnConfig)

@@ -8,6 +8,7 @@ module Live.Scene.Sampler (
 ) where
 
 import Csound.Core
+import Data.Boolean (false, true, (==*))
 import Data.List qualified as List
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
@@ -16,6 +17,7 @@ import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Sampler.Audio
 import Live.Scene.Sampler.Config as X
 import Live.Scene.Sampler.Engine
+import Live.Scene.Sampler.Metronome (MetronomeDeps (..), newMetronomeInstr, playMetronome)
 import Live.Scene.Sampler.Playlist (
   Cursor (..),
   Playlist (..),
@@ -51,6 +53,7 @@ newSampler configUnordered deps = do
       nextPart playlist.cursor
       getPart playlist
   engine <- newEngine getNextPart (getExtraClipColumnSize config)
+  mapM_ (runMetronome deps engine.readTicks engine.currentBeat) config.metronome
   pure $
     Sampler
       { cursor = initSamplerCursor playlist engine
@@ -150,3 +153,15 @@ initSamplerCursor playlist engine =
         part <- playlist.getPart
         engine.setTrackPart part
     }
+
+runMetronome :: SamplerDeps -> SE Sig -> SE Sig -> MetronomeConfig ChannelId -> SE ()
+runMetronome deps readClicks currentBeat config = do
+  metronomeInstr <- newMetronomeInstr (toMetronomeDeps deps) config
+  clicks <- readClicks
+  beat <- currentBeat
+  when1 (clicks ==* 1) $
+    whens
+      [(beat ==* 0, playMetronome metronomeInstr true)]
+      (playMetronome metronomeInstr false)
+  where
+    toMetronomeDeps SamplerDeps{..} = MetronomeDeps{..}

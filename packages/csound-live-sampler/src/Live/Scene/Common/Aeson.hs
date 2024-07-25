@@ -1,5 +1,6 @@
 module Live.Scene.Common.Aeson (
   dropPrefix,
+  dropSuffix,
   headToLower,
 ) where
 
@@ -8,7 +9,12 @@ import Data.List qualified as List
 
 dropPrefix :: String -> String -> String
 dropPrefix prefix str
-  | List.isPrefixOf prefix str = headToLower $ drop 3 str
+  | List.isPrefixOf prefix str = headToLower $ drop (length prefix) str
+  | otherwise = headToLower str
+
+dropSuffix :: String -> String -> String
+dropSuffix suffix str
+  | List.isSuffixOf suffix str = headToLower $ reverse $ drop (length suffix) (reverse str)
   | otherwise = headToLower str
 
 headToLower :: String -> String

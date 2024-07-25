@@ -25,6 +25,7 @@ mixer:
     - name: core
       volume: 1
     - volume: 1
+      name: metronome
     - volume: 1
       name: reverb-bus
       fxs:
@@ -53,6 +54,11 @@ sampler:
     - Mowgli
     - Wade
     - In focus
+
+  metronome:
+    tone:
+      stick
+    channel: metronome
 
   dir: "../tracks"
   tracks :

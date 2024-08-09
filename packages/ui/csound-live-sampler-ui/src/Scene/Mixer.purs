@@ -32,6 +32,7 @@ import Data.Array (range)
 import Scene.Elem
 import Scene.Html
 import Data.Array as Array
+import Data.String as String
 import Action
 import Data.Map (Map)
 import Data.Map as Map
@@ -65,20 +66,28 @@ emptySetChannel =
 initMixer :: forall w s . MixerUi -> Mixer -> Elem w s SetMixer
 initMixer mixer act =
   { setup: do
-      channelMap <- map Map.fromFoldable $ traverseWithIndex (\index item -> map (Tuple (index + 1)) item.setup) channels
+      channelMap <-
+        map Map.fromFoldable $
+          traverseWithIndex
+            (\index item -> map (Tuple (index + 1)) item.setup)
+            channels
       let
         getChannelSetters chanId =
           fromMaybe emptySetChannel (Map.lookup chanId channelMap)
+      traverse_ fxChannelSetup fxs
       pure
         { setChannel: getChannelSetters
         }
   , html:
-      divClasses ["grid"] (map (\item -> toColumn item.html) channels)
+      withFxs fxs $
+        divClasses ["grid"] (map (\item -> toColumn item.html) channels)
   }
   where
     channels = map (initChannel act) mixer.channels
 
     toColumn x = divClasses [] [x]
+
+    fxs = toChannelFxUis mixer
 
 initChannel :: forall w s . Mixer -> MixerUiItem -> Elem w s SetChannel
 initChannel act item =
@@ -137,3 +146,57 @@ initBar target n initValue = do
     }
   bar.on Ui.Change (\val -> log ("Slider" <> show n <> ": " <> show val))
   pure bar
+
+-- * FXs
+
+toFxHtml :: forall w i. String -> Fx -> HH.HTML w i
+toFxHtml channelName fx = HH.li []
+  [ divClasses ["grid"] $
+      [HH.div [] [HH.text fx.name]] <> map (fromFxParam channelName fx.name) fx.params
+  ]
+
+fromFxParam :: forall w i. String -> String -> FxParam -> HH.HTML w i
+fromFxParam channelName fxName param =
+  HH.div []
+    [ divId (toFxId channelName fxName param.name) []
+    , HH.div [HP.style "text-align:left"] [HH.text param.name]
+    ]
+
+withFxs :: forall w i. Array ChannelFxUi -> HH.HTML w i -> HH.HTML w i
+withFxs fxs x
+  | Array.null fxs = x
+  | otherwise =
+      HH.div []
+        [ x
+        , HH.div [] [HH.p [] [HH.text "  "]]
+        , HH.div [] [HH.p [] [HH.text "  "]]
+        , fxHtml fxs
+        ]
+
+fxHtml :: forall w i. Array ChannelFxUi -> HH.HTML w i
+fxHtml fxs =
+  accordion "FXs" $
+    HH.div [] (map toChannelFxHtml fxs)
+
+toChannelFxHtml :: forall w i. ChannelFxUi -> HH.HTML w i
+toChannelFxHtml chan =
+  accordion chan.name $
+    HH.ul [] (map (toFxHtml chan.name) chan.fxs)
+
+toFxId :: String -> String -> String -> String
+toFxId channelName fxName paramName =
+  String.joinWith "."
+    ["fx", channelName, fxName, paramName]
+
+fxChannelSetup :: ChannelFxUi -> Effect Unit
+fxChannelSetup chan =
+  traverse_ (fxSetup chan.name) chan.fxs
+
+fxSetup :: String -> Fx -> Effect Unit
+fxSetup channelName fx =
+  traverse_ (fxParamSetup channelName fx.name) fx.params
+
+fxParamSetup :: String -> String -> FxParam -> Effect Unit
+fxParamSetup channelName fxName param = do
+  dial <- Ui.newDial ("#" <> toFxId channelName fxName param.name)
+  dial.setValue param.value

@@ -28,10 +28,7 @@ import JSON as J
 main :: Effect Unit
 main = do
   oscPort <- newOscPort Const.oscConfig
-  withUiInfoExample (runApp oscPort)
-
-withUiInfoExample :: (SceneUi -> Effect Unit) -> Effect Unit
-withUiInfoExample cont = cont Const.sceneUi
+  runApp oscPort Const.sceneUi
 
 runApp :: Osc.Port -> SceneUi -> Effect Unit
 runApp oscPort sceneUiExample = do

@@ -32,6 +32,7 @@ to generate this file without the comments in this block.
   , "json"
   , "either"
   , "exceptions"
+  , "strings"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

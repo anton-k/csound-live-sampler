@@ -5,6 +5,7 @@ module Scene.Html
   , row
   , col
   , textButton
+  , accordion
   ) where
 
 import Prelude
@@ -24,3 +25,10 @@ textButton label =
       -- , HE.onClick \_ -> Hooks.pure unit
       ]
       [ HH.text label ]
+
+accordion :: forall w i. String -> HH.HTML w i -> HH.HTML w i
+accordion title body =
+  HH.details []
+    [ HH.summary [HP.classes [HH.ClassName "outline", HH.ClassName "constrast"]] [HH.text title]
+    , body
+    ]

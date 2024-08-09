@@ -4,6 +4,8 @@ module Scene.Mixer.Config
   , Fx
   , FxParam
   , mixerUiFromJson
+  , ChannelFxUi
+  , toChannelFxUis
   ) where
 
 import Prelude
@@ -14,6 +16,8 @@ import JSON.Object as Json
 import Data.Int (round)
 import Data.Traversable (traverse)
 import JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt)
+import Data.Array as Array
+import Data.Maybe (fromMaybe)
 
 type MixerUi =
   { channels :: Array MixerUiItem
@@ -67,3 +71,23 @@ fxParamFromJson json = do
   name <- lookupString "name" obj
   value <- lookupNumber "value" obj
   pure { name, value }
+
+type ChannelFxUi =
+  { name :: String
+  , fxs :: Array Fx
+  }
+
+toChannelFxUis :: MixerUi -> Array ChannelFxUi
+toChannelFxUis ui =
+  map (\chan ->
+          { name: toChannelName chan
+          , fxs: chan.fxs
+          }
+      )
+      fxChannels
+  where
+    fxChannels = Array.filter (\channel -> Array.length channel.fxs /= 0) ui.channels
+
+    toChannelName :: MixerUiItem -> String
+    toChannelName chan =
+      fromMaybe ("Channel " <> show chan.channel) chan.name

@@ -169,7 +169,7 @@ toKnobAct audio mixer note knob =
       audio.setInputGain inputId $
         (applyRange $ readKnobValue note / 127)
   where
-    toFxParamId :: SetFxParamConfig -> FxParamId
+    toFxParamId :: SetFxParamConfig ChannelId -> FxParamId
     toFxParamId SetFxParamConfig{..} = FxParamId{..}
 
     applyRange :: Sig -> Sig

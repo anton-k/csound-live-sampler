@@ -5,10 +5,14 @@ module Live.Scene.Osc.Output (
 ) where
 
 import Csound.Core
+import Data.Map.Strict (Map)
+import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text qualified as Text
 import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Mixer
+import Live.Scene.Mixer.Fx (fxUnitName, toFxParamNameInitMap)
+import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Osc.Config
 import Live.Scene.Sampler
 import Live.Scene.Sampler.Engine (toAbsTimeRate)
@@ -18,12 +22,39 @@ setupOscOutput :: Scene -> OscOutputConfig ChannelId -> SE ()
 setupOscOutput scene config = do
   instr <- newProc $ \() -> do
     sendSampler scene.sampler config
-    -- isTick <- scene.sampler.readTicks
     bpm <- scene.sampler.readBpm
     let
       isTick = metro (toAbsTimeRate bpm 0.25)
-    mapM_ (sendChannelInfo config isTick scene.mixer) (fromMaybe [] config.channels)
+    mapM_ (sendChannelInfo config isTick scene.mixer fxParams) (fromMaybe [] config.channels)
   play instr [Note 0 (-1) ()]
+  where
+    fxParams = initFxParams scene.mixer
+
+initFxParams :: Mixer -> Map (Maybe ChannelId) [FxParamId]
+initFxParams mixer =
+  Map.fromList $
+    filter (not . null . snd) $
+      catMaybes $
+        maybe [] (pure . masterFx) mixer.config.master
+          <> zipWith channelFx [0 ..] mixer.config.channels
+  where
+    masterFx config = fmap (\fxs -> (Nothing, toParamId Nothing =<< fxs)) config.fxs
+
+    channelFx n config =
+      fmap
+        ( \fxs ->
+            let
+              chan = ChannelId n
+             in
+              (Just chan, toParamId (Just chan) =<< fxs)
+        )
+        config.fxs
+
+    toParamId :: Maybe ChannelId -> FxUnit -> [FxParamId]
+    toParamId mChannel unit =
+      fmap (FxParamId mChannel name) (Map.keys $ toFxParamNameInitMap unit)
+      where
+        name = fxUnitName unit
 
 sendSampler :: Sampler -> OscOutputConfig ChannelId -> SE ()
 sendSampler sampler config = do
@@ -46,11 +77,12 @@ sendCurrentSamplerPart config sampler isClipChange = do
   clip <- sampler.readClip
   send config isClipChange "/part/change" clip
 
-sendChannelInfo :: OscOutputConfig ChannelId -> Sig -> Mixer -> ChannelId -> SE ()
-sendChannelInfo config isTick mixer channelId = do
+sendChannelInfo :: OscOutputConfig ChannelId -> Sig -> Mixer -> Map (Maybe ChannelId) [FxParamId] -> ChannelId -> SE ()
+sendChannelInfo config isTick mixer fxParams channelId = do
   sendVolumeEnvelope config isTick mixer channelId
   sendVolumeChange config isTick mixer channelId
   sendVolumeMute config isTick mixer channelId
+  mapM_ (mapM_ (sendFxParamChange config isTick mixer)) (Map.lookup (Just channelId) fxParams)
 
 sendVolumeEnvelope :: OscOutputConfig ChannelId -> Sig -> Mixer -> ChannelId -> SE ()
 sendVolumeEnvelope config isTick mixer channelId = do
@@ -72,6 +104,19 @@ sendVolumeMute config isTick mixer channelId = do
   let
     isChange = changed [mute]
   send config isChange (toChannelAddr channelId "mute/change") (1 - mute)
+
+sendFxParamChange :: OscOutputConfig ChannelId -> Sig -> Mixer -> FxParamId -> SE ()
+sendFxParamChange config isTick mixer paramId = do
+  param <- mixer.readFxParam paramId
+  let
+    isChange = changed [param]
+  send config isChange (maybe toMasterAddr toChannelAddr paramId.channel $ "fx/change/" <> paramAddr) param
+  where
+    paramAddr = Text.unpack $ paramId.name <> "/" <> paramId.param
+
+toMasterAddr :: String -> Str
+toMasterAddr path =
+  fromString $ "/master/" <> path
 
 toChannelAddr :: ChannelId -> String -> Str
 toChannelAddr (ChannelId n) path =

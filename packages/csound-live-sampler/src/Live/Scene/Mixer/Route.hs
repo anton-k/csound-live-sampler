@@ -15,10 +15,9 @@ import Data.IntMap.Strict qualified as IntMap
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe
-import Data.Text (Text)
 import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Mixer.Config
-import Live.Scene.Mixer.Fx (Bpm (..), FxName (..), FxParams, readParamMap, unitToFun)
+import Live.Scene.Mixer.Fx (Bpm (..), FxName (..), FxParamId, FxParams, readParamMap, unitToFun)
 import Live.Scene.Mixer.Fx qualified as Fx
 import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Route.DependencyGraph
@@ -71,6 +70,7 @@ initFxControls ctx bodies (MixerInstrIds instrIds) =
   MixerRouteFx
     { modifyFxParam = modifyFxParamSt ctx.fxParams
     , setFxParam = setFxParamSt ctx.fxParams
+    , readFxParam = readFxParamSt ctx.fxParams
     , startFx = \name -> withFxName name playCsdInstr
     , stopFx = \name -> withFxName name stopCsdInstr
     }
@@ -89,11 +89,15 @@ initFxControls ctx bodies (MixerInstrIds instrIds) =
 
 modifyFxParamSt :: FxParams -> FxParamId -> (Sig -> Sig) -> SE ()
 modifyFxParamSt fxParams paramId f =
-  Fx.modifyFxParam fxParams (FxName paramId.name) paramId.param f
+  Fx.modifyFxParam fxParams paramId f
 
 setFxParamSt :: FxParams -> FxParamId -> Sig -> SE ()
 setFxParamSt fxParams paramId ins =
-  Fx.setFxParam fxParams (FxName paramId.name) paramId.param ins
+  Fx.setFxParam fxParams paramId ins
+
+readFxParamSt :: FxParams -> FxParamId -> SE Sig
+readFxParamSt fxParams paramId =
+  Fx.readFxParam fxParams paramId
 
 newRouteCtx :: RouteDeps -> MixerConfig ChannelId -> Bpm -> SE RouteCtx
 newRouteCtx deps config bpm = do
@@ -111,8 +115,12 @@ initFxParams config =
   Fx.newFxParams allFxs
   where
     allFxs = do
-      mUnits <- (fromMaybe def config.master).fxs : fmap (.fxs) config.channels
-      concat $ maybeToList mUnits
+      mUnits <- masterFx : zipWith channelFx [0 ..] config.channels
+      maybeToList mUnits
+
+    masterFx = fmap (Nothing,) $ (fromMaybe def config.master).fxs
+
+    channelFx channelId channel = fmap (Just (ChannelId channelId),) channel.fxs
 
 reloadOnBpmChange :: Bpm -> [InstrRef ()] -> SE ()
 reloadOnBpmChange (Bpm readBpm) instrRefs
@@ -170,11 +178,6 @@ data FxInstr = FxInstr
   , name :: FxName
   }
 
-data FxParamId = FxParamId
-  { name :: Text
-  , param :: Text
-  }
-
 newtype MixerInstrIds = MixerInstrIds [InstrRef ()]
 
 data MixerRoute = MixerRoute
@@ -186,6 +189,7 @@ data MixerRoute = MixerRoute
 data MixerRouteFx = MixerRouteFx
   { modifyFxParam :: FxParamId -> (Sig -> Sig) -> SE ()
   , setFxParam :: FxParamId -> Sig -> SE ()
+  , readFxParam :: FxParamId -> SE Sig
   , startFx :: FxName -> SE ()
   , stopFx :: FxName -> SE ()
   }
@@ -197,7 +201,7 @@ toRouteInstrBodies ctx route =
 toRouteMasterInstrBodies :: RouteCtx -> [MixerInstr]
 toRouteMasterInstrBodies ctx = do
   fx <- concat $ maybeToList ctx.masterConfig.fxs
-  pure $ FxMixerInstr (unitToFxInstr ctx ctx.deps.readMaster ctx.deps.writeMaster fx)
+  pure $ FxMixerInstr (unitToFxInstr ctx Nothing ctx.deps.readMaster ctx.deps.writeMaster fx)
 
 toRouteChannelInstrBodies :: RouteCtx -> Route -> [MixerInstr]
 toRouteChannelInstrBodies ctx (Route groupActs) = do
@@ -234,10 +238,10 @@ applyFx ctx channel =
     Nothing -> []
     Just config -> do
       fx <- concat $ maybeToList config.fxs
-      pure (unitToFxInstr ctx (ctx.deps.readChannel channel) (ctx.deps.writeChannel channel) fx)
+      pure (unitToFxInstr ctx (Just channel) (ctx.deps.readChannel channel) (ctx.deps.writeChannel channel) fx)
 
-unitToFxInstr :: RouteCtx -> SE Sig2 -> (Sig2 -> SE ()) -> FxUnit -> FxInstr
-unitToFxInstr ctx read write fx =
+unitToFxInstr :: RouteCtx -> Maybe ChannelId -> SE Sig2 -> (Sig2 -> SE ()) -> FxUnit -> FxInstr
+unitToFxInstr ctx mChannel read write fx =
   FxInstr
     { body = fxInstrBody read write fxFun
     , needsBpm = Fx.isBpmSensitive fx
@@ -245,7 +249,7 @@ unitToFxInstr ctx read write fx =
     }
   where
     fxName = FxName (Fx.fxUnitName fx)
-    fxFun = unitToFun ctx.bpm (readParamMap fxName ctx.fxParams) fx
+    fxFun = unitToFun ctx.bpm (readParamMap mChannel fxName ctx.fxParams) fx
 
 fxInstrBody :: SE Sig2 -> (Sig2 -> SE ()) -> (Sig2 -> SE Sig2) -> SE ()
 fxInstrBody read write fun = do

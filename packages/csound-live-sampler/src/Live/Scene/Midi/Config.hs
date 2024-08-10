@@ -194,7 +194,7 @@ data MidiKnobAct audioInput channel
   = SetChannelVolume channel
   | SetMasterVolume
   | SetChannelSend (SetChannelSendConfig channel)
-  | SetFxParam SetFxParamConfig
+  | SetFxParam (SetFxParamConfig channel)
   | SetAudioInputGain audioInput
   deriving (Functor)
 
@@ -203,7 +203,7 @@ instance Bifunctor MidiKnobAct where
     SetChannelVolume channel -> SetChannelVolume (g channel)
     SetMasterVolume -> SetMasterVolume
     SetChannelSend config -> SetChannelSend (fmap g config)
-    SetFxParam config -> SetFxParam config
+    SetFxParam config -> SetFxParam (fmap g config)
     SetAudioInputGain audioInput -> SetAudioInputGain (f audioInput)
 
 data SetChannelSendConfig channel = SetChannelSendConfig
@@ -212,10 +212,12 @@ data SetChannelSendConfig channel = SetChannelSendConfig
   }
   deriving (Functor)
 
-data SetFxParamConfig = SetFxParamConfig
+data SetFxParamConfig channel = SetFxParamConfig
   { name :: Text
   , param :: Text
+  , channel :: Maybe channel
   }
+  deriving (Functor)
 
 -- JSON instances
 

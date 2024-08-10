@@ -24,7 +24,8 @@ data Sampler = Sampler
   { setMasterVolume :: Double -> IO ()
   , setChannelVolume :: ChannelId -> Double -> IO ()
   , toggleMute :: ChannelId -> IO ()
-  , setFxParam :: FxName -> ParamName -> Double -> IO ()
+  , setMasterFxParam :: FxName -> ParamName -> Double -> IO ()
+  , setChannelFxParam :: ChannelId -> FxName -> ParamName -> Double -> IO ()
   , setChannelSend :: ChannelId -> ChannelId -> Double -> IO ()
   , -- sampler
     setTrack :: TrackId -> IO ()
@@ -52,6 +53,7 @@ newSampler config = do
       , prevPart = client.send Message.prevPartMessage
       , nextTrack = client.send Message.nextTrackMessage
       , prevTrack = client.send Message.prevTrackMessage
-      , setFxParam = \unit param value -> client.send (Message.setFxParamMessage unit param value)
+      , setMasterFxParam = \unit param value -> client.send (Message.setFxParamMessage Nothing unit param value)
+      , setChannelFxParam = \channelId unit param value -> client.send (Message.setFxParamMessage (Just channelId) unit param value)
       , setAudioInputGain = \inputId value -> client.send (Message.setAudioInputGainMessage inputId value)
       }

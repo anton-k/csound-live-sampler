@@ -1,9 +1,12 @@
 module Live.Scene.Mixer.Fx (
+  FxParamId (..),
   FxName (..),
   FxParams (..),
   readParamMap,
   modifyFxParam,
   setFxParam,
+  readFxParam,
+  getFxParamRef,
   unitToFun,
   Bpm (..),
   toFxName,
@@ -20,6 +23,7 @@ import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Fx.Unit
 import Live.Scene.Mixer.Fx.Unit.Bbcuts (bbcutUnit)
@@ -34,28 +38,36 @@ import Prelude hiding (read)
 newtype FxName = FxName {text :: Text}
   deriving newtype (Eq, Ord, Show)
 
-newtype FxParams = FxParams (Map FxName ParamMap)
+newtype FxParams = FxParams (Map (Maybe ChannelId) (Map FxName ParamMap))
   deriving newtype (Semigroup, Monoid)
 
-modifyFxParam :: FxParams -> FxName -> FxParamName -> (Sig -> Sig) -> SE ()
-modifyFxParam (FxParams nameMap) name param f = do
-  mapM_ (\ref -> modifyRef ref f) mParam
-  where
-    mParam = do
-      paramMap <- Map.lookup name nameMap
-      Map.lookup param paramMap
+data FxParamId = FxParamId
+  { channel :: Maybe ChannelId
+  , name :: Text
+  , param :: Text
+  }
 
-setFxParam :: FxParams -> FxName -> FxParamName -> Sig -> SE ()
-setFxParam (FxParams nameMap) name param ins = do
-  mapM_ (\ref -> writeRef ref ins) mParam
-  where
-    mParam = do
-      paramMap <- Map.lookup name nameMap
-      Map.lookup param paramMap
+getFxParamRef :: FxParams -> FxParamId -> Maybe (Ref Sig)
+getFxParamRef (FxParams params) paramId = do
+  nameMap <- Map.lookup paramId.channel params
+  paramMap <- Map.lookup (FxName paramId.name) nameMap
+  Map.lookup paramId.param paramMap
 
-newFxParams :: [FxUnit] -> SE FxParams
+modifyFxParam :: FxParams -> FxParamId -> (Sig -> Sig) -> SE ()
+modifyFxParam params paramId f = do
+  mapM_ (\ref -> modifyRef ref f) (getFxParamRef params paramId)
+
+setFxParam :: FxParams -> FxParamId -> Sig -> SE ()
+setFxParam params paramId ins = do
+  mapM_ (\ref -> writeRef ref ins) (getFxParamRef params paramId)
+
+readFxParam :: FxParams -> FxParamId -> SE Sig
+readFxParam params paramId =
+  maybe (pure 0) readRef (getFxParamRef params paramId)
+
+newFxParams :: [(Maybe ChannelId, [FxUnit])] -> SE FxParams
 newFxParams allUnits =
-  FxParams . Map.fromList <$> mapM toNameMapItem allUnits
+  FxParams . fmap Map.fromList <$> mapM (mapM toNameMapItem) (Map.fromList allUnits)
   where
     toNameMapItem :: FxUnit -> SE (FxName, ParamMap)
     toNameMapItem unit =
@@ -90,9 +102,9 @@ toFxParamNameInitMap = \case
   EqFx config -> eqUnit.getParams config
   MixerEqFx config -> mixerEqUnit.getParams config
 
-readParamMap :: FxName -> FxParams -> ParamMap
-readParamMap name (FxParams nameMap) =
-  fromMaybe (error errMessage) (Map.lookup name nameMap)
+readParamMap :: Maybe ChannelId -> FxName -> FxParams -> ParamMap
+readParamMap mChannel name (FxParams params) =
+  fromMaybe (error errMessage) (Map.lookup name =<< Map.lookup mChannel params)
   where
     errMessage = "No FX unit is named with: " <> Text.unpack name.text
 

@@ -58,7 +58,7 @@ listenMixer mixer mixerConfig oscHandle = do
 listenMaster :: Mixer -> MasterConfig -> OscHandle -> SE ()
 listenMaster mixer config oscHandle = do
   listenMasterVolume mixer config oscHandle
-  mapM_ (\unit -> listenFxUnit unit mixer oscHandle) (fromMaybe [] $ config.fxs)
+  mapM_ (\unit -> listenFxUnit unit mixer oscHandle Nothing) (fromMaybe [] $ config.fxs)
 
 listenMasterVolume :: Mixer -> MasterConfig -> OscHandle -> SE ()
 listenMasterVolume mixer config oscHandle = do
@@ -69,7 +69,7 @@ listenChannel :: Mixer -> OscHandle -> Int -> ChannelConfig ChannelId -> SE ()
 listenChannel mixer oscHandle oscChannelId config = do
   listenChannelVolume config mixer oscHandle oscChannelId
   listenChannelSend config mixer oscHandle oscChannelId
-  mapM_ (\unit -> listenFxUnit unit mixer oscHandle) (fromMaybe [] $ config.fxs)
+  mapM_ (\unit -> listenFxUnit unit mixer oscHandle (Just oscChannelId)) (fromMaybe [] $ config.fxs)
   listenChannelMute mixer oscHandle oscChannelId
 
 listenChannelVolume :: ChannelConfig ChannelId -> Mixer -> OscHandle -> Int -> SE ()
@@ -88,16 +88,18 @@ listenChannelSend config mixer oscHandle oscChannelId =
       where
         sendAddr = toChannelAddr oscChannelId $ "send/" <> show (succ $ unChannelId sendConfig.channel)
 
-listenFxUnit :: FxUnit -> Mixer -> OscHandle -> SE ()
-listenFxUnit unit mixer oscHandle =
+listenFxUnit :: FxUnit -> Mixer -> OscHandle -> Maybe Int -> SE ()
+listenFxUnit unit mixer oscHandle mChannelId =
   mapM_ (uncurry $ onFxUnit (toFxName unit)) $ Map.toList $ toFxParamNameInitMap unit
   where
     onFxUnit :: Text -> FxParamName -> Float -> SE ()
     onFxUnit unitName paramName initValue =
       listenFloat oscHandle fxAddr initValue $ \val ->
-        mixer.setFxParam (FxParamId unitName paramName) val
+        mixer.setFxParam (FxParamId (ChannelId <$> mChannelId) unitName paramName) val
       where
-        fxAddr = "/fx/" <> Text.unpack (mconcat [unitName, "/", paramName])
+        fxAddr =
+          maybe toMasterAddr toChannelAddr mChannelId $
+            "/fx/" <> Text.unpack (mconcat [unitName, "/", paramName])
 
 listenChannelMute :: Mixer -> OscHandle -> Int -> SE ()
 listenChannelMute mixer oscHandle oscChannelId = do
@@ -106,6 +108,9 @@ listenChannelMute mixer oscHandle oscChannelId = do
 
 toChannelId :: Int -> ChannelId
 toChannelId oscChannelId = ChannelId (oscChannelId - 1)
+
+toMasterAddr :: String -> String
+toMasterAddr name = "/master/" <> name
 
 toChannelAddr :: Int -> String -> String
 toChannelAddr oscChannelId name = mconcat ["/channel/", show oscChannelId, "/", name]

@@ -60,7 +60,9 @@ data Mixer = Mixer
   , setChannelSend :: ChannelId -> ChannelId -> Sig -> SE ()
   , setMasterVolume :: Sig -> SE ()
   , setFxParam :: FxParamId -> Sig -> SE ()
+  , readFxParam :: FxParamId -> SE Sig
   , clean :: SE ()
+  , config :: MixerConfig ChannelId
   }
 
 data MixerChannels = MixerChannels
@@ -109,9 +111,11 @@ newMixer config channels readBpm = do
       , setChannelSend = setChannelSendSt st
       , setMasterVolume = setMasterVolumeSt st
       , setFxParam = fxControls.setFxParam
+      , readFxParam = fxControls.readFxParam
       , toggleChannelMute = toggleChannelMuteSt st
       , readChannelMute = readChannelMuteSt st
       , clean = cleanSt st
+      , config = config
       }
 
 -- * mixer internal state

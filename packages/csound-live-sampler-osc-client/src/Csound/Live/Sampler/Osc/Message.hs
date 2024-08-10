@@ -26,7 +26,7 @@ import Vivid.OSC
 
 setMasterVolumeMessage :: Double -> OSC
 setMasterVolumeMessage volume =
-  OSC "/master/volume" [OSC_D volume]
+  OSC (toMasterAddr "volume") [OSC_D volume]
 
 -- | Starts from 1
 type ChannelId = Int
@@ -53,6 +53,9 @@ toChannelAddr :: ChannelId -> ByteString -> ByteString
 toChannelAddr channelId addr =
   "/channel/" <> fromString (show channelId) <> "/" <> addr
 
+toMasterAddr :: ByteString -> ByteString
+toMasterAddr name = "/master/" <> name
+
 setTrackMessage :: TrackId -> OSC
 setTrackMessage trackId =
   OSC "/track" [OSC_I $ fromIntegral trackId]
@@ -77,9 +80,9 @@ shiftTrackMessage :: Int -> OSC
 shiftTrackMessage steps =
   OSC "/shiftTrack" [OSC_I $ fromIntegral steps]
 
-setFxParamMessage :: FxName -> ParamName -> Double -> OSC
-setFxParamMessage unit param value =
-  OSC (path ["fx", unit, param]) [OSC_D value]
+setFxParamMessage :: Maybe ChannelId -> FxName -> ParamName -> Double -> OSC
+setFxParamMessage mChannelId unit param value =
+  OSC (maybe toMasterAddr toChannelAddr mChannelId $ path ["fx", unit, param]) [OSC_D value]
 
 toggleMuteMessage :: ChannelId -> OSC
 toggleMuteMessage channelId =

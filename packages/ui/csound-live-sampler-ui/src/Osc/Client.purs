@@ -40,6 +40,7 @@ type Listen =
   , channelVolumeEnvelope :: Int -> Number -> Effect Unit
   , channelVolume :: Int -> Number -> Effect Unit
   , channelMute :: Int -> Boolean -> Effect Unit
+  , fxParam :: FxParamId -> Number -> Effect Unit
   , partChange :: Clip -> Effect Unit
   }
 
@@ -49,6 +50,7 @@ emptyListen =
   , channelVolumeEnvelope: const (const $ pure unit)
   , channelVolume: const (const $ pure unit)
   , channelMute: const (const $ pure unit)
+  , fxParam: const (const $ pure unit)
   , partChange: const (pure unit)
   }
 
@@ -57,6 +59,7 @@ type SetListen =
   , channelVolumeEnvelope :: (Int -> Number -> Effect Unit) -> Effect Unit
   , channelVolume :: (Int -> Number -> Effect Unit) -> Effect Unit
   , channelMute :: (Int -> Boolean -> Effect Unit) -> Effect Unit
+  , fxParam :: (FxParamId -> Number -> Effect Unit) -> Effect Unit
   , partChange :: (Clip -> Effect Unit) -> Effect Unit
   }
 
@@ -97,6 +100,8 @@ runListener port ref =
       , Osc.toOscCase "/channel/$d/volume/change" onChannelVolumeChange
       , Osc.toOscCase "/channel/$d/mute/change" onChannelMuteChange
       , Osc.toOscCase "/part/change" onPartChange
+      , Osc.toOscCase "/channel/$d/fx/change/$s/$s" onChannelFxParamChange
+      , Osc.toOscCase "/master/fx/change/$s/$s" onMasterFxParamChange
       ]
 
     onBpm :: Int -> Effect Unit
@@ -113,6 +118,28 @@ runListener port ref =
     onChannelMuteChange :: Tuple Number Number -> Effect Unit
     onChannelMuteChange (Tuple channelId flag) =
       withListen $ \listen -> listen.channelMute (round channelId) (round flag == 1)
+
+    onChannelFxParamChange :: Tuple Number (Tuple String (Tuple String Number)) -> Effect Unit
+    onChannelFxParamChange (Tuple channelId (Tuple name (Tuple param value))) =
+      withListen $ \listen -> do
+        let
+          paramId =
+            { channel: Just (round channelId)
+            , name: name
+            , param: param
+            }
+        listen.fxParam paramId value
+
+    onMasterFxParamChange :: Tuple String (Tuple String Number) -> Effect Unit
+    onMasterFxParamChange (Tuple name (Tuple param value)) =
+      withListen $ \listen -> do
+        let
+          paramId =
+            { channel: Nothing
+            , name: name
+            , param: param
+            }
+        listen.fxParam paramId value
 
     withListen :: (Listen -> Effect Unit) -> Effect Unit
     withListen cont = do
@@ -163,12 +190,14 @@ setListeners ref =
   , channelVolume: \f -> modify_ (\s -> s { channelVolume = f }) ref
   , channelMute: \f -> modify_ (\s -> s { channelMute = f }) ref
   , partChange: \f -> modify_ (\s -> s { partChange = f }) ref
+  , fxParam: \f -> modify_ (\s -> s { fxParam = f }) ref
   }
 
 initMixer :: Osc.Port -> Mixer
 initMixer port =
   { setMasterVolume: \volume -> port.send (Osc.setMasterVolume volume)
   , setChannelVolume: \chanId volume -> port.send (Osc.setChannelVolume chanId volume)
+  , setFxParam: \paramId value -> port.send (Osc.setFxParam paramId value)
   }
 
 initSampler :: Osc.Port -> Sampler
@@ -195,6 +224,7 @@ initMixerEcho :: Mixer
 initMixerEcho =
   { setMasterVolume: logValue "Master volume"
   , setChannelVolume: \chan vol -> logValue "Channel volume" (chan /\ vol)
+  , setFxParam: \param value -> logValue "FX param" (param /\ value)
   }
 
 initSamplerEcho :: Sampler

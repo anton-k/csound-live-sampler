@@ -99,7 +99,7 @@ listenFxUnit unit mixer oscHandle mChannelId =
       where
         fxAddr =
           maybe toMasterAddr toChannelAddr mChannelId $
-            "/fx/" <> Text.unpack (mconcat [unitName, "/", paramName])
+            "fx/" <> Text.unpack (mconcat [unitName, "/", paramName])
 
 listenChannelMute :: Mixer -> OscHandle -> Int -> SE ()
 listenChannelMute mixer oscHandle oscChannelId = do

@@ -10,11 +10,14 @@ module Osc.Message
   , shiftTrack
   , shiftPart
   , getCurrentPart
+  , setFxParam
   ) where
 
 import Prelude
 import Network.Osc (Osc, OscValue (..))
-import Action (ChannelId, TrackId)
+import Action (ChannelId, TrackId, FxParamId)
+import Data.Maybe (Maybe, maybe)
+import Data.String as String
 
 setMasterVolume :: Number -> Osc
 setMasterVolume volume =
@@ -63,3 +66,12 @@ getCurrentPart =
   { address: "/getCurrentPart"
   , args: []
   }
+
+setFxParam :: FxParamId -> Number -> Osc
+setFxParam paramId value =
+  { address: String.joinWith "/" [channelAddr, "fx", paramId.name, paramId.param]
+  , args: [OscDouble value]
+  }
+  where
+    channelAddr =
+      "/" <> maybe "master" (\n -> "channel/" <> show n)  paramId.channel

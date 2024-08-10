@@ -26,7 +26,7 @@ import Data.Tuple.Nested ((/\))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Control.Monad.Trans.Class (class MonadTrans)
 import Effect.Aff (Aff)
-import Data.Traversable (traverse_)
+import Data.Traversable (traverse_, traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Array (range)
 import Scene.Elem
@@ -39,9 +39,11 @@ import Data.Map as Map
 import Effect.Ref (new, read, write)
 import Scene.Mixer.Config
 import Osc.Client (newOscControl)
+import Scene.Mixer.Fx (withFxs, fxHtml, fxChannelSetup, SetFxParam)
 
 type SetMixer =
   { setChannel :: Int -> SetChannel
+  , setFxParam :: FxParamId -> SetFxParam
   }
 
 type SetChannel =
@@ -63,6 +65,9 @@ emptySetChannel =
   , setMute: const (pure unit)
   }
 
+emptySetFxParam :: SetFxParam
+emptySetFxParam = const (pure unit)
+
 initMixer :: forall w s . MixerUi -> Mixer -> Elem w s SetMixer
 initMixer mixer act =
   { setup: do
@@ -74,9 +79,14 @@ initMixer mixer act =
       let
         getChannelSetters chanId =
           fromMaybe emptySetChannel (Map.lookup chanId channelMap)
-      traverse_ fxChannelSetup fxs
+      fxParamMap <- map (Map.fromFoldable <<< Array.concat) $
+        traverse (fxChannelSetup act) fxs
+      let
+        getFxParamSetter paramId =
+          fromMaybe emptySetFxParam (Map.lookup paramId fxParamMap)
       pure
         { setChannel: getChannelSetters
+        , setFxParam: getFxParamSetter
         }
   , html:
       withFxs fxs $
@@ -122,8 +132,6 @@ initChannel act item =
         , case item.name of
               Just name -> HH.div [HP.style "text-align:center"] [HH.text name]
               Nothing -> divClasses [] []
-        -- TODO: display FXs with accordeon
-        -- , if not (Array.null item.fxs) then button else divClasses [] []
         ]
   }
   where
@@ -147,56 +155,4 @@ initBar target n initValue = do
   bar.on Ui.Change (\val -> log ("Slider" <> show n <> ": " <> show val))
   pure bar
 
--- * FXs
 
-toFxHtml :: forall w i. String -> Fx -> HH.HTML w i
-toFxHtml channelName fx = HH.li []
-  [ divClasses ["grid"] $
-      [HH.div [] [HH.text fx.name]] <> map (fromFxParam channelName fx.name) fx.params
-  ]
-
-fromFxParam :: forall w i. String -> String -> FxParam -> HH.HTML w i
-fromFxParam channelName fxName param =
-  HH.div []
-    [ divId (toFxId channelName fxName param.name) []
-    , HH.div [HP.style "text-align:left"] [HH.text param.name]
-    ]
-
-withFxs :: forall w i. Array ChannelFxUi -> HH.HTML w i -> HH.HTML w i
-withFxs fxs x
-  | Array.null fxs = x
-  | otherwise =
-      HH.div []
-        [ x
-        , HH.div [] [HH.p [] [HH.text "  "]]
-        , HH.div [] [HH.p [] [HH.text "  "]]
-        , fxHtml fxs
-        ]
-
-fxHtml :: forall w i. Array ChannelFxUi -> HH.HTML w i
-fxHtml fxs =
-  accordion "FXs" $
-    HH.div [] (map toChannelFxHtml fxs)
-
-toChannelFxHtml :: forall w i. ChannelFxUi -> HH.HTML w i
-toChannelFxHtml chan =
-  accordion chan.name $
-    HH.ul [] (map (toFxHtml chan.name) chan.fxs)
-
-toFxId :: String -> String -> String -> String
-toFxId channelName fxName paramName =
-  String.joinWith "."
-    ["fx", channelName, fxName, paramName]
-
-fxChannelSetup :: ChannelFxUi -> Effect Unit
-fxChannelSetup chan =
-  traverse_ (fxSetup chan.name) chan.fxs
-
-fxSetup :: String -> Fx -> Effect Unit
-fxSetup channelName fx =
-  traverse_ (fxParamSetup channelName fx.name) fx.params
-
-fxParamSetup :: String -> String -> FxParam -> Effect Unit
-fxParamSetup channelName fxName param = do
-  dial <- Ui.newDial ("#" <> toFxId channelName fxName param.name)
-  dial.setValue param.value

@@ -6,10 +6,12 @@ module Action
   , Mixer
   , Sampler
   , Info
+  , FxParamId
   ) where
 
 import Prelude
 import Effect (Effect)
+import Data.Maybe (Maybe)
 
 type ChannelId = Int
 
@@ -21,9 +23,16 @@ type Scene =
   , info :: Info
   }
 
+type FxParamId =
+  { channel :: Maybe ChannelId
+  , name :: String
+  , param :: String
+  }
+
 type Mixer =
   { setMasterVolume :: Number -> Effect Unit
   , setChannelVolume :: ChannelId -> Number -> Effect Unit
+  , setFxParam :: FxParamId -> Number -> Effect Unit
   }
 
 type Sampler =

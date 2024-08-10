@@ -6,6 +6,7 @@ module Scene.Mixer.Config
   , mixerUiFromJson
   , ChannelFxUi
   , toChannelFxUis
+  , FxUi
   ) where
 
 import Prelude
@@ -18,6 +19,9 @@ import Data.Traversable (traverse)
 import JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt)
 import Data.Array as Array
 import Data.Maybe (fromMaybe)
+import Action (ChannelId)
+import Data.Tuple (Tuple (..))
+import Data.Tuple.Nested ((/\))
 
 type MixerUi =
   { channels :: Array MixerUiItem
@@ -74,19 +78,26 @@ fxParamFromJson json = do
 
 type ChannelFxUi =
   { name :: String
-  , fxs :: Array Fx
+  , fxs :: Array FxUi
+  }
+
+type FxUi =
+  { fx :: Fx
+  , channel :: Maybe ChannelId
   }
 
 toChannelFxUis :: MixerUi -> Array ChannelFxUi
 toChannelFxUis ui =
-  map (\chan ->
+  map (\(Tuple chanId chan) ->
           { name: toChannelName chan
-          , fxs: chan.fxs
+          , fxs: map (\fx -> { fx: fx, channel: chanId }) chan.fxs
           }
       )
       fxChannels
   where
-    fxChannels = Array.filter (\channel -> Array.length channel.fxs /= 0) ui.channels
+    fxChannels =
+      Array.filter (\(Tuple _ channel) -> Array.length channel.fxs /= 0)
+        $ Array.mapWithIndex (\n chan -> Just n /\ chan) ui.channels
 
     toChannelName :: MixerUiItem -> String
     toChannelName chan =

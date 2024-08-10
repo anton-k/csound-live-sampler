@@ -130,7 +130,13 @@ sendFxParamChange config isTick mixer paramId = do
   param <- mixer.readFxParam paramId
   let
     isChange = changed [param]
-  send config isChange (maybe toMasterAddr toChannelAddr paramId.channel $ "fx/change/" <> paramAddr) param
+  send
+    config
+    isChange
+    ( maybe toMasterAddr toChannelAddr paramId.channel $
+        "fx/change/" <> paramAddr
+    )
+    param
   where
     paramAddr = Text.unpack $ paramId.name <> "/" <> paramId.param
 

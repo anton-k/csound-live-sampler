@@ -1,5 +1,6 @@
 module Scene
   ( initScene
+  , SetScene
   , module Scene.Config
   ) where
 

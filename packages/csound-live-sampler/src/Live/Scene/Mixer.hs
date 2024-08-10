@@ -49,7 +49,8 @@ data Mixer = Mixer
   { readMaster :: SE Sig2
   , readChannel :: ChannelId -> SE Sig2
   , -- control
-    toggleChannelMute :: ChannelId -> SE ()
+    readMasterVolume :: SE Sig
+  , toggleChannelMute :: ChannelId -> SE ()
   , readChannelMute :: ChannelId -> SE Sig
   , modifyChannelVolume :: ChannelId -> (Sig -> Sig) -> SE ()
   , readChannelVolume :: ChannelId -> SE Sig
@@ -101,6 +102,7 @@ newMixer config channels readBpm = do
   pure $
     Mixer
       { readMaster = readMixSt st
+      , readMasterVolume = readMasterVolumeSt st
       , readChannel = readChannelSt st
       , modifyChannelVolume = modifyChannelVolumeSt st
       , readChannelVolume = readChannelVolumeSt st
@@ -186,6 +188,10 @@ readMixSt St{..} = do
   volume <- readRef master.volume
   audio <- readRef master.audio
   pure $ withGain master.gain $ mul volume audio
+
+readMasterVolumeSt :: St -> SE Sig
+readMasterVolumeSt st =
+  readRef st.master.volume
 
 readChannelSt :: St -> ChannelId -> SE Sig2
 readChannelSt st channelId = do

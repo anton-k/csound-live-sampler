@@ -77,6 +77,26 @@ sendCurrentSamplerPart config sampler isClipChange = do
   clip <- sampler.readClip
   send config isClipChange "/part/change" clip
 
+sendMasterInfo :: OscOutputConfig ChannelId -> Sig -> Mixer -> Map (Maybe ChannelId) [FxParamId] -> SE ()
+sendMasterInfo config isTick mixer fxParams = do
+  sendMasterVolumeEnvelope config isTick mixer
+  sendMasterVolumeChange config isTick mixer
+  mapM_ (mapM_ (sendFxParamChange config isTick mixer)) (Map.lookup Nothing fxParams)
+
+sendMasterVolumeEnvelope :: OscOutputConfig ChannelId -> Sig -> Mixer -> SE ()
+sendMasterVolumeEnvelope config isTick mixer = do
+  asig <- mixer.readMaster
+  let
+    env = 5 * follow2 (toMono asig) 0.1 0.5
+  send config isTick (toMasterAddr "volume/envelope") env
+
+sendMasterVolumeChange :: OscOutputConfig ChannelId -> Sig -> Mixer -> SE ()
+sendMasterVolumeChange config isTick mixer = do
+  vol <- mixer.readMasterVolume
+  let
+    isChange = changed [vol]
+  send config isChange (toMasterAddr "volume/change") vol
+
 sendChannelInfo :: OscOutputConfig ChannelId -> Sig -> Mixer -> Map (Maybe ChannelId) [FxParamId] -> ChannelId -> SE ()
 sendChannelInfo config isTick mixer fxParams channelId = do
   sendVolumeEnvelope config isTick mixer channelId

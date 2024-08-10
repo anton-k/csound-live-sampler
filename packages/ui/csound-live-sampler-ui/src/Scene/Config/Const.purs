@@ -7,7 +7,7 @@ import Prelude
 import Scene (SceneUi)
 import Data.Array (range)
 import Data.Maybe (Maybe(..))
-import Osc.Client
+import Osc.Client (OscConfig)
 
 oscConfig :: OscConfig
 oscConfig =
@@ -25,8 +25,6 @@ sceneUi =
       { tracks:
           [ track1
           , track2
-          , track3
-          , track4
           ]
       }
   }
@@ -40,14 +38,3 @@ sceneUi =
       { name: "Samurai"
       , size: 4
       }
-
-    track3 =
-      { name: "La melody"
-      , size: 6
-      }
-
-    track4 =
-      { name: "Big stones"
-      , size: 6
-      }
-

@@ -154,5 +154,3 @@ initBar target n initValue = do
     }
   bar.on Ui.Change (\val -> log ("Slider" <> show n <> ": " <> show val))
   pure bar
-
-

@@ -43,19 +43,18 @@ hookComponent
    . SceneUi -> OscClient -> H.Component unusedQuery unusedInput unusedOutput Aff
 hookComponent sceneUi sceneAct = Hooks.component \_ _ -> Hooks.do
   _enabled /\ _enabledIdx <- Hooks.useState false
-  let
-    ui = initScene sceneUi sceneAct.send
   Hooks.useLifecycleEffect do
     liftEffect $ do
       setter <- ui.setup
-      linkSetters sceneAct setter
+      linkSettersToOsc sceneAct setter
+      sceneAct.send.info.getCurrentPart
     pure Nothing
-  let
-    view = ui.html
-  Hooks.pure view
+  Hooks.pure ui.html
+  where
+    ui = initScene sceneUi sceneAct.send
 
-linkSetters :: OscClient -> SetScene -> Effect Unit
-linkSetters sceneAct setter = do
+linkSettersToOsc :: OscClient -> SetScene -> Effect Unit
+linkSettersToOsc sceneAct setter = do
   sceneAct.listen.bpm setter.sampler.setBpm
   sceneAct.listen.channelVolumeEnvelope
     (\chanId val -> (setter.mixer.setChannel chanId).setVolumeEnvelope val)
@@ -65,4 +64,3 @@ linkSetters sceneAct setter = do
     (\chanId val -> (setter.mixer.setChannel chanId).setMute val)
   sceneAct.listen.fxParam setter.mixer.setFxParam
   sceneAct.listen.partChange setter.sampler.setPart
-  sceneAct.send.info.getCurrentPart

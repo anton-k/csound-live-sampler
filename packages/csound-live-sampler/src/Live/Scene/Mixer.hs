@@ -32,7 +32,7 @@ import Data.Default
 import Data.IntMap.Strict (IntMap)
 import Data.IntMap.Strict qualified as IntMap
 import Data.Maybe
-import Live.Scene.Common (ChannelId (..))
+import Live.Scene.Common (ChannelId (..), smoothControl)
 import Live.Scene.Mixer.Config as X
 import Live.Scene.Mixer.Fx (Bpm (..))
 import Live.Scene.Mixer.Route (
@@ -187,7 +187,7 @@ readMixSt :: St -> SE Sig2
 readMixSt St{..} = do
   volume <- readRef master.volume
   audio <- readRef master.audio
-  pure $ withGain master.gain $ mul volume audio
+  pure $ withGain master.gain $ mul (smoothControl volume) audio
 
 readMasterVolumeSt :: St -> SE Sig
 readMasterVolumeSt st =
@@ -198,7 +198,7 @@ readChannelSt st channelId = do
   withChannelDef st channelId 0 $ \channel -> do
     volume <- readRef channel.volume
     audio <- readRef channel.audio
-    pure $ withGain channel.gain $ mul volume audio
+    pure $ withGain channel.gain $ mul (smoothControl volume) audio
 
 writeChannelSt :: St -> ChannelId -> Sig2 -> SE ()
 writeChannelSt st channelId audio =
@@ -275,7 +275,7 @@ channelVolume :: Channel -> SE Sig
 channelVolume channel = do
   volume <- readRef channel.volume
   mute <- readRef channel.mute
-  pure $ withGain channel.gain (volume * mute)
+  pure $ withGain channel.gain (smoothControl $ volume * mute)
 
 initRouteDeps :: St -> RouteDeps
 initRouteDeps st =

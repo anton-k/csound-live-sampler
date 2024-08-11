@@ -7,14 +7,19 @@ module Live.Scene.Common (
   lookupNameRef,
   NameMap (..),
   toNameMap,
+  smoothControl,
 ) where
 
+import Csound.Core (Sig, portk)
 import Data.Aeson
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as Text
+
+smoothControl :: Sig -> Sig
+smoothControl controlSig = portk controlSig 0.01
 
 newtype ChannelId = ChannelId {unChannelId :: Int}
   deriving (Show, Eq, Ord)

@@ -22,7 +22,7 @@ toolParams :: ToolConfig -> ParamNameInitMap
 toolParams config =
   Map.fromList
     [ ("volume", fromMaybe 1 config.volume)
-    , ("gain", fromMaybe 1 config.gain)
+    , ("gain", fromMaybe 0.5 config.gain)
     , ("pan", fromMaybe 0.5 config.pan)
     , ("width", fromMaybe 0.5 config.width)
     ]
@@ -31,9 +31,9 @@ toolFx :: ParamMap -> Sig2 -> SE Sig2
 toolFx params ins = do
   volume <- param "volume"
   gain <- param "gain"
-  pan <- dampParam <$> param "pan"
-  width <- dampParam <$> param "width"
-  pure $ stereoWidth width $ stereoPan pan $ mul (volume * gain) ins
+  pan <- param "pan"
+  width <- param "width"
+  pure $ stereoWidth pan width $ {- stereoPan pan $ -} mul (volume * 2 * gain) ins
   where
     param = readParam params
 
@@ -48,6 +48,17 @@ stereoPan k (left, right) =
         (left * 2 * (k - 0.5), right)
     )
 
+stereoWidth :: Sig -> Sig -> Sig2 -> Sig2
+stereoWidth panValue widthValue (left, right) =
+  (0.5 * (1 + panNorm) * mid + 2 * widthValue * side, 0.5 * (1 - panNorm) * mid - 2 * widthValue * side)
+  where
+    mid = (left + right) / 2
+    side = (left - right) / 2
+
+    -- converts from [0, 1] to [-1, 1]
+    panNorm = 2 * (panValue - 0.5)
+
+{-
 stereoWidth :: Sig -> Sig2 -> Sig2
 stereoWidth k (left, right) =
   ifB
@@ -66,3 +77,4 @@ stereoWidth k (left, right) =
 
 sqrt2 :: Float
 sqrt2 = sqrt 2
+-}

@@ -95,7 +95,7 @@ listenFxUnit unit mixer oscHandle mChannelId =
     onFxUnit :: Text -> FxParamName -> Float -> SE ()
     onFxUnit unitName paramName initValue =
       listenFloat oscHandle fxAddr initValue $ \val ->
-        mixer.setFxParam (FxParamId (ChannelId <$> mChannelId) unitName paramName) val
+        mixer.setFxParam (FxParamId (toChannelId <$> mChannelId) unitName paramName) val
       where
         fxAddr =
           maybe toMasterAddr toChannelAddr mChannelId $

@@ -2,12 +2,26 @@ mixer:
   master:
     volume: 1
     fxs:
+      - reverb:
+          name: master-reverb
+          size: 0.5
+          damp: 0.7
+          dryWet: 0
       - limiter:
           name: master-limiter
           maxVolume: 0.95
   channels:
     - name: drums
       volume: 1
+      fxs:
+        - reverb:
+            name: drum-reverb
+            size: 0.5
+            damp: 0.7
+            dryWet: 0
+        - tool:
+            name: drum-tool
+
     - name: perc
       volume: 1
     - name: bass
@@ -719,14 +733,6 @@ controllers:
           - on:
               channelVolume: 8
 
-      - when:
-          key: knob23
-        act:
-          - on:
-              fxParam:
-                name: drum-filter
-                param: cutoff
-                channel: drums
 
       - when:
           key: knob22
@@ -748,6 +754,32 @@ controllers:
               channelSend:
                 from: pad
                 to: reverb-bus
+
+      - when:
+          key: knob13
+        act:
+          - on:
+              fxParam:
+                name: drum-tool
+                param: pan
+                channel: drums
+
+      - when:
+          key: knob12
+        act:
+          - on:
+              fxParam:
+                name: drum-reverb
+                param: size
+                channel: drums
+      - when:
+          key: knob11
+        act:
+          - on:
+              fxParam:
+                name: drum-reverb
+                param: dryWet
+                channel: drums
 
     notes:
       - when:

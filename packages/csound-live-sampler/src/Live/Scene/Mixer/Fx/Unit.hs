@@ -16,6 +16,7 @@ import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Live.Scene.Common (smoothControl)
 
 type FxParamName = Text
 type ParamMap = Map FxParamName (Ref Sig)
@@ -34,7 +35,7 @@ data Unit a = Unit
 
 readParam :: ParamMap -> FxParamName -> SE Sig
 readParam params name =
-  readRef ref
+  smoothControl <$> readRef ref
   where
     ref = fromMaybe (error errMessage) $ Map.lookup name params
 

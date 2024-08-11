@@ -25,6 +25,12 @@ import Data.Tuple.Nested ((/\))
 
 type MixerUi =
   { channels :: Array MixerUiItem
+  , master :: MasterUiItem
+  }
+
+type MasterUiItem =
+  { volume :: Number
+  , fxs :: Array Fx
   }
 
 type MixerUiItem =
@@ -97,7 +103,7 @@ toChannelFxUis ui =
   where
     fxChannels =
       Array.filter (\(Tuple _ channel) -> Array.length channel.fxs /= 0)
-        $ Array.mapWithIndex (\n chan -> Just n /\ chan) ui.channels
+        $ Array.mapWithIndex (\n chan -> Just (n + 1) /\ chan) ui.channels
 
     toChannelName :: MixerUiItem -> String
     toChannelName chan =

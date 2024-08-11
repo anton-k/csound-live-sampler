@@ -36,6 +36,7 @@ data SceneUi = SceneUi
 
 data MixerUi = MixerUi
   { channels :: [MixerChannelUi]
+  , master :: MixerChannelUi
   }
 
 data MixerChannelUi = MixerChannelUi

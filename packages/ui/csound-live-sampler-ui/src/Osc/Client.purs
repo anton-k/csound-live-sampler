@@ -196,8 +196,12 @@ setListeners ref =
 initMixer :: Osc.Port -> Mixer
 initMixer port =
   { setMasterVolume: \volume -> port.send (Osc.setMasterVolume volume)
-  , setChannelVolume: \chanId volume -> port.send (Osc.setChannelVolume chanId volume)
-  , setFxParam: \paramId value -> port.send (Osc.setFxParam paramId value)
+  , setChannelVolume: \chanId volume -> do
+      logValue "Send volume" (chanId /\ Osc.setChannelVolume chanId volume)
+      port.send (Osc.setChannelVolume chanId volume)
+  , setFxParam: \paramId value -> do
+      logValue "Send fx param" (paramId /\ value /\ Osc.setFxParam paramId value)
+      port.send (Osc.setFxParam paramId value)
   }
 
 initSampler :: Osc.Port -> Sampler

@@ -8,7 +8,7 @@ module Live.Scene.AudioCard (
 import Csound.Core
 import Data.Maybe
 import Live.Scene.AudioCard.Config
-import Live.Scene.Common (AudioInputId (..), ChannelId (..))
+import Live.Scene.Common (AudioInputId (..), ChannelId (..), smoothControl)
 import Safe
 
 -- | Audio IO
@@ -117,7 +117,7 @@ getOutputGainConfig = \case
 
 setInputGainSt :: St -> AudioInputId -> Sig -> SE ()
 setInputGainSt st (AudioInputId inputId) value =
-  mapM_ (\input -> writeRef input.gain value) (st.inputs `atMay` inputId)
+  mapM_ (\input -> writeRef input.gain (smoothControl value)) (st.inputs `atMay` inputId)
 
 updateAudio :: St -> AudioCardDeps -> SE ()
 updateAudio st deps = do
@@ -154,7 +154,7 @@ setupOutputsSt st deps =
 runOutput :: AudioCardDeps -> AudioOutput -> SE ()
 runOutput deps output = do
   gain <- readRef output.gain
-  writeOut . mul gain =<< readChannel
+  writeOut . mul (smoothControl gain) =<< readChannel
   where
     readChannel :: SE Sig2
     readChannel =

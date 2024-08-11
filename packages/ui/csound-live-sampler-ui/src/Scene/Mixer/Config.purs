@@ -1,11 +1,12 @@
 module Scene.Mixer.Config
   ( MixerUi
+  , MasterUiItem
   , MixerUiItem
   , Fx
   , FxParam
   , mixerUiFromJson
   , ChannelFxUi
-  , toChannelFxUis
+  , toMixerFxUis
   , FxUi
   ) where
 
@@ -20,7 +21,7 @@ import JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt)
 import Data.Array as Array
 import Data.Maybe (fromMaybe)
 import Action (ChannelId)
-import Data.Tuple (Tuple (..))
+import Data.Tuple (Tuple (..), snd)
 import Data.Tuple.Nested ((/\))
 
 type MixerUi =
@@ -56,7 +57,15 @@ mixerUiFromJson :: JSON -> Maybe MixerUi
 mixerUiFromJson json = do
   obj <- Json.toJObject json
   channels <- traverse mixerUiItemFromJson =<< lookupArray "channels" obj
-  pure { channels }
+  master <- masterUiItemFromJson =<< Json.lookup "master" obj
+  pure { channels, master }
+
+masterUiItemFromJson :: JSON -> Maybe MasterUiItem
+masterUiItemFromJson json = do
+  obj <- Json.toJObject json
+  volume <- lookupNumber "volume" obj
+  fxs <- traverse fxFromJson =<< lookupArray "fxs" obj
+  pure { volume, fxs }
 
 mixerUiItemFromJson :: JSON -> Maybe MixerUiItem
 mixerUiItemFromJson json = do
@@ -92,6 +101,23 @@ type FxUi =
   , channel :: Maybe ChannelId
   }
 
+toMixerFxUis :: MixerUi -> Array ChannelFxUi
+toMixerFxUis ui =
+  toMasterFxUis ui <> toChannelFxUis ui
+
+toMasterFxUis :: MixerUi -> Array ChannelFxUi
+toMasterFxUis ui =
+  if Array.null fxs
+    then []
+    else pure $
+      { name: "master"
+      , fxs: map
+                (\fx -> { fx: fx, channel: Nothing })
+                fxs
+      }
+  where
+    fxs = ui.master.fxs
+
 toChannelFxUis :: MixerUi -> Array ChannelFxUi
 toChannelFxUis ui =
   map (\(Tuple chanId chan) ->
@@ -102,9 +128,11 @@ toChannelFxUis ui =
       fxChannels
   where
     fxChannels =
-      Array.filter (\(Tuple _ channel) -> Array.length channel.fxs /= 0)
-        $ Array.mapWithIndex (\n chan -> Just (n + 1) /\ chan) ui.channels
+      Array.filter (isNonEmptyFx <<< (_.fxs) <<< snd) $
+        Array.mapWithIndex (\n chan -> Just (n + 1) /\ chan) ui.channels
 
     toChannelName :: MixerUiItem -> String
     toChannelName chan =
       fromMaybe ("Channel " <> show chan.channel) chan.name
+
+isNonEmptyFx fxs = Array.length fxs /= 0

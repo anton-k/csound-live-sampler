@@ -97,7 +97,7 @@ initMixer mixer act =
 
     toColumn x = divClasses [] [x]
 
-    fxs = toChannelFxUis mixer
+    fxs = toMixerFxUis mixer
 
 initChannel :: forall w s . Mixer -> MixerUiItem -> Elem w s SetChannel
 initChannel act item =

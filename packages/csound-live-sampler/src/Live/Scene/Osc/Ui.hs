@@ -13,6 +13,7 @@ module Live.Scene.Osc.Ui (
 import Data.Aeson qualified as Json
 import Data.Aeson.TH qualified as Json
 import Data.ByteString qualified as ByteString
+import Data.Default
 import Data.Map.Strict qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.String
@@ -36,7 +37,12 @@ data SceneUi = SceneUi
 
 data MixerUi = MixerUi
   { channels :: [MixerChannelUi]
-  , master :: MixerChannelUi
+  , master :: MasterUi
+  }
+
+data MasterUi = MasterUi
+  { volume :: Float
+  , fxs :: [FxUi]
   }
 
 data MixerChannelUi = MixerChannelUi
@@ -75,6 +81,7 @@ $(Json.deriveJSON Json.defaultOptions ''TrackUi)
 $(Json.deriveJSON Json.defaultOptions ''SamplerUi)
 $(Json.deriveJSON Json.defaultOptions ''FxParamUi)
 $(Json.deriveJSON Json.defaultOptions ''FxUi)
+$(Json.deriveJSON Json.defaultOptions ''MasterUi)
 $(Json.deriveJSON Json.defaultOptions ''MixerChannelUi)
 $(Json.deriveJSON Json.defaultOptions ''MixerUi)
 $(Json.deriveJSON Json.defaultOptions ''SceneUi)
@@ -102,7 +109,17 @@ getUiConfig mixer sampler =
 
 getMixerUiConfig :: Config.MixerConfig ChannelId -> MixerUi
 getMixerUiConfig config =
-  MixerUi{channels = zipWith getChannelUiConfig [1 ..] config.channels}
+  MixerUi
+    { channels = zipWith getChannelUiConfig [1 ..] config.channels
+    , master = getMasterUiConfig (fromMaybe def config.master)
+    }
+
+getMasterUiConfig :: Config.MasterConfig -> MasterUi
+getMasterUiConfig config =
+  MasterUi
+    { volume = config.volume
+    , fxs = getFxUiConfig <$> fromMaybe [] config.fxs
+    }
 
 getChannelUiConfig :: Int -> Config.ChannelConfig ChannelId -> MixerChannelUi
 getChannelUiConfig channelIndex config =

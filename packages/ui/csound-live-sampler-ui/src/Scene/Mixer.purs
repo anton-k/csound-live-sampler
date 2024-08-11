@@ -1,5 +1,6 @@
 module Scene.Mixer
   ( SetMixer
+  , SetMaster
   , SetChannel
   , initMixer
   , initChannel
@@ -42,7 +43,8 @@ import Osc.Client (newOscControl)
 import Scene.Mixer.Fx (withFxs, fxHtml, fxChannelSetup, SetFxParam)
 
 type SetMixer =
-  { setChannel :: Int -> SetChannel
+  { setMaster :: SetMaster
+  , setChannel :: Int -> SetChannel
   , setFxParam :: FxParamId -> SetFxParam
   }
 
@@ -50,6 +52,11 @@ type SetChannel =
   { setVolumeEnvelope :: Number -> Effect Unit
   , setVolume :: Number -> Effect Unit
   , setMute :: Boolean -> Effect Unit
+  }
+
+type SetMaster =
+  { setVolumeEnvelope :: Number -> Effect Unit
+  , setVolume :: Number -> Effect Unit
   }
 
 defColor0 = "#24bcbc"
@@ -71,6 +78,7 @@ emptySetFxParam = const (pure unit)
 initMixer :: forall w s . MixerUi -> Mixer -> Elem w s SetMixer
 initMixer mixer act =
   { setup: do
+      setMaster <- master.setup
       channelMap <-
         map Map.fromFoldable $
           traverseWithIndex
@@ -87,13 +95,18 @@ initMixer mixer act =
       pure
         { setChannel: getChannelSetters
         , setFxParam: getFxParamSetter
+        , setMaster: setMaster
         }
   , html:
       withFxs fxs $
-        divClasses ["grid"] (map (\item -> toColumn item.html) channels)
+        divClasses ["grid"]
+          ( map (\item -> toColumn item.html) channels <>
+            [toColumn master.html]
+          )
   }
   where
     channels = map (initChannel act) mixer.channels
+    master = initMasterChannel act mixer.master
 
     toColumn x = divClasses [] [x]
 
@@ -137,7 +150,39 @@ initChannel act item =
   where
     barTarget = "bar" <> show item.channel
     dialTarget = "dial" <> show item.channel
-    button = textButton "FX"
+
+initMasterChannel :: forall w s . Mixer -> MasterUiItem -> Elem w s SetMaster
+initMasterChannel act item =
+  { setup: do
+      dial <- Ui.newDial ("#" <> dialTarget)
+      dial.setValue item.volume
+      bar <- initBar ("#" <> barTarget) 1 0.0
+      sendOscVolume <- newOscControl $ \val ->
+          act.setMasterVolume val
+      dial.on Ui.Change sendOscVolume.set
+
+      pure $
+        { setVolumeEnvelope: \volume -> bar.setAllSliders [volume]
+        , setVolume: \volume -> do
+            sendOscVolume.silent $ dial.setValue volume
+        }
+
+  , html:
+      divClasses []
+        [ divId barTarget []
+        , divId "space1" [HH.p_ [HH.text " "]]
+        , divId dialTarget []
+        , divId "space1" [HH.p_ [HH.text " "]]
+        , case (Just "main") of
+              Just name -> HH.div [HP.style "text-align:center"] [HH.text name]
+              Nothing -> divClasses [] []
+        ]
+  }
+  where
+    barTarget = "bar" <> masterTag
+    dialTarget = "dial" <> masterTag
+    masterTag = "masterChannel"
+
 
 initBar :: String -> Int -> Number -> Effect Ui.Multislider
 initBar target n initValue = do

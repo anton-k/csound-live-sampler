@@ -37,6 +37,8 @@ type OscConfig =
 
 type Listen =
   { bpm :: Int -> Effect Unit
+  , masterVolumeEnvelope :: Number -> Effect Unit
+  , masterVolume :: Number -> Effect Unit
   , channelVolumeEnvelope :: Int -> Number -> Effect Unit
   , channelVolume :: Int -> Number -> Effect Unit
   , channelMute :: Int -> Boolean -> Effect Unit
@@ -47,6 +49,8 @@ type Listen =
 emptyListen :: Listen
 emptyListen =
   { bpm: const (pure unit)
+  , masterVolumeEnvelope: const (pure unit)
+  , masterVolume: const (pure unit)
   , channelVolumeEnvelope: const (const $ pure unit)
   , channelVolume: const (const $ pure unit)
   , channelMute: const (const $ pure unit)
@@ -56,6 +60,8 @@ emptyListen =
 
 type SetListen =
   { bpm :: (Int -> Effect Unit) -> Effect Unit
+  , masterVolumeEnvelope :: (Number -> Effect Unit) -> Effect Unit
+  , masterVolume :: (Number -> Effect Unit) -> Effect Unit
   , channelVolumeEnvelope :: (Int -> Number -> Effect Unit) -> Effect Unit
   , channelVolume :: (Int -> Number -> Effect Unit) -> Effect Unit
   , channelMute :: (Int -> Boolean -> Effect Unit) -> Effect Unit
@@ -96,6 +102,8 @@ runListener port ref =
     caseExpr :: Array (Osc.OscCase (Effect Unit))
     caseExpr =
       [ Osc.toOscCase "/bpm/beats" onBpm
+      , Osc.toOscCase "/master/volume/envelope" onMasterVolumeEnvelope
+      , Osc.toOscCase "/master/volume/change" onMasterVolume
       , Osc.toOscCase "/channel/$d/volume/envelope" onChannelVolumeEnvelope
       , Osc.toOscCase "/channel/$d/volume/change" onChannelVolumeChange
       , Osc.toOscCase "/channel/$d/mute/change" onChannelMuteChange
@@ -106,6 +114,14 @@ runListener port ref =
 
     onBpm :: Int -> Effect Unit
     onBpm n = withListen $ \listen -> listen.bpm n
+
+    onMasterVolumeEnvelope :: Number -> Effect Unit
+    onMasterVolumeEnvelope volume =
+      withListen $ \listen -> listen.masterVolumeEnvelope volume
+
+    onMasterVolume :: Number -> Effect Unit
+    onMasterVolume volume =
+      withListen $ \listen -> listen.masterVolume volume
 
     onChannelVolumeEnvelope :: Tuple Number Number -> Effect Unit
     onChannelVolumeEnvelope (Tuple channelId volume) =
@@ -186,6 +202,8 @@ instance Osc.ReadOsc Clip where
 setListeners :: Ref Listen -> SetListen
 setListeners ref =
   { bpm: \f -> modify_ (\s -> s { bpm = f }) ref
+  , masterVolumeEnvelope: \f -> modify_ (\s -> s { masterVolumeEnvelope = f }) ref
+  , masterVolume: \f -> modify_ (\s -> s { masterVolume = f }) ref
   , channelVolumeEnvelope: \f -> modify_ (\s -> s { channelVolumeEnvelope = f }) ref
   , channelVolume: \f -> modify_ (\s -> s { channelVolume = f }) ref
   , channelMute: \f -> modify_ (\s -> s { channelMute = f }) ref

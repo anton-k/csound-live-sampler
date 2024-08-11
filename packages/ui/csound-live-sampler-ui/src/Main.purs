@@ -56,6 +56,8 @@ hookComponent sceneUi sceneAct = Hooks.component \_ _ -> Hooks.do
 linkSettersToOsc :: OscClient -> SetScene -> Effect Unit
 linkSettersToOsc sceneAct setter = do
   sceneAct.listen.bpm setter.sampler.setBpm
+  sceneAct.listen.masterVolumeEnvelope setter.mixer.setMaster.setVolumeEnvelope
+  sceneAct.listen.masterVolume setter.mixer.setMaster.setVolume
   sceneAct.listen.channelVolumeEnvelope
     (\chanId val -> (setter.mixer.setChannel chanId).setVolumeEnvelope val)
   sceneAct.listen.channelVolume

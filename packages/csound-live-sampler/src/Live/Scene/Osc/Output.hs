@@ -25,6 +25,7 @@ setupOscOutput scene config = do
     bpm <- scene.sampler.readBpm
     let
       isTick = metro (toAbsTimeRate bpm 0.25)
+    sendMasterInfo config isTick scene.mixer fxParams
     mapM_ (sendChannelInfo config isTick scene.mixer fxParams) (fromMaybe [] config.channels)
   play instr [Note 0 (-1) ()]
   where

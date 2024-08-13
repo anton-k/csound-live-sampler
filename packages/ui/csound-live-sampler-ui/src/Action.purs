@@ -7,6 +7,7 @@ module Action
   , Sampler
   , Info
   , FxParamId
+  , SendId
   ) where
 
 import Prelude
@@ -29,10 +30,16 @@ type FxParamId =
   , param :: String
   }
 
+type SendId =
+  { from :: ChannelId
+  , to :: ChannelId
+  }
+
 type Mixer =
   { setMasterVolume :: Number -> Effect Unit
   , setChannelVolume :: ChannelId -> Number -> Effect Unit
   , setFxParam :: FxParamId -> Number -> Effect Unit
+  , setSendFx :: SendId -> Number -> Effect Unit
   }
 
 type Sampler =

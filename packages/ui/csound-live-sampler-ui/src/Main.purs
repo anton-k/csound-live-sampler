@@ -65,4 +65,5 @@ linkSettersToOsc sceneAct setter = do
   sceneAct.listen.channelMute
     (\chanId val -> (setter.mixer.setChannel chanId).setMute val)
   sceneAct.listen.fxParam setter.mixer.setFxParam
+  sceneAct.listen.sendFx setter.mixer.setSendFx
   sceneAct.listen.partChange setter.sampler.setPart

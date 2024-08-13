@@ -13,7 +13,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Live.Scene.AudioCard
 import Live.Scene.AudioCard.Config
-import Live.Scene.Common (AudioInputId (..), ChannelId (..))
+import Live.Scene.Common (AudioInputId (..), ChannelId (..), SendId (..))
 import Live.Scene.Mixer
 import Live.Scene.Mixer.Fx (toFxName, toFxParamNameInitMap)
 import Live.Scene.Mixer.Fx.Config
@@ -84,7 +84,7 @@ listenChannelSend config mixer oscHandle oscChannelId =
     onSend :: SendConfig ChannelId -> SE ()
     onSend sendConfig =
       listenFloat oscHandle sendAddr sendConfig.gain $ \gain ->
-        mixer.setChannelSend (toChannelId oscChannelId) sendConfig.channel gain
+        mixer.setChannelSend (SendId{from = toChannelId oscChannelId, to = sendConfig.channel}) gain
       where
         sendAddr = toChannelAddr oscChannelId $ "send/" <> show (succ $ unChannelId sendConfig.channel)
 

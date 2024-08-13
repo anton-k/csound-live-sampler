@@ -32,7 +32,7 @@ import Data.Default
 import Data.IntMap.Strict (IntMap)
 import Data.IntMap.Strict qualified as IntMap
 import Data.Maybe
-import Live.Scene.Common (ChannelId (..), smoothControl)
+import Live.Scene.Common (ChannelId (..), SendId (..), smoothControl)
 import Live.Scene.Mixer.Config as X
 import Live.Scene.Mixer.Fx (Bpm (..))
 import Live.Scene.Mixer.Route (
@@ -58,7 +58,8 @@ data Mixer = Mixer
   , modifyMasterVolume :: (Sig -> Sig) -> SE ()
   , modifyFxParam :: FxParamId -> (Sig -> Sig) -> SE ()
   , setChannelVolume :: ChannelId -> Sig -> SE ()
-  , setChannelSend :: ChannelId -> ChannelId -> Sig -> SE ()
+  , setChannelSend :: SendId -> Sig -> SE ()
+  , readChannelSend :: SendId -> SE Sig
   , setMasterVolume :: Sig -> SE ()
   , setFxParam :: FxParamId -> Sig -> SE ()
   , readFxParam :: FxParamId -> SE Sig
@@ -111,6 +112,7 @@ newMixer config channels readBpm = do
       , modifyFxParam = fxControls.modifyFxParam
       , setChannelVolume = setChannelVolumeSt st
       , setChannelSend = setChannelSendSt st
+      , readChannelSend = readChannelSendSt st
       , setMasterVolume = setMasterVolumeSt st
       , setFxParam = fxControls.setFxParam
       , readFxParam = fxControls.readFxParam
@@ -244,10 +246,15 @@ modifyChannelSendSt st fromChannelId toChannelId f =
   withChannel st fromChannelId $ \channel ->
     mapM_ (\ref -> modifyRef ref f) (lookupSend toChannelId channel.sendGains)
 
-setChannelSendSt :: St -> ChannelId -> ChannelId -> Sig -> SE ()
-setChannelSendSt st fromChannelId toChannelId ins =
-  withChannel st fromChannelId $ \channel ->
-    mapM_ (\ref -> writeRef ref ins) (lookupSend toChannelId channel.sendGains)
+setChannelSendSt :: St -> SendId -> Sig -> SE ()
+setChannelSendSt st sendId ins =
+  withChannel st sendId.from $ \channel ->
+    mapM_ (\ref -> writeRef ref ins) (lookupSend sendId.to channel.sendGains)
+
+readChannelSendSt :: St -> SendId -> SE Sig
+readChannelSendSt st sendId =
+  withChannelDef st sendId.from 0 $ \channel ->
+    maybe (pure 0) readRef (lookupSend sendId.to channel.sendGains)
 
 modifyMasterVolumeSt :: St -> (Sig -> Sig) -> SE ()
 modifyMasterVolumeSt st f =

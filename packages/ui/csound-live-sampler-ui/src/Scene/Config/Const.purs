@@ -18,7 +18,7 @@ oscConfig =
 sceneUi :: SceneUi
 sceneUi =
   { mixer:
-      { channels: map (\n -> { channel: n, volume: 0.5, fxs: [], name: Nothing }) (range 1 8)
+      { channels: map (\n -> { channel: n, volume: 0.5, fxs: [], sends: [], name: Nothing }) (range 1 8)
       , master: { volume: 1.0 , fxs: [] }
       }
 

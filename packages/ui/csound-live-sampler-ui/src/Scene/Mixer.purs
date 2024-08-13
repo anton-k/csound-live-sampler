@@ -40,12 +40,20 @@ import Data.Map as Map
 import Effect.Ref (new, read, write)
 import Scene.Mixer.Config
 import Osc.Client (newOscControl)
-import Scene.Mixer.Fx (withFxs, fxHtml, fxChannelSetup, SetFxParam)
+import Scene.Mixer.Fx
+  ( withFxs,
+    fxHtml,
+    fxChannelSetup,
+    sendChannelSetup,
+    SetFxParam,
+    SetSendFx
+  )
 
 type SetMixer =
   { setMaster :: SetMaster
   , setChannel :: Int -> SetChannel
   , setFxParam :: FxParamId -> SetFxParam
+  , setSendFx :: SendId -> SetSendFx
   }
 
 type SetChannel =
@@ -75,6 +83,9 @@ emptySetChannel =
 emptySetFxParam :: SetFxParam
 emptySetFxParam = const (pure unit)
 
+emptySetSendFx :: SetSendFx
+emptySetSendFx = const (pure unit)
+
 initMixer :: forall w s . MixerUi -> Mixer -> Elem w s SetMixer
 initMixer mixer act =
   { setup: do
@@ -92,9 +103,15 @@ initMixer mixer act =
       let
         getFxParamSetter paramId =
           fromMaybe emptySetFxParam (Map.lookup paramId fxParamMap)
+      sendFxMap <- map (Map.fromFoldable <<< Array.concat) $
+        traverse (sendChannelSetup act) fxs
+      let
+        getSendFxSetter sendId =
+          fromMaybe emptySetSendFx (Map.lookup sendId sendFxMap)
       pure
         { setChannel: getChannelSetters
         , setFxParam: getFxParamSetter
+        , setSendFx: getSendFxSetter
         , setMaster: setMaster
         }
   , html:

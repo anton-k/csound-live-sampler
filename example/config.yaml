@@ -21,6 +21,9 @@ mixer:
             dryWet: 0
         - tool:
             name: drum-tool
+      sends:
+        - channel: reverb-bus
+          gain: 0
 
     - name: perc
       volume: 1

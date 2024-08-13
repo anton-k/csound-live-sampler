@@ -11,11 +11,12 @@ module Osc.Message
   , shiftPart
   , getCurrentPart
   , setFxParam
+  , setSendFx
   ) where
 
 import Prelude
 import Network.Osc (Osc, OscValue (..))
-import Action (ChannelId, TrackId, FxParamId)
+import Action (ChannelId, TrackId, FxParamId, SendId)
 import Data.Maybe (Maybe, maybe)
 import Data.String as String
 
@@ -75,3 +76,9 @@ setFxParam paramId value =
   where
     channelAddr =
       "/" <> maybe "master" (\n -> "channel/" <> show n)  paramId.channel
+
+setSendFx :: SendId -> Number -> Osc
+setSendFx sendId value =
+  { address: String.joinWith "/" ["/channel", show sendId.from, "send", show sendId.to]
+  , args: [OscDouble value]
+  }

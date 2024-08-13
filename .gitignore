@@ -1,2 +1,4 @@
 .stack-work/
+*.csd
+**/*.DS_Store
 *~

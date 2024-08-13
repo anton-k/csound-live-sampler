@@ -12,7 +12,7 @@ import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Text (Text)
 import Live.Scene.AudioCard
-import Live.Scene.Common (AudioInputId (..), ChannelId (..))
+import Live.Scene.Common (AudioInputId (..), ChannelId (..), SendId (..))
 import Live.Scene.Midi.Config
 import Live.Scene.Mixer
 import Live.Scene.Sampler
@@ -160,7 +160,7 @@ toKnobAct audio mixer note knob =
       mixer.setChannelVolume n $
         (applyRange $ volumeCurve (readKnobValue note / 127))
     SetChannelSend config ->
-      mixer.setChannelSend config.from config.to $
+      mixer.setChannelSend (SendId{from = config.from, to = config.to}) $
         (applyRange $ readKnobValue note / 127)
     SetFxParam config ->
       mixer.setFxParam (toFxParamId config) $

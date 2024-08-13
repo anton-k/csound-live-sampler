@@ -4,6 +4,7 @@ module Scene.Mixer.Config
   , MixerUiItem
   , Fx
   , FxParam
+  , SendFx
   , mixerUiFromJson
   , ChannelFxUi
   , toMixerFxUis
@@ -39,6 +40,7 @@ type MixerUiItem =
   , volume :: Number
   , fxs :: Array Fx
   , name :: Maybe String
+  , sends :: Array SendFx
   }
 
 type Fx =
@@ -48,6 +50,11 @@ type Fx =
 
 type FxParam =
   { name :: String
+  , value :: Number
+  }
+
+type SendFx =
+  { to :: Int
   , value :: Number
   }
 
@@ -73,9 +80,10 @@ mixerUiItemFromJson json = do
   channel <- lookupInt "channel" obj
   volume <- lookupNumber "volume" obj
   fxs <- traverse fxFromJson =<< lookupArray "fxs" obj
+  sends <- traverse sendFxFromJson =<< lookupArray "sends" obj
   let
     name = lookupString "name" obj
-  pure { channel, volume, fxs, name }
+  pure { channel, volume, fxs, sends, name }
 
 fxFromJson :: JSON -> Maybe Fx
 fxFromJson json = do
@@ -91,9 +99,18 @@ fxParamFromJson json = do
   value <- lookupNumber "value" obj
   pure { name, value }
 
+sendFxFromJson :: JSON -> Maybe SendFx
+sendFxFromJson json = do
+  obj <- Json.toJObject json
+  to <- lookupInt "to" obj
+  value <- lookupNumber "value" obj
+  pure { to, value }
+
 type ChannelFxUi =
-  { name :: String
+  { channelId :: Int
+  , name :: String
   , fxs :: Array FxUi
+  , sends :: Array SendFx
   }
 
 type FxUi =
@@ -110,10 +127,12 @@ toMasterFxUis ui =
   if Array.null fxs
     then []
     else pure $
-      { name: "master"
+      { channelId: 0
+      , name: "master"
       , fxs: map
                 (\fx -> { fx: fx, channel: Nothing })
                 fxs
+      , sends: []
       }
   where
     fxs = ui.master.fxs
@@ -121,18 +140,25 @@ toMasterFxUis ui =
 toChannelFxUis :: MixerUi -> Array ChannelFxUi
 toChannelFxUis ui =
   map (\(Tuple chanId chan) ->
-          { name: toChannelName chan
+          { channelId: fromMaybe 0 chanId
+          , name: toChannelName chan
           , fxs: map (\fx -> { fx: fx, channel: chanId }) chan.fxs
+          , sends: map succTo chan.sends
           }
       )
       fxChannels
   where
     fxChannels =
-      Array.filter (isNonEmptyFx <<< (_.fxs) <<< snd) $
+      Array.filter (isNonEmptyFx <<< snd) $
         Array.mapWithIndex (\n chan -> Just (n + 1) /\ chan) ui.channels
+
+    succTo send =
+      send { to = send.to + 1 }
 
     toChannelName :: MixerUiItem -> String
     toChannelName chan =
       fromMaybe ("Channel " <> show chan.channel) chan.name
 
-isNonEmptyFx fxs = Array.length fxs /= 0
+isNonEmptyFx chan =
+  Array.length chan.fxs /= 0 ||
+  Array.length chan.sends /= 0

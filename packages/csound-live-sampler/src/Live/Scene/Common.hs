@@ -1,6 +1,7 @@
 module Live.Scene.Common (
   ChannelId (..),
   toChannelId,
+  SendId (..),
   AudioInputId (..),
   toAudioInputId,
   NameRef (..),
@@ -22,6 +23,12 @@ smoothControl :: Sig -> Sig
 smoothControl controlSig = portk controlSig 0.01
 
 newtype ChannelId = ChannelId {unChannelId :: Int}
+  deriving (Show, Eq, Ord)
+
+data SendId = SendId
+  { from :: ChannelId
+  , to :: ChannelId
+  }
   deriving (Show, Eq, Ord)
 
 toChannelId :: Int -> ChannelId

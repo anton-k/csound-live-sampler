@@ -43,6 +43,7 @@ type Listen =
   , channelVolume :: Int -> Number -> Effect Unit
   , channelMute :: Int -> Boolean -> Effect Unit
   , fxParam :: FxParamId -> Number -> Effect Unit
+  , sendFx :: SendId -> Number -> Effect Unit
   , partChange :: Clip -> Effect Unit
   }
 
@@ -55,6 +56,7 @@ emptyListen =
   , channelVolume: const (const $ pure unit)
   , channelMute: const (const $ pure unit)
   , fxParam: const (const $ pure unit)
+  , sendFx: const (const (pure unit))
   , partChange: const (pure unit)
   }
 
@@ -66,6 +68,7 @@ type SetListen =
   , channelVolume :: (Int -> Number -> Effect Unit) -> Effect Unit
   , channelMute :: (Int -> Boolean -> Effect Unit) -> Effect Unit
   , fxParam :: (FxParamId -> Number -> Effect Unit) -> Effect Unit
+  , sendFx :: (SendId -> Number -> Effect Unit) -> Effect Unit
   , partChange :: (Clip -> Effect Unit) -> Effect Unit
   }
 
@@ -109,6 +112,7 @@ runListener port ref =
       , Osc.toOscCase "/channel/$d/mute/change" onChannelMuteChange
       , Osc.toOscCase "/part/change" onPartChange
       , Osc.toOscCase "/channel/$d/fx/change/$s/$s" onChannelFxParamChange
+      , Osc.toOscCase "/channel/$d/send/change/$s" onChannelSendFxChange
       , Osc.toOscCase "/master/fx/change/$s/$s" onMasterFxParamChange
       ]
 
@@ -145,6 +149,16 @@ runListener port ref =
             , param: param
             }
         listen.fxParam paramId value
+
+    onChannelSendFxChange :: Tuple Number (Tuple Number Number) -> Effect Unit
+    onChannelSendFxChange (Tuple fromChannelId (Tuple toChannelId value)) =
+      withListen $ \listen -> do
+        let
+          sendId =
+            { from: round fromChannelId
+            , to: round toChannelId
+            }
+        listen.sendFx sendId value
 
     onMasterFxParamChange :: Tuple String (Tuple String Number) -> Effect Unit
     onMasterFxParamChange (Tuple name (Tuple param value)) =
@@ -209,17 +223,20 @@ setListeners ref =
   , channelMute: \f -> modify_ (\s -> s { channelMute = f }) ref
   , partChange: \f -> modify_ (\s -> s { partChange = f }) ref
   , fxParam: \f -> modify_ (\s -> s { fxParam = f }) ref
+  , sendFx: \f -> modify_ (\s -> s { sendFx = f }) ref
   }
 
 initMixer :: Osc.Port -> Mixer
 initMixer port =
   { setMasterVolume: \volume -> port.send (Osc.setMasterVolume volume)
-  , setChannelVolume: \chanId volume -> do
-      logValue "Send volume" (chanId /\ Osc.setChannelVolume chanId volume)
+  , setChannelVolume: \chanId volume ->
       port.send (Osc.setChannelVolume chanId volume)
   , setFxParam: \paramId value -> do
       logValue "Send fx param" (paramId /\ value /\ Osc.setFxParam paramId value)
       port.send (Osc.setFxParam paramId value)
+  , setSendFx: \sendId value -> do
+      logValue "Send send fx" (sendId /\ value /\ Osc.setSendFx sendId value)
+      port.send (Osc.setSendFx sendId value)
   }
 
 initSampler :: Osc.Port -> Sampler
@@ -247,6 +264,7 @@ initMixerEcho =
   { setMasterVolume: logValue "Master volume"
   , setChannelVolume: \chan vol -> logValue "Channel volume" (chan /\ vol)
   , setFxParam: \param value -> logValue "FX param" (param /\ value)
+  , setSendFx: \sendId value -> logValue "Send FX" (sendId /\ value)
   }
 
 initSamplerEcho :: Sampler

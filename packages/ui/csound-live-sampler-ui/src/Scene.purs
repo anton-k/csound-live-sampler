@@ -12,7 +12,6 @@ import Scene.Html
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Action
-import Scene.Mixer.Config
 import Scene.Config
 
 type SetScene =

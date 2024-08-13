@@ -49,6 +49,7 @@ data MixerChannelUi = MixerChannelUi
   { channel :: Int
   , volume :: Float
   , fxs :: [FxUi]
+  , sends :: [SendFxUi]
   , name :: Maybe Text
   }
 
@@ -59,6 +60,11 @@ data FxUi = FxUi
 
 data FxParamUi = FxParamUi
   { name :: Text
+  , value :: Float
+  }
+
+data SendFxUi = SendFxUi
+  { to :: Int
   , value :: Float
   }
 
@@ -81,6 +87,7 @@ $(Json.deriveJSON Json.defaultOptions ''TrackUi)
 $(Json.deriveJSON Json.defaultOptions ''SamplerUi)
 $(Json.deriveJSON Json.defaultOptions ''FxParamUi)
 $(Json.deriveJSON Json.defaultOptions ''FxUi)
+$(Json.deriveJSON Json.defaultOptions ''SendFxUi)
 $(Json.deriveJSON Json.defaultOptions ''MasterUi)
 $(Json.deriveJSON Json.defaultOptions ''MixerChannelUi)
 $(Json.deriveJSON Json.defaultOptions ''MixerUi)
@@ -127,6 +134,7 @@ getChannelUiConfig channelIndex config =
     { channel = channelIndex
     , volume = config.volume
     , fxs = getFxUiConfig <$> fromMaybe [] config.fxs
+    , sends = getSendFxUiConfig <$> fromMaybe [] config.sends
     , name = config.name
     }
 
@@ -139,6 +147,13 @@ getFxUiConfig fx =
 
 getFxParamUi :: FxParamName -> Float -> FxParamUi
 getFxParamUi name value = FxParamUi{name, value}
+
+getSendFxUiConfig :: Config.SendConfig ChannelId -> SendFxUi
+getSendFxUiConfig config =
+  SendFxUi
+    { to = config.channel.unChannelId
+    , value = config.gain
+    }
 
 getSamplerUiConfig :: Config.SamplerConfig ChannelId -> SamplerUi
 getSamplerUiConfig config =

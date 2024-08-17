@@ -12,10 +12,14 @@ module Live.Scene.Osc.Ui (
 
 import Data.Aeson qualified as Json
 import Data.Aeson.TH qualified as Json
+import Data.Bifunctor
 import Data.ByteString qualified as ByteString
 import Data.Default
+import Data.List qualified as List
+import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe (fromMaybe)
+import Data.Set qualified as Set
 import Data.String
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -25,6 +29,7 @@ import Live.Scene.Mixer.Config qualified as Config
 import Live.Scene.Mixer.Fx (toFxName, toFxParamNameInitMap)
 import Live.Scene.Mixer.Fx.Config qualified as Config
 import Live.Scene.Mixer.Fx.Unit (FxParamName)
+import Live.Scene.Osc.Config qualified as Config
 import Live.Scene.Sampler.Config qualified as Config
 
 data SceneUi = SceneUi
@@ -37,6 +42,9 @@ data SceneUi = SceneUi
 
 data MixerUi = MixerUi
   { channels :: [MixerChannelUi]
+  -- ^ main channels are shown on the big pannel in the UI
+  , auxChannels :: [MixerChannelUi]
+  -- ^ aux channels are shown on the accordion-pad in the UI (small version)
   , master :: MasterUi
   }
 
@@ -100,26 +108,72 @@ getUiOscMessage ::
   (IsString a) =>
   Config.MixerConfig ChannelId ->
   Config.SamplerConfig ChannelId ->
+  Config.OscUiConfig ChannelId ->
   a
-getUiOscMessage mixer sampler =
-  fromString $ Text.unpack $ Text.decodeUtf8 $ ByteString.toStrict $ Json.encode (getUiConfig mixer sampler)
+getUiOscMessage mixer sampler ui =
+  fromString $ Text.unpack $ Text.decodeUtf8 $ ByteString.toStrict $ Json.encode (getUiConfig mixer sampler ui)
 
 getUiConfig ::
   Config.MixerConfig ChannelId ->
   Config.SamplerConfig ChannelId ->
+  Config.OscUiConfig ChannelId ->
   SceneUi
-getUiConfig mixer sampler =
+getUiConfig mixer sampler ui =
   SceneUi
-    { mixer = getMixerUiConfig mixer
+    { mixer = getMixerUiConfig mixer ui
     , sampler = getSamplerUiConfig sampler
     }
 
-getMixerUiConfig :: Config.MixerConfig ChannelId -> MixerUi
-getMixerUiConfig config =
-  MixerUi
-    { channels = zipWith getChannelUiConfig [1 ..] config.channels
-    , master = getMasterUiConfig (fromMaybe def config.master)
-    }
+getMixerUiConfig :: Config.MixerConfig ChannelId -> Config.OscUiConfig ChannelId -> MixerUi
+getMixerUiConfig mixer ui =
+  MixerUi{channels, auxChannels, master}
+  where
+    master = getMasterUiConfig (fromMaybe def mixer.master)
+
+    (channels, auxChannels) = getChannels
+
+    getChannels =
+      case ui.mainChannels of
+        Just uiChannels ->
+          case ui.auxChannels of
+            Just auxChannels -> channelsAuxs uiChannels auxChannels
+            Nothing -> channelsNoAuxs uiChannels
+        Nothing ->
+          case ui.auxChannels of
+            Just auxChannels -> noChannelsAuxs auxChannels
+            Nothing -> noChannelsNoAuxs
+      where
+        allChannels :: Map ChannelId MixerChannelUi
+        allChannels =
+          Map.fromList
+            ( zipWith
+                (\chanId conf -> (ChannelId chanId, getChannelUiConfig chanId conf))
+                [0 ..]
+                mixer.channels
+            )
+
+        allKeys = Map.keysSet allChannels
+
+        channelsAuxs uiChannels uiAuxs = toResult uiChannels uiAuxs
+
+        channelsNoAuxs uiChannels = toResult uiChannels (invert uiChannels)
+
+        noChannelsAuxs uiAuxs = toResult (invert uiAuxs) uiAuxs
+
+        noChannelsNoAuxs = toResult uiChannels uiAuxs
+          where
+            (uiChannels, uiAuxs) = List.splitAt 10 (Set.toList allKeys)
+
+        toResult mainIds auxIds = (select mainIds, select auxIds)
+
+        select :: [ChannelId] -> [MixerChannelUi]
+        select ids =
+          Map.elems $
+            Map.restrictKeys allChannels (Set.fromList ids)
+
+        invert :: [ChannelId] -> [ChannelId]
+        invert ids =
+          Set.toList (Set.difference allKeys (Set.fromList ids))
 
 getMasterUiConfig :: Config.MasterConfig -> MasterUi
 getMasterUiConfig config =
@@ -131,7 +185,7 @@ getMasterUiConfig config =
 getChannelUiConfig :: Int -> Config.ChannelConfig ChannelId -> MixerChannelUi
 getChannelUiConfig channelIndex config =
   MixerChannelUi
-    { channel = channelIndex
+    { channel = channelIndex + 1 -- turns to human-readable 1-based index
     , volume = config.volume
     , fxs = getFxUiConfig <$> fromMaybe [] config.fxs
     , sends = getSendFxUiConfig <$> fromMaybe [] config.sends

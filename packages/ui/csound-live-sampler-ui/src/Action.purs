@@ -8,6 +8,11 @@ module Action
   , Info
   , FxParamId
   , SendId
+  , SetMixer
+  , SetChannel
+  , SetMaster
+  , SetFxParam
+  , SetSendFx
   ) where
 
 import Prelude
@@ -51,3 +56,25 @@ type Sampler =
 type Info =
   { getCurrentPart :: Effect Unit
   }
+
+type SetMixer =
+  { setMaster :: SetMaster
+  , setChannel :: Int -> SetChannel
+  , setFxParam :: FxParamId -> SetFxParam
+  , setSendFx :: SendId -> SetSendFx
+  }
+
+type SetChannel =
+  { setVolumeEnvelope :: Number -> Effect Unit
+  , setVolume :: Number -> Effect Unit
+  , setMute :: Boolean -> Effect Unit
+  }
+
+type SetMaster =
+  { setVolumeEnvelope :: Number -> Effect Unit
+  , setVolume :: Number -> Effect Unit
+  }
+
+type SetFxParam = Number -> Effect Unit
+
+type SetSendFx = Number -> Effect Unit

@@ -19,6 +19,7 @@ sceneUi :: SceneUi
 sceneUi =
   { mixer:
       { channels: map (\n -> { channel: n, volume: 0.5, fxs: [], sends: [], name: Nothing }) (range 1 8)
+      , auxChannels: []
       , master: { volume: 1.0 , fxs: [] }
       }
 

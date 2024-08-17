@@ -9,6 +9,7 @@ module Scene.Mixer.Config
   , ChannelFxUi
   , toMixerFxUis
   , FxUi
+  , toChannelName
   ) where
 
 import Prelude
@@ -27,6 +28,7 @@ import Data.Tuple.Nested ((/\))
 
 type MixerUi =
   { channels :: Array MixerUiItem
+  , auxChannels :: Array MixerUiItem
   , master :: MasterUiItem
   }
 
@@ -64,8 +66,9 @@ mixerUiFromJson :: JSON -> Maybe MixerUi
 mixerUiFromJson json = do
   obj <- Json.toJObject json
   channels <- traverse mixerUiItemFromJson =<< lookupArray "channels" obj
+  auxChannels <- traverse mixerUiItemFromJson =<< lookupArray "auxChannels" obj
   master <- masterUiItemFromJson =<< Json.lookup "master" obj
-  pure { channels, master }
+  pure { channels, auxChannels, master }
 
 masterUiItemFromJson :: JSON -> Maybe MasterUiItem
 masterUiItemFromJson json = do
@@ -155,9 +158,9 @@ toChannelFxUis ui =
     succTo send =
       send { to = send.to + 1 }
 
-    toChannelName :: MixerUiItem -> String
-    toChannelName chan =
-      fromMaybe ("Channel " <> show chan.channel) chan.name
+toChannelName :: MixerUiItem -> String
+toChannelName chan =
+  fromMaybe ("Channel " <> show chan.channel) chan.name
 
 isNonEmptyFx chan =
   Array.length chan.fxs /= 0 ||

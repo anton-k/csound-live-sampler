@@ -4,6 +4,8 @@ module Live.Scene.Osc (
 ) where
 
 import Csound.Core
+import Data.Default
+import Data.Maybe
 import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Osc.Config
 import Live.Scene.Osc.Input
@@ -25,7 +27,7 @@ setupOsc config scene = do
         }
 
     uiInfo :: Str
-    uiInfo = getUiOscMessage config.mixer config.sampler
+    uiInfo = getUiOscMessage config.mixer config.sampler (fromMaybe def config.osc.ui)
 
     withOutput :: (OscOutputConfig ChannelId -> SE ()) -> SE ()
     withOutput cont =

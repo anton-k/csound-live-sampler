@@ -41,8 +41,9 @@ mixer:
       volume: 1
     - name: core
       volume: 1
-    - volume: 1
+    - volume: 0
       name: metronome
+      gain: 3
     - volume: 1
       name: reverb-bus
       fxs:
@@ -72,9 +73,9 @@ sampler:
     - Wade
     - In focus
 
-  # metronome:
-  #  tone: stick
-  #  channel: metronome
+  metronome:
+    tone: stick
+    channel: metronome
 
   dir: "../tracks"
   tracks :
@@ -626,7 +627,9 @@ controllers:
     output:
       address: "127.0.0.1"
       port: 3333
-      channels: [1,2,3,4,5,6]
+      channels: [1,2,3,4,5,6,7,8]
+    ui:
+      auxChannels: [metronome, reverb-bus]
 
   midi:
     # names for Akai MIDI MIX controller

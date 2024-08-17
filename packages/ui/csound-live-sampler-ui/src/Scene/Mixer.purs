@@ -1,8 +1,5 @@
 module Scene.Mixer
-  ( SetMixer
-  , SetMaster
-  , SetChannel
-  , initMixer
+  ( initMixer
   , initChannel
   , module Scene.Mixer.Config
   ) where
@@ -22,7 +19,7 @@ import Nexus.Ui.General.Multislider as Ui
 import Effect.Console (log)
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen.Hooks as Hooks
-import Data.Tuple (Tuple (..))
+import Data.Tuple (Tuple (..), fst, snd)
 import Data.Tuple.Nested ((/\))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Control.Monad.Trans.Class (class MonadTrans)
@@ -40,32 +37,15 @@ import Data.Map as Map
 import Effect.Ref (new, read, write)
 import Scene.Mixer.Config
 import Osc.Client (newOscControl)
+import Scene.Mixer.AuxChannels
+  ( withAuxChannels
+  , auxChannelsSetup
+  )
 import Scene.Mixer.Fx
   ( withFxs,
-    fxHtml,
     fxChannelSetup,
-    sendChannelSetup,
-    SetFxParam,
-    SetSendFx
+    sendChannelSetup
   )
-
-type SetMixer =
-  { setMaster :: SetMaster
-  , setChannel :: Int -> SetChannel
-  , setFxParam :: FxParamId -> SetFxParam
-  , setSendFx :: SendId -> SetSendFx
-  }
-
-type SetChannel =
-  { setVolumeEnvelope :: Number -> Effect Unit
-  , setVolume :: Number -> Effect Unit
-  , setMute :: Boolean -> Effect Unit
-  }
-
-type SetMaster =
-  { setVolumeEnvelope :: Number -> Effect Unit
-  , setVolume :: Number -> Effect Unit
-  }
 
 defColor0 = "#24bcbc"
 defColor1 = "#66c8c8"
@@ -90,14 +70,17 @@ initMixer :: forall w s . MixerUi -> Mixer -> Elem w s SetMixer
 initMixer mixer act =
   { setup: do
       setMaster <- master.setup
-      channelMap <-
+      mainChannelMap <-
         map Map.fromFoldable $
-          traverseWithIndex
-            (\index item -> map (Tuple (index + 1)) item.setup)
+          traverse
+            (\(Tuple index item) -> map (Tuple index) item.setup)
             channels
+      auxChannelMap <- auxChannelsSetup act mixer.auxChannels
       let
+        channelMap = mainChannelMap <> auxChannelMap
         getChannelSetters chanId =
           fromMaybe emptySetChannel (Map.lookup chanId channelMap)
+
       fxParamMap <- map (Map.fromFoldable <<< Array.concat) $
         traverse (fxChannelSetup act) fxs
       let
@@ -116,13 +99,14 @@ initMixer mixer act =
         }
   , html:
       withFxs fxs $
-        divClasses ["grid"]
-          ( map (\item -> toColumn item.html) channels <>
-            [toColumn master.html]
-          )
+        withAuxChannels mixer.auxChannels $
+          divClasses ["grid"]
+            ( map (\item -> toColumn (snd item).html) channels <>
+              [toColumn master.html]
+            )
   }
   where
-    channels = map (initChannel act) mixer.channels
+    channels = map (\item -> Tuple item.channel $ initChannel act item) mixer.channels
     master = initMasterChannel act mixer.master
 
     toColumn x = divClasses [] [x]

@@ -4,8 +4,6 @@ module Scene.Mixer.Fx
   , fxHtml
   , fxChannelSetup
   , sendChannelSetup
-  , SetFxParam
-  , SetSendFx
   ) where
 
 import Prelude
@@ -22,7 +20,7 @@ import Data.Tuple (Tuple (..))
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Events as HE
-import Action (Mixer, ChannelId, FxParamId, SendId)
+import Action (Mixer, ChannelId, FxParamId, SendId, SetFxParam, SetSendFx)
 import Osc.Client (newOscControl)
 
 fxRow :: forall w i. String -> Array (HH.HTML w i) -> HH.HTML w i
@@ -98,8 +96,6 @@ fxSetup :: Mixer -> String -> FxUi -> Effect (Array (Tuple FxParamId SetFxParam)
 fxSetup act channelName fx =
   traverse (fxParamSetup act fx.channel channelName fx.fx.name) fx.fx.params
 
-type SetFxParam = Number -> Effect Unit
-
 fxParamSetup :: Mixer -> Maybe ChannelId -> String -> String -> FxParam -> Effect (Tuple FxParamId SetFxParam)
 fxParamSetup act channelId channelName fxName param = do
   dial <- Ui.newDial ("#" <> toFxId channelName fxName param.name)
@@ -116,8 +112,6 @@ fxParamSetup act channelId channelName fxName param = do
       , name: fxName
       , param: param.name
       }
-
-type SetSendFx = Number -> Effect Unit
 
 sendFxSetup :: Mixer -> String -> ChannelId -> ChannelId -> Number -> Effect (Tuple SendId SetSendFx)
 sendFxSetup act channelName fromChannel toChannel value = do

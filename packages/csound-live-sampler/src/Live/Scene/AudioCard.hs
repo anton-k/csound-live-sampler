@@ -3,6 +3,7 @@ module Live.Scene.AudioCard (
   AudioCardDeps (..),
   newAudioCard,
   getInputGainConfig,
+  getChannelIdConfig,
 ) where
 
 import Csound.Core
@@ -14,6 +15,7 @@ import Safe
 -- | Audio IO
 data AudioCard = AudioCard
   { setInputGain :: AudioInputId -> Sig -> SE ()
+  , readInputGain :: AudioInputId -> SE Sig
   , setupOutputs :: SE ()
   }
 
@@ -30,6 +32,7 @@ newAudioCard config deps = do
   pure $
     AudioCard
       { setInputGain = setInputGainSt st
+      , readInputGain = readInputGainSt st
       , setupOutputs = setupOutputsSt st deps
       }
 
@@ -118,6 +121,10 @@ getOutputGainConfig = \case
 setInputGainSt :: St -> AudioInputId -> Sig -> SE ()
 setInputGainSt st (AudioInputId inputId) value =
   mapM_ (\input -> writeRef input.gain (smoothControl value)) (st.inputs `atMay` inputId)
+
+readInputGainSt :: St -> AudioInputId -> SE Sig
+readInputGainSt st (AudioInputId inputId) =
+  maybe (pure 0) (\input -> readRef input.gain) (st.inputs `atMay` inputId)
 
 updateAudio :: St -> AudioCardDeps -> SE ()
 updateAudio st deps = do

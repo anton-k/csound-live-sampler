@@ -2,6 +2,7 @@ module Live.Scene.Midi (
   setupMidi,
 ) where
 
+import Control.Monad
 import Csound.Core hiding (MidiChannel, Note)
 import Csound.Core qualified as Core
 import Data.Bifunctor
@@ -20,7 +21,7 @@ import Live.Scene.Sampler.Playlist qualified as Playlist
 import Safe (atMay)
 
 setupMidi :: AudioCard -> Mixer -> Sampler -> MidiControllerConfig AudioInputId ChannelId Int -> SE ()
-setupMidi audio mixer sampler config = do
+setupMidi audio mixer sampler config = unless (isMidiMuted config) $ do
   instrRef <- newProc actionsInstr
   play instrRef [Core.Note 0 (-1) ()]
   global $ massign 0 (instrRefFromNum 0 :: InstrRef ())

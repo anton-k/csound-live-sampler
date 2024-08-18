@@ -18,6 +18,7 @@ module Live.Scene.Midi.Config (
   KnobLink (..),
   KnobWithRange (..),
   MidiChannel (..),
+  isMidiMuted,
 ) where
 
 import Control.Applicative (Alternative (..))
@@ -26,6 +27,7 @@ import Data.Aeson qualified as Json
 import Data.Aeson.TH qualified as Json
 import Data.Bifunctor
 import Data.Map.Strict (Map)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Live.Scene.Sampler.Config (ClipName (..), ColumnName (..))
@@ -35,6 +37,7 @@ data MidiControllerConfig audioInput channel key = MidiControllerConfig
   , keys :: Maybe (Map Text Int)
   , notes :: [ActLink channel key]
   , knobs :: [KnobLink audioInput channel key]
+  , mute :: Maybe Bool
   }
   deriving (Functor)
 
@@ -44,13 +47,17 @@ mapMidiControllerConfig ::
   (c1 -> c2) ->
   MidiControllerConfig a1 b1 c1 ->
   MidiControllerConfig a2 b2 c2
-mapMidiControllerConfig f g h (MidiControllerConfig modsA keysA notesA knobsA) =
-  MidiControllerConfig modsB keysB notesB knobsB
+mapMidiControllerConfig f g h (MidiControllerConfig modsA keysA notesA knobsA muteA) =
+  MidiControllerConfig modsB keysB notesB knobsB muteB
   where
     modsB = fmap (fmap (fmap h)) modsA
     keysB = keysA
     notesB = fmap (bimap g h) notesA
     knobsB = fmap (mapKnobLink f g h) knobsA
+    muteB = muteA
+
+isMidiMuted :: MidiControllerConfig a b c -> Bool
+isMidiMuted config = fromMaybe False config.mute
 
 data MidiModifier key = MidiModifier
   { key :: key

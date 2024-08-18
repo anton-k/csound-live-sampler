@@ -8,6 +8,7 @@ import Data.Maybe
 import Live.Config
 import Live.Scene.AudioCard
 import Live.Scene.Midi
+import Live.Scene.Midi.Config (isMidiMuted)
 import Live.Scene.Mixer
 import Live.Scene.Osc
 import Live.Scene.Sampler
@@ -15,13 +16,18 @@ import Live.Scene.Types
 
 writeSceneCsd :: Config -> Maybe FilePath -> IO ()
 writeSceneCsd config mFile =
-  writeCsdBy (withCsoundFlags config $ setMa <> setDac) (fromMaybe "tmp.csd" mFile) $ do
+  writeCsdBy (withCsoundFlags config $ midiFlags config <> setDac) (fromMaybe "tmp.csd" mFile) $ do
     execScene =<< loadScene config
 
 runScene :: Config -> Maybe FilePath -> IO ()
 runScene config mFile = do
-  dacBy (withOptions config mFile $ setMa <> setTrace) $ do
+  dacBy (withOptions config mFile $ midiFlags config <> setTrace) $ do
     execScene =<< loadScene config
+
+midiFlags :: Config -> Options
+midiFlags config
+  | isMidiMuted config.controllers.midi = mempty
+  | otherwise = setMa
 
 withOptions :: Config -> Maybe FilePath -> Options -> Options
 withOptions config mFile = withWriteCsd mFile . withCsoundFlags config

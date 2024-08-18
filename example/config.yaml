@@ -1,6 +1,7 @@
 mixer:
   master:
     volume: 1
+    gain: 1
     fxs:
       - reverb:
           name: master-reverb
@@ -654,6 +655,7 @@ controllers:
       auxChannels: [metronome, reverb-bus]
 
   midi:
+    mute: false
     # names for Akai MIDI MIX controller
     keys:
       slider1: 19

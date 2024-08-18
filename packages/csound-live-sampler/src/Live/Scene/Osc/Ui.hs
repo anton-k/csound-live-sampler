@@ -30,6 +30,7 @@ import Live.Scene.Mixer.Fx (toFxName, toFxParamNameInitMap)
 import Live.Scene.Mixer.Fx.Config qualified as Config
 import Live.Scene.Mixer.Fx.Unit (FxParamName)
 import Live.Scene.Osc.Config qualified as Config
+import Live.Scene.Sampler (orderTracks)
 import Live.Scene.Sampler.Config qualified as Config
 
 data SceneUi = SceneUi
@@ -63,6 +64,7 @@ data MixerChannelUi = MixerChannelUi
 
 data FxUi = FxUi
   { name :: Text
+  , unit :: FxUnit
   , params :: [FxParamUi]
   }
 
@@ -75,6 +77,18 @@ data SendFxUi = SendFxUi
   { to :: Int
   , value :: Float
   }
+
+data FxUnit
+  = ToolFxUnit
+  | ReverbFxUnit
+  | DelayFxUnit
+  | PingPongFxUnit
+  | MoogFxUnit
+  | KorgFxUnit
+  | BbcutFxUnit
+  | LimiterFxUnit
+  | EqFxUnit
+  | MixerEqFxUnit
 
 -------------------------------------------------------------------------------------
 -- Sampler
@@ -90,6 +104,33 @@ data TrackUi = TrackUi
 
 -------------------------------------------------------------------------------------
 -- JSON instances
+
+instance Json.ToJSON FxUnit where
+  toJSON = \case
+    ToolFxUnit -> "tool"
+    ReverbFxUnit -> "reverb"
+    DelayFxUnit -> "delay"
+    PingPongFxUnit -> "pingPong"
+    MoogFxUnit -> "moog"
+    KorgFxUnit -> "korg"
+    BbcutFxUnit -> "bbcut"
+    LimiterFxUnit -> "limiter"
+    EqFxUnit -> "eq"
+    MixerEqFxUnit -> "mixerEq"
+
+instance Json.FromJSON FxUnit where
+  parseJSON = Json.withText "FxUnit" $ \case
+    "tool" -> pure ToolFxUnit
+    "reverb" -> pure ReverbFxUnit
+    "delay" -> pure DelayFxUnit
+    "pingPong" -> pure PingPongFxUnit
+    "moog" -> pure MoogFxUnit
+    "korg" -> pure KorgFxUnit
+    "bbcut" -> pure BbcutFxUnit
+    "limiter" -> pure LimiterFxUnit
+    "eq" -> pure EqFxUnit
+    "mixerEq" -> pure MixerEqFxUnit
+    other -> fail $ "failed to parse as fx unit: " <> Text.unpack other
 
 $(Json.deriveJSON Json.defaultOptions ''TrackUi)
 $(Json.deriveJSON Json.defaultOptions ''SamplerUi)
@@ -196,8 +237,22 @@ getFxUiConfig :: Config.FxUnit -> FxUi
 getFxUiConfig fx =
   FxUi
     { name = toFxName fx
+    , unit = toFxUnit fx
     , params = fmap (uncurry getFxParamUi) $ Map.toList $ toFxParamNameInitMap fx
     }
+
+toFxUnit :: Config.FxUnit -> FxUnit
+toFxUnit = \case
+  Config.ToolFx _ -> ToolFxUnit
+  Config.ReverbFx _ -> ReverbFxUnit
+  Config.DelayFx _ -> DelayFxUnit
+  Config.PingPongFx _ -> PingPongFxUnit
+  Config.MoogFx _ -> MoogFxUnit
+  Config.KorgFx _ -> KorgFxUnit
+  Config.BbcutFx _ -> BbcutFxUnit
+  Config.LimiterFx _ -> LimiterFxUnit
+  Config.EqFx _ -> EqFxUnit
+  Config.MixerEqFx _ -> MixerEqFxUnit
 
 getFxParamUi :: FxParamName -> Float -> FxParamUi
 getFxParamUi name value = FxParamUi{name, value}
@@ -212,7 +267,7 @@ getSendFxUiConfig config =
 getSamplerUiConfig :: Config.SamplerConfig ChannelId -> SamplerUi
 getSamplerUiConfig config =
   SamplerUi
-    { tracks = fmap getTrackUiConfig config.tracks
+    { tracks = fmap getTrackUiConfig (orderTracks config).tracks
     }
 
 getTrackUiConfig :: Config.TrackConfig ChannelId -> TrackUi

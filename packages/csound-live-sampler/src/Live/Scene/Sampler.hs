@@ -4,6 +4,7 @@ module Live.Scene.Sampler (
   TrackId (..),
   newSampler,
   setTrack,
+  orderTracks,
   module X,
 ) where
 
@@ -74,26 +75,26 @@ orderTracks :: forall a. SamplerConfig a -> SamplerConfig a
 orderTracks config =
   case config.playlist of
     Nothing -> config
-    Just playlist -> config{tracks = order playlist config.tracks}
+    Just playlist -> config{tracks = orderByPlaylist playlist config.tracks}
+
+orderByPlaylist :: [Text] -> [TrackConfig a] -> [TrackConfig a]
+orderByPlaylist playlist tracks
+  | not (null playlist) = (fmap fst $ List.sortOn snd $ map addOrder inPlaylistTracks) <> notInPlaylistTracks
+  | otherwise = tracks
   where
-    order :: [Text] -> [TrackConfig a] -> [TrackConfig a]
-    order playlist tracks
-      | not (null playlist) = (fmap fst $ List.sortOn snd $ map addOrder inPlaylistTracks) <> notInPlaylistTracks
-      | otherwise = tracks
-      where
-        (inPlaylistTracks, notInPlaylistTracks) = List.partition (\track -> Map.member track.name orderMap) tracks
+    (inPlaylistTracks, notInPlaylistTracks) = List.partition (\track -> Map.member track.name orderMap) tracks
 
-        orderMap :: Map Text Int
-        orderMap = Map.fromList $ zip playlist [0 ..]
+    orderMap :: Map Text Int
+    orderMap = Map.fromList $ zip playlist [0 ..]
 
-        maxOrder :: Int
-        maxOrder = length playlist + 1
+    maxOrder :: Int
+    maxOrder = length playlist + 1
 
-        addOrder :: TrackConfig a -> (TrackConfig a, Int)
-        addOrder track =
-          case Map.lookup track.name orderMap of
-            Just priority -> (track, priority)
-            Nothing -> (track, maxOrder)
+    addOrder :: TrackConfig a -> (TrackConfig a, Int)
+    addOrder track =
+      case Map.lookup track.name orderMap of
+        Just priority -> (track, priority)
+        Nothing -> (track, maxOrder)
 
 playExtraClipSt :: Engine -> ExtraClips -> ColumnName -> ClipName -> SE ()
 playExtraClipSt engine extraClips column clip =

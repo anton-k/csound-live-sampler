@@ -9,7 +9,7 @@ import JSON (JSON)
 import JSON as Json
 import JSON.Object as Json
 import Data.Traversable (traverse)
-import JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt)
+import Common.JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt)
 import Scene.Mixer.Config (MixerUi, mixerUiFromJson)
 import Scene.Sampler.Config (SamplerUi, samplerUiFromJson)
 

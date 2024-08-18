@@ -7,6 +7,28 @@ mixer:
           size: 0.5
           damp: 0.7
           dryWet: 0
+
+      - eq:
+          name: master-eq
+          points:
+            - mode: lowShelf
+              frequency: 0.2
+              gain: 0.5
+              width: 0.5
+
+            - mode: bandPass
+              frequency: 0.5
+              gain: 0.5
+              width: 0.5
+
+            - mode: highShelf
+              frequency: 0.9
+              gain: 0.5
+              width: 0.5
+
+      - tool:
+          name: master-tool
+
       - limiter:
           name: master-limiter
           maxVolume: 0.95

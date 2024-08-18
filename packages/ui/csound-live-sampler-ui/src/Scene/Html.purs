@@ -6,11 +6,13 @@ module Scene.Html
   , col
   , textButton
   , accordion
+  , filledGrid
   ) where
 
 import Prelude
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import Common.Array (fillRow)
 
 divClasses cs a = HH.div [HP.classes (map HH.ClassName cs)] a
 divId name a = HH.div [HP.id name] a
@@ -32,3 +34,9 @@ accordion title body =
     [ HH.summary [HP.classes [HH.ClassName "outline", HH.ClassName "constrast"]] [HH.text title]
     , body
     ]
+
+filledGrid :: forall w i. Int -> Array (HH.HTML w i) -> HH.HTML w i
+filledGrid size items =
+  divClasses ["grid"] (fillRow size emptyHtml items)
+  where
+    emptyHtml = HH.div [] []

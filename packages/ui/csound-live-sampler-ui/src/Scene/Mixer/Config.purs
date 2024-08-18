@@ -3,6 +3,7 @@ module Scene.Mixer.Config
   , MasterUiItem
   , MixerUiItem
   , Fx
+  , FxUnit (..)
   , FxParam
   , SendFx
   , mixerUiFromJson
@@ -19,7 +20,7 @@ import JSON as Json
 import JSON.Object as Json
 import Data.Int (round)
 import Data.Traversable (traverse)
-import JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt)
+import Common.JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt)
 import Data.Array as Array
 import Data.Maybe (fromMaybe)
 import Action (ChannelId)
@@ -47,6 +48,7 @@ type MixerUiItem =
 
 type Fx =
   { name :: String
+  , unit :: FxUnit
   , params :: Array FxParam
   }
 
@@ -59,6 +61,18 @@ type SendFx =
   { to :: Int
   , value :: Number
   }
+
+data FxUnit
+  = ToolFxUnit
+  | ReverbFxUnit
+  | DelayFxUnit
+  | PingPongFxUnit
+  | MoogFxUnit
+  | KorgFxUnit
+  | BbcutFxUnit
+  | LimiterFxUnit
+  | EqFxUnit
+  | MixerEqFxUnit
 
 -- From JSON
 
@@ -92,8 +106,23 @@ fxFromJson :: JSON -> Maybe Fx
 fxFromJson json = do
   obj <- Json.toJObject json
   name <- lookupString "name" obj
+  unit <- fxUnitFromJson =<< lookupString "unit" obj
   params <- traverse fxParamFromJson =<< lookupArray "params" obj
-  pure { name, params }
+  pure { name, unit, params }
+
+fxUnitFromJson :: String -> Maybe FxUnit
+fxUnitFromJson = case _ of
+  "tool" -> Just ToolFxUnit
+  "reverb" -> Just ReverbFxUnit
+  "delay" -> Just DelayFxUnit
+  "pingPong" -> Just PingPongFxUnit
+  "moog" -> Just MoogFxUnit
+  "korg" -> Just KorgFxUnit
+  "bbcut" -> Just BbcutFxUnit
+  "limiter" -> Just LimiterFxUnit
+  "eq" -> Just EqFxUnit
+  "mixerEq" -> Just MixerEqFxUnit
+  _ -> Nothing
 
 fxParamFromJson :: JSON -> Maybe FxParam
 fxParamFromJson json = do

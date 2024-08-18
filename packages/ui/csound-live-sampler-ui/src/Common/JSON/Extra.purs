@@ -1,5 +1,5 @@
 -- move me to a library
-module JSON.Extra
+module Common.JSON.Extra
   ( lookupString
   , lookupNumber
   , lookupInt

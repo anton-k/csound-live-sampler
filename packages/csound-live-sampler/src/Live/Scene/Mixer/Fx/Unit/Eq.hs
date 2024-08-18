@@ -31,7 +31,7 @@ eqParams config =
   where
     eqPointParams :: Int -> EqPoint -> [(FxParamName, Float)]
     eqPointParams index EqPoint{..} =
-      [ (nameIndex "frequency", frequency)
+      [ (nameIndex "freq", frequency)
       , (nameIndex "gain", gain)
       , (nameIndex "width", fromMaybe 0.5 width)
       ]
@@ -75,7 +75,7 @@ data EqArgs = EqArgs
 
 readEqPointSig :: Sig -> EqMode -> ParamMap -> Int -> SE EqArgs
 readEqPointSig maxGainDb mode params index = do
-  frequency <- cutoffParam <$> param "frequency"
+  frequency <- cutoffParam <$> param "freq"
   gain <- scaleEqGain maxGainDb <$> param "gain"
   width <- param "width"
   pure EqArgs{frequency, gain, width, mode}

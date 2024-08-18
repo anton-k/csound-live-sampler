@@ -22,18 +22,39 @@ import Halogen.HTML.Properties as HP
 import Halogen.HTML.Events as HE
 import Action (Mixer, ChannelId, FxParamId, SendId, SetFxParam, SetSendFx)
 import Osc.Client (newOscControl)
+import Common.Array (chunks)
 
-fxRow :: forall w i. String -> Array (HH.HTML w i) -> HH.HTML w i
-fxRow name items =
-  HH.li [] [divClasses ["grid"] ([HH.div [] [HH.text name]] <> items)]
+fxRow :: forall w i. Array (HH.HTML w i) -> HH.HTML w i
+fxRow items =
+  filledGrid maxChannelsPerRow items
+
+maxChannelsPerRow :: Int
+maxChannelsPerRow = 8
 
 toFxHtml :: forall w i. String -> FxUi -> HH.HTML w i
 toFxHtml channelName fx =
-  fxRow fx.fx.name (map (fromFxParam channelName fx.fx.name) fx.fx.params)
+  HH.li []
+    [ accordion fx.fx.name $ joinRows $
+        map (\params -> fxRow (map (fromFxParam channelName fx.fx.name) params)) (splitRows fx.fx.params)
+    ]
+  where
+    splitRows =
+      case fx.fx.unit of
+        EqFxUnit -> toEqRows
+        _ -> pure
+
+    joinRows = case _ of
+      [x] -> x
+      xs -> HH.div [] xs
+
+toEqRows :: forall a. Array a -> Array (Array a)
+toEqRows params = chunks size params
+  where
+    size = Array.length params `div` 3
 
 toChannelSendFxHtml :: forall w i. String -> Array SendFx -> HH.HTML w i
 toChannelSendFxHtml channelName sends =
-  fxRow "sends" (map (fromSendFx channelName) sends)
+  HH.li [] [accordion "sends" $ HH.div [] (map (fromSendFx channelName) sends)]
 
 fromFxParam :: forall w i. String -> String -> FxParam -> HH.HTML w i
 fromFxParam channelName fxName param =

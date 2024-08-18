@@ -21,6 +21,7 @@ import Osc.Client (newOscControl)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Tuple (Tuple (..))
+import Common.Array (chunks, fillRow)
 
 defColor0 = "#24bcbc"
 
@@ -45,9 +46,7 @@ auxChannelsHtml channels =
 toChannelRowHtml ::
   forall w i. Array MixerUiItem -> HH.HTML w i
 toChannelRowHtml row =
-  divClasses ["grid"] (fillRows emptyHtml $ map toChannelHtml row)
-  where
-      emptyHtml = HH.div [] []
+  filledGrid maxChannelsPerRow $ map toChannelHtml row
 
 toChannelHtml :: forall w i. MixerUiItem -> HH.HTML w i
 toChannelHtml item =
@@ -59,22 +58,14 @@ toChannelHtml item =
   where
     name = toChannelName item
 
-fillRows :: forall a. a -> Array a -> Array a
-fillRows fillValue xs =
-  xs <> Array.replicate (maxChannelsPerRow - Array.length xs) fillValue
+maxChannelsPerRow :: Int
+maxChannelsPerRow = 8
 
 toChannelMeterId :: String -> String
 toChannelMeterId name = name <> "AuxChannelMeter"
 
 toChannelVolumeId :: String -> String
 toChannelVolumeId name = name <> "AuxChannelVolume"
-
-maxChannelsPerRow :: Int
-maxChannelsPerRow = 8
-
-chunks :: forall a. Int -> Array a -> Array (Array a)
-chunks _ [] = []
-chunks n xs = pure (Array.take n xs) <> (chunks n $ Array.drop n xs)
 
 auxChannelsSetup :: Mixer -> Array MixerUiItem -> Effect (Map Int SetChannel)
 auxChannelsSetup act channels = do

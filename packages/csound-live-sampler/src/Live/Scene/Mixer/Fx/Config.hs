@@ -1,6 +1,7 @@
 module Live.Scene.Mixer.Fx.Config (
   FxChain,
   FxUnit (..),
+  FxUnitMode (..),
   ToolConfig (..),
   ReverbConfig (..),
   DelayConfig (..),
@@ -24,7 +25,13 @@ import Data.Text (Text)
 -- | Chain of effect processors
 type FxChain = [FxUnit]
 
-data FxUnit
+data FxUnit = FxUnit
+  { name :: Text
+  , bypass :: Maybe Bool
+  , mode :: FxUnitMode
+  }
+
+data FxUnitMode
   = ToolFx ToolConfig
   | ReverbFx ReverbConfig
   | DelayFx DelayConfig
@@ -37,31 +44,27 @@ data FxUnit
   | MixerEqFx MixerEqConfig
 
 data ToolConfig = ToolConfig
-  { name :: Text
-  , volume :: Maybe Float
+  { volume :: Maybe Float
   , gain :: Maybe Float
   , pan :: Maybe Float
   , width :: Maybe Float
   }
 
 data ReverbConfig = ReverbConfig
-  { name :: Text
-  , size :: Float
+  { size :: Float
   , damp :: Float
   , dryWet :: Float
   }
 
 data DelayConfig = DelayConfig
-  { name :: Text
-  , repeatTime :: Float
+  { repeatTime :: Float
   , damp :: Float
   , feedback :: Float
   , dryWet :: Float
   }
 
 data PingPongConfig = PingPongConfig
-  { name :: Text
-  , repeatTime :: Float
+  { repeatTime :: Float
   , damp :: Float
   , feedback :: Float
   , width :: Float
@@ -73,15 +76,13 @@ type MoogConfig = ResonantFilterConfig
 type KorgConfig = ResonantFilterConfig
 
 data ResonantFilterConfig = ResonantFilterConfig
-  { name :: Text
-  , cutoff :: Float
+  { cutoff :: Float
   , resonance :: Float
   , dryWet :: Maybe Float
   }
 
 data BbcutConfig = BbcutConfig
-  { name :: Text
-  , subdiv :: Float
+  { subdiv :: Float
   , barlength :: Float
   , phrasebars :: Float
   , numrepeats :: Float
@@ -89,13 +90,11 @@ data BbcutConfig = BbcutConfig
   }
 
 data LimiterConfig = LimiterConfig
-  { name :: Text
-  , maxVolume :: Float -- in range (0, 1), maximum volume, recommended 0.95
+  { maxVolume :: Float -- in range (0, 1), maximum volume, recommended 0.95
   }
 
 data EqConfig = EqConfig
-  { name :: Text
-  , points :: [EqPoint]
+  { points :: [EqPoint]
   , maxGainDb :: Maybe Float -- if nothing then 12 dB
   }
 
@@ -112,8 +111,7 @@ data EqMode
   | HighShelfEq
 
 data MixerEqConfig = MixerEqConfig
-  { name :: Text
-  , gains :: [Float]
+  { gains :: [Float]
   , frequencies :: [Float]
   , maxGainDb :: Maybe Float
   }
@@ -144,7 +142,7 @@ $(Json.deriveJSON Json.defaultOptions ''EqPoint)
 $(Json.deriveJSON Json.defaultOptions ''EqConfig)
 $(Json.deriveJSON Json.defaultOptions ''MixerEqConfig)
 
-instance ToJSON FxUnit where
+instance ToJSON FxUnitMode where
   toJSON = \case
     ToolFx config -> object ["tool" .= config]
     ReverbFx config -> object ["reverb" .= config]
@@ -157,7 +155,7 @@ instance ToJSON FxUnit where
     EqFx config -> object ["eq" .= config]
     MixerEqFx config -> object ["mixerEq" .= config]
 
-instance FromJSON FxUnit where
+instance FromJSON FxUnitMode where
   parseJSON = withObject "FxUnit" $ \obj ->
     let
       parseBy cons field = fmap cons (obj .: field)
@@ -172,3 +170,5 @@ instance FromJSON FxUnit where
         <|> parseBy LimiterFx "limiter"
         <|> parseBy EqFx "eq"
         <|> parseBy MixerEqFx "mixerEq"
+
+$(Json.deriveJSON Json.defaultOptions ''FxUnit)

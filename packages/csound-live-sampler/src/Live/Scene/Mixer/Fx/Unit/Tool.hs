@@ -13,7 +13,6 @@ toolUnit :: Unit ToolConfig
 toolUnit =
   Unit
     { needsBpm = False
-    , getName = (.name)
     , getParams = toolParams
     , apply = \_bpm params _config -> toolFx params
     }

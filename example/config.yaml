@@ -3,47 +3,56 @@ mixer:
     volume: 1
     gain: 1
     fxs:
-      - reverb:
-          name: master-reverb
-          size: 0.5
-          damp: 0.7
-          dryWet: 0
+      - name: master-reverb
+        mode:
+          reverb:
+            size: 0.5
+            damp: 0.7
+            dryWet: 0
 
-      - eq:
-          name: master-eq
-          points:
-            - mode: lowShelf
-              frequency: 0.2
-              gain: 0.5
-              width: 0.5
+      - name: master-eq
+        mode:
+          eq:
+            points:
+              - mode: lowShelf
+                frequency: 0.2
+                gain: 0.5
+                width: 0.5
 
-            - mode: bandPass
-              frequency: 0.5
-              gain: 0.5
-              width: 0.5
+              - mode: bandPass
+                frequency: 0.5
+                gain: 0.5
+                width: 0.5
 
-            - mode: highShelf
-              frequency: 0.9
-              gain: 0.5
-              width: 0.5
+              - mode: highShelf
+                frequency: 0.9
+                gain: 0.5
+                width: 0.5
 
-      - tool:
-          name: master-tool
+      - name: master-tool
+        mode:
+          tool:
+            volume: 1
 
-      - limiter:
-          name: master-limiter
-          maxVolume: 0.95
+      - name: master-limiter
+        mode:
+          limiter:
+            maxVolume: 0.95
+
   channels:
     - name: drums
       volume: 1
       fxs:
-        - reverb:
-            name: drum-reverb
-            size: 0.5
-            damp: 0.7
-            dryWet: 0
-        - tool:
-            name: drum-tool
+        - name: drum-reverb
+          mode:
+            reverb:
+              size: 0.5
+              damp: 0.7
+              dryWet: 0
+        - name: drum-tool
+          mode:
+            tool:
+              volume: 1
       sends:
         - channel: reverb-bus
           gain: 0
@@ -72,17 +81,19 @@ mixer:
       fxs:
         # TODO: AnalogDelay UDO causes segmentation fault **sometimes**
         #   probably from usage of ftgentmp opcodes
-        - delay:
-            name: delay-bus
-            repeatTime: 2
-            damp: 0.7
-            feedback: 0.5
-            dryWet: 0.2
-        - reverb:
-            name: reverb-bus
-            size: 0.5
-            damp: 0.7
-            dryWet: 1
+        - name: delay-bus
+          mode:
+            delay:
+              repeatTime: 2
+              damp: 0.7
+              feedback: 0.5
+              dryWet: 0.2
+        - name: reverb-bus
+          mode:
+            reverb:
+              size: 0.5
+              damp: 0.7
+              dryWet: 1
 
 sampler:
   playlist:

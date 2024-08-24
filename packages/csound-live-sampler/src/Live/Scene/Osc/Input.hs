@@ -15,7 +15,7 @@ import Live.Scene.AudioCard
 import Live.Scene.AudioCard.Config
 import Live.Scene.Common (AudioInputId (..), ChannelId (..), SendId (..))
 import Live.Scene.Mixer
-import Live.Scene.Mixer.Fx (toFxName, toFxParamNameInitMap)
+import Live.Scene.Mixer.Fx (toFxParamNameInitMap)
 import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Fx.Unit
 import Live.Scene.Osc.Config
@@ -90,7 +90,7 @@ listenChannelSend config mixer oscHandle oscChannelId =
 
 listenFxUnit :: FxUnit -> Mixer -> OscHandle -> Maybe Int -> SE ()
 listenFxUnit unit mixer oscHandle mChannelId =
-  mapM_ (uncurry $ onFxUnit (toFxName unit)) $ Map.toList $ toFxParamNameInitMap unit
+  mapM_ (uncurry $ onFxUnit unit.name) $ Map.toList $ toFxParamNameInitMap unit
   where
     onFxUnit :: Text -> FxParamName -> Float -> SE ()
     onFxUnit unitName paramName initValue =

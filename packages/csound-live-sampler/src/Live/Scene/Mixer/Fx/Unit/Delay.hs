@@ -14,7 +14,6 @@ delayUnit =
   Unit
     { needsBpm = True
     , getParams = delayParams
-    , getName = (.name)
     , apply = delayFx
     }
 
@@ -42,7 +41,6 @@ pingPongUnit :: Unit PingPongConfig
 pingPongUnit =
   Unit
     { needsBpm = True
-    , getName = (.name)
     , getParams = pingPongParams
     , apply = pingPongFx
     }

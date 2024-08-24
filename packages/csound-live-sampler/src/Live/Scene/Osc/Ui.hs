@@ -27,7 +27,7 @@ import Live.Scene.AudioCard qualified as AudioCard
 import Live.Scene.AudioCard.Config qualified as Config
 import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Mixer.Config qualified as Config
-import Live.Scene.Mixer.Fx (toFxName, toFxParamNameInitMap)
+import Live.Scene.Mixer.Fx (toFxParamNameInitMap)
 import Live.Scene.Mixer.Fx.Config qualified as Config
 import Live.Scene.Mixer.Fx.Unit (FxParamName)
 import Live.Scene.Osc.Config qualified as Config
@@ -255,13 +255,13 @@ getChannelUiConfig channelIndex config =
 getFxUiConfig :: Config.FxUnit -> FxUi
 getFxUiConfig fx =
   FxUi
-    { name = toFxName fx
+    { name = fx.name
     , unit = toFxUnit fx
     , params = fmap (uncurry getFxParamUi) $ Map.toList $ toFxParamNameInitMap fx
     }
 
 toFxUnit :: Config.FxUnit -> FxUnit
-toFxUnit = \case
+toFxUnit unit = case unit.mode of
   Config.ToolFx _ -> ToolFxUnit
   Config.ReverbFx _ -> ReverbFxUnit
   Config.DelayFx _ -> DelayFxUnit

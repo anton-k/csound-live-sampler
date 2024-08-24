@@ -12,7 +12,6 @@ reverbUnit =
   Unit
     { needsBpm = False
     , getParams = reverbParams
-    , getName = (.name)
     , apply = \_bpm params _config -> reverbFx params
     }
 

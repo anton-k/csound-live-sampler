@@ -27,7 +27,6 @@ newtype Bpm = Bpm (SE Sig)
 data Unit a = Unit
   { needsBpm :: Bool
   , getParams :: a -> ParamNameInitMap
-  , getName :: a -> Text
   , apply :: Bpm -> ParamMap -> a -> Sig2 -> SE Sig2
   }
 

@@ -2,6 +2,7 @@ module Live.Scene.Mixer.Route (
   MixerRoute (..),
   MixerRouteFx (..),
   RouteDeps (..),
+  FxId (..),
   FxParamId (..),
   toMixerRoute,
   MixerInstrIds,
@@ -17,7 +18,7 @@ import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Mixer.Config
-import Live.Scene.Mixer.Fx (Bpm (..), FxName (..), FxParamId, FxParams, readParamMap, unitToFun)
+import Live.Scene.Mixer.Fx (Bpm (..), FxId (..), FxName (..), FxParamId, FxParams, readFxCtx, unitToFun)
 import Live.Scene.Mixer.Fx qualified as Fx
 import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Route.DependencyGraph
@@ -71,6 +72,7 @@ initFxControls ctx bodies (MixerInstrIds instrIds) =
     { modifyFxParam = modifyFxParamSt ctx.fxParams
     , setFxParam = setFxParamSt ctx.fxParams
     , readFxParam = readFxParamSt ctx.fxParams
+    , toggleFxBypass = toggleFxBypassSt ctx.fxParams
     , startFx = \name -> withFxName name playCsdInstr
     , stopFx = \name -> withFxName name stopCsdInstr
     }
@@ -98,6 +100,10 @@ setFxParamSt fxParams paramId ins =
 readFxParamSt :: FxParams -> FxParamId -> SE Sig
 readFxParamSt fxParams paramId =
   Fx.readFxParam fxParams paramId
+
+toggleFxBypassSt :: FxParams -> FxId -> SE ()
+toggleFxBypassSt fxParams fxId =
+  Fx.toggleFxBypass fxParams fxId
 
 newRouteCtx :: RouteDeps -> MixerConfig ChannelId -> Bpm -> SE RouteCtx
 newRouteCtx deps config bpm = do
@@ -190,6 +196,7 @@ data MixerRouteFx = MixerRouteFx
   { modifyFxParam :: FxParamId -> (Sig -> Sig) -> SE ()
   , setFxParam :: FxParamId -> Sig -> SE ()
   , readFxParam :: FxParamId -> SE Sig
+  , toggleFxBypass :: FxId -> SE ()
   , startFx :: FxName -> SE ()
   , stopFx :: FxName -> SE ()
   }
@@ -248,8 +255,15 @@ unitToFxInstr ctx mChannel read write fx =
     , name = fxName
     }
   where
-    fxName = FxName (Fx.fxUnitName fx)
-    fxFun = unitToFun ctx.bpm (readParamMap mChannel fxName ctx.fxParams) fx
+    fxName = FxName fx.name
+    fxFun = applyBypass fxCtx.bypass (unitToFun ctx.bpm fxCtx.params fx)
+    fxCtx = readFxCtx mChannel fxName ctx.fxParams
+
+applyBypass :: Ref Sig -> (Sig2 -> SE Sig2) -> Sig2 -> SE Sig2
+applyBypass bypassRef f input = do
+  output <- f input
+  bypass <- readRef bypassRef
+  pure (ifB (bypass ==* 1) input output)
 
 fxInstrBody :: SE Sig2 -> (Sig2 -> SE ()) -> (Sig2 -> SE Sig2) -> SE ()
 fxInstrBody read write fun = do

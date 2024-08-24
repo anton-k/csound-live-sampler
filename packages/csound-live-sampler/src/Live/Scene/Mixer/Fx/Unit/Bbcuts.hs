@@ -12,7 +12,6 @@ bbcutUnit =
   Unit
     { needsBpm = True
     , getParams = bbcutParams
-    , getName = (.name)
     , apply = bbcutFx
     }
 

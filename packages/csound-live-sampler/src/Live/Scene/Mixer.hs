@@ -36,6 +36,7 @@ import Live.Scene.Common (ChannelId (..), SendId (..), smoothControl)
 import Live.Scene.Mixer.Config as X
 import Live.Scene.Mixer.Fx (Bpm (..))
 import Live.Scene.Mixer.Route (
+  FxId (..),
   FxParamId (..),
   MixerRoute (..),
   MixerRouteFx (..),
@@ -62,6 +63,7 @@ data Mixer = Mixer
   , readChannelSend :: SendId -> SE Sig
   , setMasterVolume :: Sig -> SE ()
   , setFxParam :: FxParamId -> Sig -> SE ()
+  , toggleFxBypass :: FxId -> SE ()
   , readFxParam :: FxParamId -> SE Sig
   , clean :: SE ()
   , config :: MixerConfig ChannelId
@@ -117,6 +119,7 @@ newMixer config channels readBpm = do
       , setFxParam = fxControls.setFxParam
       , readFxParam = fxControls.readFxParam
       , toggleChannelMute = toggleChannelMuteSt st
+      , toggleFxBypass = fxControls.toggleFxBypass
       , readChannelMute = readChannelMuteSt st
       , clean = cleanSt st
       , config = config

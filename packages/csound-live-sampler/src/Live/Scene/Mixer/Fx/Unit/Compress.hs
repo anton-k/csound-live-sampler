@@ -11,7 +11,6 @@ limiterUnit =
   Unit
     { needsBpm = False
     , getParams = limiterParams
-    , getName = (.name)
     , apply = \_bpm _param config -> limiterFx config
     }
 

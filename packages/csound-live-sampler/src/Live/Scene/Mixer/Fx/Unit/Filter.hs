@@ -24,7 +24,6 @@ resonantFilterUnit :: FilterFun -> Unit ResonantFilterConfig
 resonantFilterUnit f =
   Unit
     { needsBpm = False
-    , getName = (.name)
     , getParams = \ResonantFilterConfig{..} ->
         Map.fromList
           [ ("cutoff", cutoff)

@@ -21,7 +21,6 @@ eqUnit =
   Unit
     { needsBpm = False
     , getParams = eqParams
-    , getName = (.name)
     , apply = \_bpm params config -> eqFx params config
     }
 
@@ -52,7 +51,6 @@ mixerEqUnit =
   Unit
     { needsBpm = False
     , getParams = mixerEqParams
-    , getName = (.name)
     , apply = \_bpm params config -> mixerEqFx params config
     }
 

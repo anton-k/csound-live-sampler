@@ -1,23 +1,26 @@
 module Live.Scene.Mixer.Fx (
+  FxId (..),
   FxParamId (..),
   FxName (..),
   FxParams (..),
-  readParamMap,
+  FxCtx (..),
+  readFxCtx,
   modifyFxParam,
   setFxParam,
   readFxParam,
+  toggleFxBypass,
   getFxParamRef,
   unitToFun,
   Bpm (..),
-  toFxName,
   toFxParamMap,
   toFxParamNameInitMap,
   isBpmSensitive,
   newFxParams,
-  fxUnitName,
 ) where
 
 import Csound.Core
+import Data.Boolean ((==*))
+import Data.Foldable
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe
@@ -38,8 +41,18 @@ import Prelude hiding (read)
 newtype FxName = FxName {text :: Text}
   deriving newtype (Eq, Ord, Show)
 
-newtype FxParams = FxParams (Map (Maybe ChannelId) (Map FxName ParamMap))
+newtype FxParams = FxParams (Map (Maybe ChannelId) (Map FxName FxCtx))
   deriving newtype (Semigroup, Monoid)
+
+data FxCtx = FxCtx
+  { params :: ParamMap
+  , bypass :: Ref Sig
+  }
+
+data FxId = FxId
+  { channel :: Maybe ChannelId
+  , name :: Text
+  }
 
 data FxParamId = FxParamId
   { channel :: Maybe ChannelId
@@ -50,8 +63,14 @@ data FxParamId = FxParamId
 getFxParamRef :: FxParams -> FxParamId -> Maybe (Ref Sig)
 getFxParamRef (FxParams params) paramId = do
   nameMap <- Map.lookup paramId.channel params
-  paramMap <- Map.lookup (FxName paramId.name) nameMap
-  Map.lookup paramId.param paramMap
+  fxCtx <- Map.lookup (FxName paramId.name) nameMap
+  Map.lookup paramId.param fxCtx.params
+
+getFxBypassRef :: FxParams -> FxId -> Maybe (Ref Sig)
+getFxBypassRef (FxParams params) fxId = do
+  nameMap <- Map.lookup fxId.channel params
+  fxCtx <- Map.lookup (FxName fxId.name) nameMap
+  pure fxCtx.bypass
 
 modifyFxParam :: FxParams -> FxParamId -> (Sig -> Sig) -> SE ()
 modifyFxParam params paramId f = do
@@ -65,32 +84,33 @@ readFxParam :: FxParams -> FxParamId -> SE Sig
 readFxParam params paramId =
   maybe (pure 0) readRef (getFxParamRef params paramId)
 
+toggleFxBypass :: FxParams -> FxId -> SE ()
+toggleFxBypass params fxId =
+  forM_ (getFxBypassRef params fxId) $ \ref -> do
+    value <- readRef ref
+    whens [(value ==* 1, writeRef ref 0)] (writeRef ref 1)
+
 newFxParams :: [(Maybe ChannelId, [FxUnit])] -> SE FxParams
 newFxParams allUnits =
   FxParams . fmap Map.fromList <$> mapM (mapM toNameMapItem) (Map.fromList allUnits)
   where
-    toNameMapItem :: FxUnit -> SE (FxName, ParamMap)
-    toNameMapItem unit =
-      (FxName (fxUnitName unit),) <$> toFxParamMap unit
+    toNameMapItem :: FxUnit -> SE (FxName, FxCtx)
+    toNameMapItem unit = do
+      paramMap <- toFxParamMap unit
+      bypassRef <- newCtrlRef (maybe 0 (\isBypass -> if isBypass then 1 else 0) unit.bypass)
+      pure
+        ( FxName unit.name
+        , FxCtx
+            { params = paramMap
+            , bypass = bypassRef
+            }
+        )
 
 toFxParamMap :: FxUnit -> SE ParamMap
 toFxParamMap = newParamMap . toFxParamNameInitMap
 
-toFxName :: FxUnit -> Text
-toFxName = \case
-  ToolFx config -> toolUnit.getName config
-  ReverbFx config -> reverbUnit.getName config
-  DelayFx config -> delayUnit.getName config
-  PingPongFx config -> pingPongUnit.getName config
-  MoogFx config -> moogUnit.getName config
-  KorgFx config -> korgUnit.getName config
-  BbcutFx config -> bbcutUnit.getName config
-  LimiterFx config -> limiterUnit.getName config
-  EqFx config -> eqUnit.getName config
-  MixerEqFx config -> mixerEqUnit.getName config
-
 toFxParamNameInitMap :: FxUnit -> ParamNameInitMap
-toFxParamNameInitMap = \case
+toFxParamNameInitMap unit = case unit.mode of
   ToolFx config -> toolUnit.getParams config
   ReverbFx config -> reverbUnit.getParams config
   DelayFx config -> delayUnit.getParams config
@@ -102,14 +122,14 @@ toFxParamNameInitMap = \case
   EqFx config -> eqUnit.getParams config
   MixerEqFx config -> mixerEqUnit.getParams config
 
-readParamMap :: Maybe ChannelId -> FxName -> FxParams -> ParamMap
-readParamMap mChannel name (FxParams params) =
+readFxCtx :: Maybe ChannelId -> FxName -> FxParams -> FxCtx
+readFxCtx mChannel name (FxParams params) =
   fromMaybe (error errMessage) (Map.lookup name =<< Map.lookup mChannel params)
   where
     errMessage = "No FX unit is named with: " <> Text.unpack name.text
 
 unitToFun :: Bpm -> ParamMap -> FxUnit -> Sig2 -> SE Sig2
-unitToFun bpm params = \case
+unitToFun bpm params unit = case unit.mode of
   ToolFx config -> toolUnit.apply bpm params config
   ReverbFx config -> reverbUnit.apply bpm params config
   DelayFx config -> delayUnit.apply bpm params config
@@ -122,27 +142,15 @@ unitToFun bpm params = \case
   MixerEqFx config -> mixerEqUnit.apply bpm params config
 
 isBpmSensitive :: FxUnit -> Bool
-isBpmSensitive = \case
-  ToolFx _ -> toolUnit.needsBpm
-  ReverbFx _ -> reverbUnit.needsBpm
-  DelayFx _ -> delayUnit.needsBpm
-  PingPongFx _ -> pingPongUnit.needsBpm
-  MoogFx _ -> moogUnit.needsBpm
-  KorgFx _ -> korgUnit.needsBpm
-  BbcutFx _ -> bbcutUnit.needsBpm
-  LimiterFx _ -> limiterUnit.needsBpm
-  EqFx _ -> eqUnit.needsBpm
-  MixerEqFx _ -> mixerEqUnit.needsBpm
-
-fxUnitName :: FxUnit -> Text
-fxUnitName = \case
-  ToolFx config -> config.name
-  ReverbFx config -> config.name
-  DelayFx config -> config.name
-  PingPongFx config -> config.name
-  MoogFx config -> config.name
-  KorgFx config -> config.name
-  BbcutFx config -> config.name
-  LimiterFx config -> config.name
-  EqFx config -> config.name
-  MixerEqFx config -> config.name
+isBpmSensitive unit =
+  case unit.mode of
+    ToolFx _ -> toolUnit.needsBpm
+    ReverbFx _ -> reverbUnit.needsBpm
+    DelayFx _ -> delayUnit.needsBpm
+    PingPongFx _ -> pingPongUnit.needsBpm
+    MoogFx _ -> moogUnit.needsBpm
+    KorgFx _ -> korgUnit.needsBpm
+    BbcutFx _ -> bbcutUnit.needsBpm
+    LimiterFx _ -> limiterUnit.needsBpm
+    EqFx _ -> eqUnit.needsBpm
+    MixerEqFx _ -> mixerEqUnit.needsBpm

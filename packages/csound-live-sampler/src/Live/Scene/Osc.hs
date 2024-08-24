@@ -27,7 +27,7 @@ setupOsc config scene = do
         }
 
     uiInfo :: Str
-    uiInfo = getUiOscMessage config.mixer config.sampler (fromMaybe def config.osc.ui)
+    uiInfo = getUiOscMessage config.mixer config.sampler (fromMaybe def config.osc.ui) config.card
 
     withOutput :: (OscOutputConfig ChannelId -> SE ()) -> SE ()
     withOutput cont =

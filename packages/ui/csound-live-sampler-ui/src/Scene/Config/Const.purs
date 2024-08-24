@@ -22,21 +22,11 @@ sceneUi =
       , auxChannels: []
       , master: { volume: 1.0 , fxs: [] }
       }
-
-  , sampler:
-      { tracks:
-          [ track1
-          , track2
-          ]
-      }
+  , sampler: { tracks: [track1] }
+  , audioCard: { inputs: [] }
   }
   where
     track1 =
-      { name: "Never Enough"
-      , size: 4
-      }
-
-    track2 =
       { name: "Samurai"
       , size: 4
       }

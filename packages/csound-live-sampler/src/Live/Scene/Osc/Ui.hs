@@ -12,7 +12,6 @@ module Live.Scene.Osc.Ui (
 
 import Data.Aeson qualified as Json
 import Data.Aeson.TH qualified as Json
-import Data.Bifunctor
 import Data.ByteString qualified as ByteString
 import Data.Default
 import Data.List qualified as List
@@ -24,6 +23,8 @@ import Data.String
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import Live.Scene.AudioCard qualified as AudioCard
+import Live.Scene.AudioCard.Config qualified as Config
 import Live.Scene.Common (ChannelId (..))
 import Live.Scene.Mixer.Config qualified as Config
 import Live.Scene.Mixer.Fx (toFxName, toFxParamNameInitMap)
@@ -36,6 +37,7 @@ import Live.Scene.Sampler.Config qualified as Config
 data SceneUi = SceneUi
   { mixer :: MixerUi
   , sampler :: SamplerUi
+  , audioCard :: AudioCardUi
   }
 
 -------------------------------------------------------------------------------------
@@ -90,6 +92,10 @@ data FxUnit
   | EqFxUnit
   | MixerEqFxUnit
 
+data AudioCardUi = AudioCardUi
+  { inputs :: [Int]
+  }
+
 -------------------------------------------------------------------------------------
 -- Sampler
 
@@ -132,6 +138,7 @@ instance Json.FromJSON FxUnit where
     "mixerEq" -> pure MixerEqFxUnit
     other -> fail $ "failed to parse as fx unit: " <> Text.unpack other
 
+$(Json.deriveJSON Json.defaultOptions ''AudioCardUi)
 $(Json.deriveJSON Json.defaultOptions ''TrackUi)
 $(Json.deriveJSON Json.defaultOptions ''SamplerUi)
 $(Json.deriveJSON Json.defaultOptions ''FxParamUi)
@@ -150,20 +157,32 @@ getUiOscMessage ::
   Config.MixerConfig ChannelId ->
   Config.SamplerConfig ChannelId ->
   Config.OscUiConfig ChannelId ->
+  Config.AudioConfig ChannelId ->
   a
-getUiOscMessage mixer sampler ui =
-  fromString $ Text.unpack $ Text.decodeUtf8 $ ByteString.toStrict $ Json.encode (getUiConfig mixer sampler ui)
+getUiOscMessage mixer sampler ui audioCard =
+  fromString $ Text.unpack $ Text.decodeUtf8 $ ByteString.toStrict $ Json.encode (getUiConfig mixer sampler ui audioCard)
 
 getUiConfig ::
   Config.MixerConfig ChannelId ->
   Config.SamplerConfig ChannelId ->
   Config.OscUiConfig ChannelId ->
+  Config.AudioConfig ChannelId ->
   SceneUi
-getUiConfig mixer sampler ui =
+getUiConfig mixer sampler ui audioCard =
   SceneUi
     { mixer = getMixerUiConfig mixer ui
     , sampler = getSamplerUiConfig sampler
+    , audioCard = getAudioCardUiConfig audioCard
     }
+
+getAudioCardUiConfig :: Config.AudioConfig ChannelId -> AudioCardUi
+getAudioCardUiConfig config =
+  AudioCardUi
+    { inputs = maybe [] (fmap getInput) config.inputs
+    }
+  where
+    getInput :: Config.AudioInputConfig ChannelId -> Int
+    getInput = unChannelId . AudioCard.getChannelIdConfig
 
 getMixerUiConfig :: Config.MixerConfig ChannelId -> Config.OscUiConfig ChannelId -> MixerUi
 getMixerUiConfig mixer ui =

@@ -13,6 +13,7 @@ module Action
   , SetMaster
   , SetFxParam
   , SetSendFx
+  , SetAudioCard
   ) where
 
 import Prelude
@@ -78,3 +79,9 @@ type SetMaster =
 type SetFxParam = Number -> Effect Unit
 
 type SetSendFx = Number -> Effect Unit
+
+type SetAudioCard =
+  { setGain :: Int -> Number -> Effect Unit
+  }
+
+

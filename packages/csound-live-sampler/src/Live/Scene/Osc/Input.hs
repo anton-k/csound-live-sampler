@@ -15,7 +15,7 @@ import Live.Scene.AudioCard
 import Live.Scene.AudioCard.Config
 import Live.Scene.Common (AudioInputId (..), ChannelId (..), SendId (..))
 import Live.Scene.Mixer
-import Live.Scene.Mixer.Fx (toFxParamNameInitMap)
+import Live.Scene.Mixer.Fx (FxId (..), toFxParamNameInitMap)
 import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Mixer.Fx.Unit
 import Live.Scene.Osc.Config
@@ -89,7 +89,12 @@ listenChannelSend config mixer oscHandle oscChannelId =
         sendAddr = toChannelAddr oscChannelId $ "send/" <> show (succ $ unChannelId sendConfig.channel)
 
 listenFxUnit :: FxUnit -> Mixer -> OscHandle -> Maybe Int -> SE ()
-listenFxUnit unit mixer oscHandle mChannelId =
+listenFxUnit unit mixer oscHandle mChannelId = do
+  listenFxParams unit mixer oscHandle mChannelId
+  listenFxBypass unit mixer oscHandle mChannelId
+
+listenFxParams :: FxUnit -> Mixer -> OscHandle -> Maybe Int -> SE ()
+listenFxParams unit mixer oscHandle mChannelId =
   mapM_ (uncurry $ onFxUnit unit.name) $ Map.toList $ toFxParamNameInitMap unit
   where
     onFxUnit :: Text -> FxParamName -> Float -> SE ()
@@ -99,7 +104,16 @@ listenFxUnit unit mixer oscHandle mChannelId =
       where
         fxAddr =
           maybe toMasterAddr toChannelAddr mChannelId $
-            "fx/" <> Text.unpack (mconcat [unitName, "/", paramName])
+            "fx/param/" <> Text.unpack (mconcat [unitName, "/", paramName])
+
+listenFxBypass :: FxUnit -> Mixer -> OscHandle -> Maybe Int -> SE ()
+listenFxBypass unit mixer oscHandle mChannelId =
+  listenUnit oscHandle fxAddr $
+    mixer.toggleFxBypass (FxId (toChannelId <$> mChannelId) unit.name)
+  where
+    fxAddr =
+      maybe toMasterAddr toChannelAddr mChannelId $
+        "fx/bypass/toggle/" <> Text.unpack unit.name
 
 listenChannelMute :: Mixer -> OscHandle -> Int -> SE ()
 listenChannelMute mixer oscHandle oscChannelId = do

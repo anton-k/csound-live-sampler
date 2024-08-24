@@ -14,6 +14,7 @@ module Csound.Live.Sampler.Osc.Message (
   nextTrackMessage,
   prevTrackMessage,
   setFxParamMessage,
+  toggleFxBypassMessage,
   toggleMuteMessage,
   setChannelSendMessage,
   setAudioInputGainMessage,
@@ -82,7 +83,11 @@ shiftTrackMessage steps =
 
 setFxParamMessage :: Maybe ChannelId -> FxName -> ParamName -> Double -> OSC
 setFxParamMessage mChannelId unit param value =
-  OSC (maybe toMasterAddr toChannelAddr mChannelId $ path ["fx", unit, param]) [OSC_D value]
+  OSC (maybe toMasterAddr toChannelAddr mChannelId $ path ["fx", "param", unit, param]) [OSC_D value]
+
+toggleFxBypassMessage :: Maybe ChannelId -> FxName -> OSC
+toggleFxBypassMessage mChannelId unit =
+  OSC (maybe toMasterAddr toChannelAddr mChannelId $ path ["fx", "bypass", "toggle", unit]) []
 
 toggleMuteMessage :: ChannelId -> OSC
 toggleMuteMessage channelId =

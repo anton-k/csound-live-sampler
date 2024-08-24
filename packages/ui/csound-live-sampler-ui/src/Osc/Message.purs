@@ -70,7 +70,7 @@ getCurrentPart =
 
 setFxParam :: FxParamId -> Number -> Osc
 setFxParam paramId value =
-  { address: String.joinWith "/" [channelAddr, "fx", paramId.name, paramId.param]
+  { address: String.joinWith "/" [channelAddr, "fx", "param", paramId.name, paramId.param]
   , args: [OscDouble value]
   }
   where

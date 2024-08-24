@@ -73,6 +73,7 @@ initFxControls ctx bodies (MixerInstrIds instrIds) =
     , setFxParam = setFxParamSt ctx.fxParams
     , readFxParam = readFxParamSt ctx.fxParams
     , toggleFxBypass = toggleFxBypassSt ctx.fxParams
+    , readFxBypass = readFxBypassSt ctx.fxParams
     , startFx = \name -> withFxName name playCsdInstr
     , stopFx = \name -> withFxName name stopCsdInstr
     }
@@ -104,6 +105,10 @@ readFxParamSt fxParams paramId =
 toggleFxBypassSt :: FxParams -> FxId -> SE ()
 toggleFxBypassSt fxParams fxId =
   Fx.toggleFxBypass fxParams fxId
+
+readFxBypassSt :: FxParams -> FxId -> SE Sig
+readFxBypassSt fxParams fxId =
+  Fx.readFxBypass fxParams fxId
 
 newRouteCtx :: RouteDeps -> MixerConfig ChannelId -> Bpm -> SE RouteCtx
 newRouteCtx deps config bpm = do
@@ -197,6 +202,7 @@ data MixerRouteFx = MixerRouteFx
   , setFxParam :: FxParamId -> Sig -> SE ()
   , readFxParam :: FxParamId -> SE Sig
   , toggleFxBypass :: FxId -> SE ()
+  , readFxBypass :: FxId -> SE Sig
   , startFx :: FxName -> SE ()
   , stopFx :: FxName -> SE ()
   }

@@ -13,7 +13,7 @@ import Live.Scene.AudioCard
 import Live.Scene.AudioCard.Config
 import Live.Scene.Common (AudioInputId (..), ChannelId (..), SendId (..))
 import Live.Scene.Mixer
-import Live.Scene.Mixer.Fx (toFxParamNameInitMap)
+import Live.Scene.Mixer.Fx (FxId (..), toFxParamNameInitMap)
 import Live.Scene.Mixer.Fx.Config
 import Live.Scene.Osc.Config
 import Live.Scene.Osc.Input (OscConfigs (..))
@@ -21,8 +21,19 @@ import Live.Scene.Sampler
 import Live.Scene.Sampler.Engine (toAbsTimeRate)
 import Live.Scene.Types
 
-type FxParamMap = Map (Maybe ChannelId) [FxParamId]
+type FxParamMap = Map (Maybe ChannelId) FxInfo
 type SendMap = Map ChannelId [SendId]
+
+data FxInfo = FxInfo
+  { params :: [FxParamId]
+  , units :: [FxId]
+  }
+
+instance Semigroup FxInfo where
+  (<>) infoA infoB = FxInfo (infoA.params <> infoB.params) (infoA.units <> infoB.units)
+
+instance Monoid FxInfo where
+  mempty = FxInfo mempty mempty
 
 setupOscOutput :: Scene -> OscConfigs -> OscOutputConfig ChannelId -> SE ()
 setupOscOutput scene oscConfig config = do
@@ -42,20 +53,39 @@ setupOscOutput scene oscConfig config = do
 initFxParams :: Mixer -> FxParamMap
 initFxParams mixer =
   Map.fromList $
-    filter (not . null . snd) $
+    filter (not . isNullFxInfo . snd) $
       catMaybes $
         maybe [] (pure . masterFx) mixer.config.master
           <> zipWith channelFx [0 ..] mixer.config.channels
   where
-    masterFx config = fmap (\fxs -> (Nothing, toParamId Nothing =<< fxs)) config.fxs
+    isNullFxInfo info = null info.params && null info.units
 
+    masterFx :: MasterConfig -> Maybe (Maybe ChannelId, FxInfo)
+    masterFx config =
+      fmap
+        ( \fxs ->
+            ( Nothing
+            , FxInfo
+                { params = toParamId Nothing =<< fxs
+                , units = (\fx -> FxId Nothing fx.name) <$> fxs
+                }
+            )
+        )
+        config.fxs
+
+    channelFx :: Int -> ChannelConfig ChannelId -> Maybe (Maybe ChannelId, FxInfo)
     channelFx n config =
       fmap
         ( \fxs ->
             let
               chan = ChannelId n
              in
-              (Just chan, toParamId (Just chan) =<< fxs)
+              ( Just chan
+              , FxInfo
+                  { params = toParamId (Just chan) =<< fxs
+                  , units = (\fx -> FxId (Just chan) fx.name) <$> fxs
+                  }
+              )
         )
         config.fxs
 
@@ -110,7 +140,7 @@ sendMasterInfo ::
 sendMasterInfo config isTick mixer fxParams = do
   sendMasterVolumeEnvelope config isTick mixer
   sendMasterVolumeChange config mixer
-  mapM_ (mapM_ (sendFxParamChange config mixer)) (Map.lookup Nothing fxParams)
+  mapM_ (sendFxInfo config mixer) (Map.lookup Nothing fxParams)
 
 sendMasterVolumeEnvelope :: OscOutputConfig ChannelId -> Sig -> Mixer -> SE ()
 sendMasterVolumeEnvelope config isTick mixer = do
@@ -136,7 +166,7 @@ sendChannelInfo config isTick mixer fxParams sendParams channelId = do
   sendVolumeChange config mixer channelId
   sendVolumeMute config mixer channelId
   mapM_ (mapM_ (sendSendChange config mixer)) (Map.lookup channelId sendParams)
-  mapM_ (mapM_ (sendFxParamChange config mixer)) (Map.lookup (Just channelId) fxParams)
+  mapM_ (sendFxInfo config mixer) (Map.lookup (Just channelId) fxParams)
 
 sendVolumeEnvelope :: OscOutputConfig ChannelId -> Sig -> Mixer -> ChannelId -> SE ()
 sendVolumeEnvelope config isTick mixer channelId = do
@@ -155,11 +185,22 @@ sendVolumeMute config mixer channelId = do
   where
     invertMute x = 1 - x
 
+sendFxInfo :: OscOutputConfig ChannelId -> Mixer -> FxInfo -> SE ()
+sendFxInfo config mixer info = do
+  mapM_ (sendFxParamChange config mixer) info.params
+  mapM_ (sendFxBypassChange config mixer) info.units
+
 sendFxParamChange :: OscOutputConfig ChannelId -> Mixer -> FxParamId -> SE ()
 sendFxParamChange config mixer paramId = do
-  changeChannelBy config paramId.channel "fx" paramAddr (mixer.readFxParam paramId)
+  changeChannelBy config paramId.channel "fx/param" paramAddr (mixer.readFxParam paramId)
   where
     paramAddr = Text.unpack $ paramId.name <> "/" <> paramId.param
+
+sendFxBypassChange :: OscOutputConfig ChannelId -> Mixer -> FxId -> SE ()
+sendFxBypassChange config mixer fxId =
+  changeChannelBy config fxId.channel "fx/bypass" bypassAddr (mixer.readFxBypass fxId)
+  where
+    bypassAddr = Text.unpack fxId.name
 
 sendSendChange :: OscOutputConfig ChannelId -> Mixer -> SendId -> SE ()
 sendSendChange config mixer sendId =

@@ -111,9 +111,9 @@ runListener port ref =
       , Osc.toOscCase "/channel/$d/volume/change" onChannelVolumeChange
       , Osc.toOscCase "/channel/$d/mute/change" onChannelMuteChange
       , Osc.toOscCase "/part/change" onPartChange
-      , Osc.toOscCase "/channel/$d/fx/change/$s/$s" onChannelFxParamChange
+      , Osc.toOscCase "/channel/$d/fx/param/change/$s/$s" onChannelFxParamChange
       , Osc.toOscCase "/channel/$d/send/change/$s" onChannelSendFxChange
-      , Osc.toOscCase "/master/fx/change/$s/$s" onMasterFxParamChange
+      , Osc.toOscCase "/master/fx/param/change/$s/$s" onMasterFxParamChange
       ]
 
     onBpm :: Int -> Effect Unit

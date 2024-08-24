@@ -9,6 +9,7 @@ module Live.Scene.Mixer.Fx (
   setFxParam,
   readFxParam,
   toggleFxBypass,
+  readFxBypass,
   getFxParamRef,
   unitToFun,
   Bpm (..),
@@ -89,6 +90,10 @@ toggleFxBypass params fxId =
   forM_ (getFxBypassRef params fxId) $ \ref -> do
     value <- readRef ref
     whens [(value ==* 1, writeRef ref 0)] (writeRef ref 1)
+
+readFxBypass :: FxParams -> FxId -> SE Sig
+readFxBypass params fxId =
+  maybe (pure 0) readRef (getFxBypassRef params fxId)
 
 newFxParams :: [(Maybe ChannelId, [FxUnit])] -> SE FxParams
 newFxParams allUnits =

@@ -64,6 +64,7 @@ data Mixer = Mixer
   , setMasterVolume :: Sig -> SE ()
   , setFxParam :: FxParamId -> Sig -> SE ()
   , toggleFxBypass :: FxId -> SE ()
+  , readFxBypass :: FxId -> SE Sig
   , readFxParam :: FxParamId -> SE Sig
   , clean :: SE ()
   , config :: MixerConfig ChannelId
@@ -120,6 +121,7 @@ newMixer config channels readBpm = do
       , readFxParam = fxControls.readFxParam
       , toggleChannelMute = toggleChannelMuteSt st
       , toggleFxBypass = fxControls.toggleFxBypass
+      , readFxBypass = fxControls.readFxBypass
       , readChannelMute = readChannelMuteSt st
       , clean = cleanSt st
       , config = config

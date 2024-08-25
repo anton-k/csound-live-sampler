@@ -4,6 +4,7 @@ module Scene.Mixer.Fx
   , fxHtml
   , fxChannelSetup
   , sendChannelSetup
+  , concatFxInfos
   ) where
 
 import Prelude
@@ -11,6 +12,7 @@ import Effect (Effect)
 import Scene.Mixer.Config
 import Nexus.Ui.Core.Common as Ui
 import Nexus.Ui.Core.Dial as Ui
+import Nexus.Ui.Core.Button as Ui
 import Scene.Html
 import Data.Traversable (traverse)
 import Data.Maybe (Maybe (..))
@@ -20,7 +22,16 @@ import Data.Tuple (Tuple (..))
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Events as HE
-import Action (Mixer, ChannelId, FxParamId, SendId, SetFxParam, SetSendFx)
+import Action
+  ( Mixer
+  , ChannelId
+  , FxId
+  , FxParamId
+  , SendId
+  , SetFxParam
+  , SetFxBypass
+  , SetSendFx
+  )
 import Osc.Client (newOscControl)
 import Common.Array (chunks)
 
@@ -35,9 +46,12 @@ toFxHtml :: forall w i. String -> FxUi -> HH.HTML w i
 toFxHtml channelName fx =
   HH.li []
     [ accordion fx.fx.name $ joinRows $
-        map (\params -> fxRow (map (fromFxParam channelName fx.fx.name) params)) (splitRows fx.fx.params)
+        Array.mapWithIndex (\n params -> fxRow (addBypassToFirst n $ map (fromFxParam channelName fx.fx.name) params)) (splitRows fx.fx.params)
     ]
   where
+    addBypassToFirst n rows =
+      (if (n == 0) then [bypassHtml] else [HH.div [] []]) <> rows
+
     splitRows =
       case fx.fx.unit of
         EqFxUnit -> toEqRows
@@ -46,6 +60,13 @@ toFxHtml channelName fx =
     joinRows = case _ of
       [x] -> x
       xs -> HH.div [] xs
+
+    bypassHtml =
+      HH.div []
+        [ divId (toBypassId channelName fx.fx.name) []
+        , HH.text "bypass"
+        ]
+
 
 toEqRows :: forall a. Array a -> Array (Array a)
 toEqRows params = chunks size params
@@ -98,24 +119,63 @@ toChannelFxHtml chan =
 toFxId :: String -> String -> String -> String
 toFxId channelName fxName paramName =
   String.joinWith "."
-    ["fx", channelName, fxName, paramName]
+    ["fx", "param", channelName, fxName, paramName]
 
 toSendFxId :: String -> Int -> String
 toSendFxId fromChannelName toChannel =
   String.joinWith "."
     ["sendFx", fromChannelName, show toChannel]
 
-fxChannelSetup :: Mixer -> ChannelFxUi -> Effect (Array (Tuple FxParamId SetFxParam))
-fxChannelSetup act chan =
-  map Array.concat $ traverse (fxSetup act chan.name) chan.fxs
+toBypassId :: String -> String -> String
+toBypassId channelName fxName =
+  String.joinWith "."
+    ["fx", "bypass", channelName, fxName]
+
+fxChannelSetup :: Mixer -> ChannelFxUi -> Effect FxInfo
+fxChannelSetup act chan = do
+  infos <- traverse (fxSetup act chan.name) chan.fxs
+  pure $ concatFxInfos infos
+
+concatFxInfos :: Array FxInfo -> FxInfo
+concatFxInfos infos =
+  { params: Array.concat $ map (_.params) infos
+  , bypass: Array.concat $ map (_.bypass) infos
+  }
 
 sendChannelSetup :: Mixer -> ChannelFxUi -> Effect (Array (Tuple SendId SetSendFx))
 sendChannelSetup act chan =
   traverse (\send -> sendFxSetup act chan.name chan.channelId send.to send.value) chan.sends
 
-fxSetup :: Mixer -> String -> FxUi -> Effect (Array (Tuple FxParamId SetFxParam))
-fxSetup act channelName fx =
-  traverse (fxParamSetup act fx.channel channelName fx.fx.name) fx.fx.params
+type FxInfo =
+  { params :: Array (Tuple FxParamId SetFxParam)
+  , bypass :: Array (Tuple FxId SetFxBypass)
+  }
+
+fxSetup :: Mixer -> String -> FxUi -> Effect FxInfo
+fxSetup act channelName fx = do
+  bypass <- map pure $ fxBypassSetup act fx.channel channelName fx.fx.name fx.fx.bypass
+  params <- traverse (fxParamSetup act fx.channel channelName fx.fx.name) fx.fx.params
+  pure { bypass, params }
+
+fxBypassSetup :: Mixer -> Maybe ChannelId -> String -> String -> Boolean -> Effect (Tuple FxId SetFxBypass)
+fxBypassSetup act channelId channelName fxName isBypass = do
+  toggle <- Ui.newButtonBy ("#" <> toBypassId channelName fxName)
+    { size: Tuple 75.0 75.0
+    , mode: Ui.ToggleButton
+    , state: isBypass
+    }
+  bypassOsc <- newOscControl $ \_ -> act.toggleFxBypass fxId
+  toggle.on Ui.Change (bypassOsc.set unit)
+  pure $
+    Tuple
+      fxId
+      (\val -> bypassOsc.silent $ toggle.setState val)
+  where
+    fxId =
+      { channel: channelId
+      , name: fxName
+      }
+
 
 fxParamSetup :: Mixer -> Maybe ChannelId -> String -> String -> FxParam -> Effect (Tuple FxParamId SetFxParam)
 fxParamSetup act channelId channelName fxName param = do

@@ -6,6 +6,7 @@ module Scene.Html
   , col
   , textButton
   , accordion
+  , accordion'
   , filledGrid
   ) where
 
@@ -29,9 +30,12 @@ textButton label =
       [ HH.text label ]
 
 accordion :: forall w i. String -> HH.HTML w i -> HH.HTML w i
-accordion title body =
+accordion title body = accordion' (HH.text title) body
+
+accordion' :: forall w i. HH.HTML w i -> HH.HTML w i -> HH.HTML w i
+accordion' title body =
   HH.details []
-    [ HH.summary [HP.classes [HH.ClassName "outline", HH.ClassName "constrast"]] [HH.text title]
+    [ HH.summary [HP.classes [HH.ClassName "outline", HH.ClassName "constrast"]] [title]
     , body
     ]
 

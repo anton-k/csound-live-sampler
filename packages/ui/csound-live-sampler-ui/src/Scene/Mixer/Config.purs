@@ -20,7 +20,7 @@ import JSON as Json
 import JSON.Object as Json
 import Data.Int (round)
 import Data.Traversable (traverse)
-import Common.JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt)
+import Common.JSON.Extra (lookupArray, lookupString, lookupNumber, lookupInt, lookupBoolean)
 import Data.Array as Array
 import Data.Maybe (fromMaybe)
 import Action (ChannelId)
@@ -48,6 +48,7 @@ type MixerUiItem =
 
 type Fx =
   { name :: String
+  , bypass :: Boolean
   , unit :: FxUnit
   , params :: Array FxParam
   }
@@ -106,9 +107,10 @@ fxFromJson :: JSON -> Maybe Fx
 fxFromJson json = do
   obj <- Json.toJObject json
   name <- lookupString "name" obj
+  bypass <- lookupBoolean "bypass" obj
   unit <- fxUnitFromJson =<< lookupString "unit" obj
   params <- traverse fxParamFromJson =<< lookupArray "params" obj
-  pure { name, unit, params }
+  pure { name, bypass, unit, params }
 
 fxUnitFromJson :: String -> Maybe FxUnit
 fxUnitFromJson = case _ of

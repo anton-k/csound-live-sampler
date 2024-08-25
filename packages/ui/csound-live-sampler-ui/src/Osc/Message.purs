@@ -11,12 +11,13 @@ module Osc.Message
   , shiftPart
   , getCurrentPart
   , setFxParam
+  , toggleFxBypass
   , setSendFx
   ) where
 
 import Prelude
 import Network.Osc (Osc, OscValue (..))
-import Action (ChannelId, TrackId, FxParamId, SendId)
+import Action (ChannelId, TrackId, FxId, FxParamId, SendId)
 import Data.Maybe (Maybe, maybe)
 import Data.String as String
 
@@ -68,14 +69,25 @@ getCurrentPart =
   , args: []
   }
 
+toFxPrefix :: Maybe ChannelId -> String
+toFxPrefix chan =
+  "/" <> maybe "master" (\n -> "channel/" <> show n) chan
+
 setFxParam :: FxParamId -> Number -> Osc
 setFxParam paramId value =
   { address: String.joinWith "/" [channelAddr, "fx", "param", paramId.name, paramId.param]
   , args: [OscDouble value]
   }
   where
-    channelAddr =
-      "/" <> maybe "master" (\n -> "channel/" <> show n)  paramId.channel
+    channelAddr = toFxPrefix paramId.channel
+
+toggleFxBypass :: FxId -> Osc
+toggleFxBypass fxId =
+  { address: String.joinWith "/" [channelAddr, "fx", "bypass", "toggle", fxId.name]
+  , args: []
+  }
+  where
+    channelAddr = toFxPrefix fxId.channel
 
 setSendFx :: SendId -> Number -> Osc
 setSendFx sendId value =

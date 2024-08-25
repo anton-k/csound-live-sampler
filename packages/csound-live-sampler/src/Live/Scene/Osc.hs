@@ -20,8 +20,9 @@ setupOsc config scene = do
   where
     inputDep =
       OscInputDep
-        { sendUiInfo = \isSend address -> withOutput $ \outputConfig ->
+        { sendUiInfo = \isSend address -> withOutput $ \outputConfig -> do
             send outputConfig (ifB isSend 1 0) address uiInfo
+            mapM_ (sendAllControls scene config (delayk (ifB isSend 1 0) 0.1)) config.osc.output
         , sendCurrentPart = \isSend -> withOutput $ \outputConfig ->
             sendCurrentSamplerPart outputConfig scene.sampler (ifB isSend 1 0)
         }

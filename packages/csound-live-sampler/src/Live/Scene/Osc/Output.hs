@@ -2,8 +2,10 @@ module Live.Scene.Osc.Output (
   setupOscOutput,
   send,
   sendCurrentSamplerPart,
+  sendAllControls,
 ) where
 
+import Control.Monad
 import Csound.Core
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
@@ -20,6 +22,13 @@ import Live.Scene.Osc.Input (OscConfigs (..))
 import Live.Scene.Sampler
 import Live.Scene.Sampler.Engine (toAbsTimeRate)
 import Live.Scene.Types
+
+data SendType = Instant | OnChange
+  deriving (Show, Eq)
+
+whenChange :: SendType -> SE () -> SE ()
+whenChange ty act =
+  when (ty == OnChange) $ act
 
 type FxParamMap = Map (Maybe ChannelId) FxInfo
 type SendMap = Map ChannelId [SendId]
@@ -42,8 +51,8 @@ setupOscOutput scene oscConfig config = do
     bpm <- scene.sampler.readBpm
     let
       isTick = metro (toAbsTimeRate bpm 0.25)
-    sendMasterInfo config isTick scene.mixer fxParams
-    mapM_ (sendChannelInfo config isTick scene.mixer fxParams sendParams) (fromMaybe [] config.channels)
+    sendMasterInfo OnChange config isTick scene.mixer fxParams
+    mapM_ (sendChannelInfo OnChange config isTick scene.mixer fxParams sendParams) (fromMaybe [] config.channels)
     sendAudioCard config oscConfig.card scene.audio isTick
   play instr [Note 0 (-1) ()]
   where
@@ -132,15 +141,20 @@ sendCurrentSamplerPart config sampler isClipChange = do
   send config isClipChange "/part/change" clip
 
 sendMasterInfo ::
+  SendType ->
   OscOutputConfig ChannelId ->
   Sig ->
   Mixer ->
   FxParamMap ->
   SE ()
-sendMasterInfo config isTick mixer fxParams = do
-  sendMasterVolumeEnvelope config isTick mixer
-  sendMasterVolumeChange config mixer
-  mapM_ (sendFxInfo config mixer) (Map.lookup Nothing fxParams)
+sendMasterInfo sendType config isTick mixer fxParams = do
+  whenChange sendType $ sendMasterVolumeEnvelope config isTick mixer
+  sendMasterVolumeChange mChange config mixer
+  mapM_ (sendFxInfo mChange config mixer) (Map.lookup Nothing fxParams)
+  where
+    mChange = case sendType of
+      OnChange -> Nothing
+      Instant -> Just isTick
 
 sendMasterVolumeEnvelope :: OscOutputConfig ChannelId -> Sig -> Mixer -> SE ()
 sendMasterVolumeEnvelope config isTick mixer = do
@@ -149,11 +163,12 @@ sendMasterVolumeEnvelope config isTick mixer = do
     env = 4.5 * follow2 (toMono asig) 0.1 0.5
   send config isTick (toMasterAddr "volume/envelope") env
 
-sendMasterVolumeChange :: OscOutputConfig ChannelId -> Mixer -> SE ()
-sendMasterVolumeChange config mixer =
-  changeChannelBy config Nothing "volume" "" mixer.readMasterVolume
+sendMasterVolumeChange :: Maybe Sig -> OscOutputConfig ChannelId -> Mixer -> SE ()
+sendMasterVolumeChange mChange config mixer =
+  changeChannelBy mChange config Nothing "volume" "" mixer.readMasterVolume
 
 sendChannelInfo ::
+  SendType ->
   OscOutputConfig ChannelId ->
   Sig ->
   Mixer ->
@@ -161,12 +176,16 @@ sendChannelInfo ::
   SendMap ->
   ChannelId ->
   SE ()
-sendChannelInfo config isTick mixer fxParams sendParams channelId = do
-  sendVolumeEnvelope config isTick mixer channelId
-  sendVolumeChange config mixer channelId
-  sendVolumeMute config mixer channelId
-  mapM_ (mapM_ (sendSendChange config mixer)) (Map.lookup channelId sendParams)
-  mapM_ (sendFxInfo config mixer) (Map.lookup (Just channelId) fxParams)
+sendChannelInfo sendType config isTick mixer fxParams sendParams channelId = do
+  whenChange sendType $ sendVolumeEnvelope config isTick mixer channelId
+  sendVolumeChange mChange config mixer channelId
+  sendVolumeMute mChange config mixer channelId
+  mapM_ (mapM_ (sendSendChange mChange config mixer)) (Map.lookup channelId sendParams)
+  mapM_ (sendFxInfo mChange config mixer) (Map.lookup (Just channelId) fxParams)
+  where
+    mChange = case sendType of
+      OnChange -> Nothing
+      Instant -> Just isTick
 
 sendVolumeEnvelope :: OscOutputConfig ChannelId -> Sig -> Mixer -> ChannelId -> SE ()
 sendVolumeEnvelope config isTick mixer channelId = do
@@ -175,42 +194,42 @@ sendVolumeEnvelope config isTick mixer channelId = do
     env = 5 * follow2 (toMono asig) 0.1 0.5
   send config isTick (toChannelAddr channelId "volume/envelope") env
 
-sendVolumeChange :: OscOutputConfig ChannelId -> Mixer -> ChannelId -> SE ()
-sendVolumeChange config mixer channelId =
-  changeChannelBy config (Just channelId) "volume" "" (mixer.readChannelVolume channelId)
+sendVolumeChange :: Maybe Sig -> OscOutputConfig ChannelId -> Mixer -> ChannelId -> SE ()
+sendVolumeChange mChange config mixer channelId =
+  changeChannelBy mChange config (Just channelId) "volume" "" (mixer.readChannelVolume channelId)
 
-sendVolumeMute :: OscOutputConfig ChannelId -> Mixer -> ChannelId -> SE ()
-sendVolumeMute config mixer channelId = do
-  changeChannelBy config (Just channelId) "mute" "" (invertMute <$> mixer.readChannelMute channelId)
+sendVolumeMute :: Maybe Sig -> OscOutputConfig ChannelId -> Mixer -> ChannelId -> SE ()
+sendVolumeMute mChange config mixer channelId = do
+  changeChannelBy mChange config (Just channelId) "mute" "" (invertMute <$> mixer.readChannelMute channelId)
   where
     invertMute x = 1 - x
 
-sendFxInfo :: OscOutputConfig ChannelId -> Mixer -> FxInfo -> SE ()
-sendFxInfo config mixer info = do
-  mapM_ (sendFxParamChange config mixer) info.params
-  mapM_ (sendFxBypassChange config mixer) info.units
+sendFxInfo :: Maybe Sig -> OscOutputConfig ChannelId -> Mixer -> FxInfo -> SE ()
+sendFxInfo mChange config mixer info = do
+  mapM_ (sendFxParamChange mChange config mixer) info.params
+  mapM_ (sendFxBypassChange mChange config mixer) info.units
 
-sendFxParamChange :: OscOutputConfig ChannelId -> Mixer -> FxParamId -> SE ()
-sendFxParamChange config mixer paramId = do
-  changeChannelBy config paramId.channel "fx/param" paramAddr (mixer.readFxParam paramId)
+sendFxParamChange :: Maybe Sig -> OscOutputConfig ChannelId -> Mixer -> FxParamId -> SE ()
+sendFxParamChange mChange config mixer paramId = do
+  changeChannelBy mChange config paramId.channel "fx/param" paramAddr (mixer.readFxParam paramId)
   where
     paramAddr = Text.unpack $ paramId.name <> "/" <> paramId.param
 
-sendFxBypassChange :: OscOutputConfig ChannelId -> Mixer -> FxId -> SE ()
-sendFxBypassChange config mixer fxId =
-  changeChannelBy config fxId.channel "fx/bypass" bypassAddr (mixer.readFxBypass fxId)
+sendFxBypassChange :: Maybe Sig -> OscOutputConfig ChannelId -> Mixer -> FxId -> SE ()
+sendFxBypassChange mChange config mixer fxId =
+  changeChannelBy mChange config fxId.channel "fx/bypass" bypassAddr (mixer.readFxBypass fxId)
   where
     bypassAddr = Text.unpack fxId.name
 
-sendSendChange :: OscOutputConfig ChannelId -> Mixer -> SendId -> SE ()
-sendSendChange config mixer sendId =
-  changeChannelBy config (Just sendId.from) "send" (show sendId.to) (mixer.readChannelSend sendId)
+sendSendChange :: Maybe Sig -> OscOutputConfig ChannelId -> Mixer -> SendId -> SE ()
+sendSendChange mChange config mixer sendId =
+  changeChannelBy mChange config (Just sendId.from) "send" (show (sendId.to.unChannelId + 1)) (mixer.readChannelSend sendId)
 
-changeChannelBy :: OscOutputConfig ChannelId -> Maybe ChannelId -> String -> String -> SE Sig -> SE ()
-changeChannelBy config mChannelId tag addr readParam = do
+changeChannelBy :: Maybe Sig -> OscOutputConfig ChannelId -> Maybe ChannelId -> String -> String -> SE Sig -> SE ()
+changeChannelBy mChange config mChannelId tag addr readParam = do
   param <- readParam
   let
-    isChange = changed [param]
+    isChange = fromMaybe (changed [param]) mChange
   send
     config
     isChange
@@ -246,3 +265,12 @@ sendAudioCardInput config audio isTick input = do
 send :: (Tuple a) => OscOutputConfig ChannelId -> Sig -> Str -> a -> SE ()
 send config kwhen dest values =
   oscSend kwhen (fromString $ Text.unpack config.address) (int config.port) dest values
+
+-- | We resend all controls after client asks for UI-info
+sendAllControls :: Scene -> OscConfigs -> Sig -> OscOutputConfig ChannelId -> SE ()
+sendAllControls scene _oscConfig isTick config = do
+  sendMasterInfo Instant config isTick scene.mixer fxParams
+  mapM_ (sendChannelInfo Instant config isTick scene.mixer fxParams sendParams) (fromMaybe [] config.channels)
+  where
+    fxParams = initFxParams scene.mixer
+    sendParams = initSendParams scene.mixer

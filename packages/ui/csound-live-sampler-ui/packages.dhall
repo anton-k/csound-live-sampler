@@ -106,7 +106,7 @@ in  upstream
   with nexus-ui =
       { dependencies = [ "console", "effect", "prelude", "tuples" ]
       , repo = "https://github.com/anton-k/purescript-nexus-ui.git"
-      , version = "5cecc5ff42ca3a5eab5d13149da65f188a8d2984"
+      , version = "6999381da8a3eca76b06c3fad786a22246d189d2"
       }
   with osc =
       { dependencies = 

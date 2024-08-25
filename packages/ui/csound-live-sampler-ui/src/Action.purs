@@ -6,6 +6,7 @@ module Action
   , Mixer
   , Sampler
   , Info
+  , FxId
   , FxParamId
   , SendId
   , SetMixer
@@ -14,6 +15,7 @@ module Action
   , SetFxParam
   , SetSendFx
   , SetAudioCard
+  , SetFxBypass
   ) where
 
 import Prelude
@@ -36,6 +38,11 @@ type FxParamId =
   , param :: String
   }
 
+type FxId =
+  { channel :: Maybe ChannelId
+  , name :: String
+  }
+
 type SendId =
   { from :: ChannelId
   , to :: ChannelId
@@ -45,6 +52,7 @@ type Mixer =
   { setMasterVolume :: Number -> Effect Unit
   , setChannelVolume :: ChannelId -> Number -> Effect Unit
   , setFxParam :: FxParamId -> Number -> Effect Unit
+  , toggleFxBypass :: FxId -> Effect Unit
   , setSendFx :: SendId -> Number -> Effect Unit
   }
 
@@ -62,6 +70,7 @@ type SetMixer =
   { setMaster :: SetMaster
   , setChannel :: Int -> SetChannel
   , setFxParam :: FxParamId -> SetFxParam
+  , setFxBypass :: FxId -> SetFxBypass
   , setSendFx :: SendId -> SetSendFx
   }
 
@@ -77,6 +86,8 @@ type SetMaster =
   }
 
 type SetFxParam = Number -> Effect Unit
+
+type SetFxBypass = Boolean -> Effect Unit
 
 type SetSendFx = Number -> Effect Unit
 

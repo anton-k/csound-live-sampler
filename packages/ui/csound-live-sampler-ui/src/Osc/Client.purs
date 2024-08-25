@@ -43,6 +43,7 @@ type Listen =
   , channelVolume :: Int -> Number -> Effect Unit
   , channelMute :: Int -> Boolean -> Effect Unit
   , fxParam :: FxParamId -> Number -> Effect Unit
+  , fxBypass :: FxId -> Boolean -> Effect Unit
   , sendFx :: SendId -> Number -> Effect Unit
   , partChange :: Clip -> Effect Unit
   }
@@ -56,6 +57,7 @@ emptyListen =
   , channelVolume: const (const $ pure unit)
   , channelMute: const (const $ pure unit)
   , fxParam: const (const $ pure unit)
+  , fxBypass: const (const (pure unit))
   , sendFx: const (const (pure unit))
   , partChange: const (pure unit)
   }
@@ -68,6 +70,7 @@ type SetListen =
   , channelVolume :: (Int -> Number -> Effect Unit) -> Effect Unit
   , channelMute :: (Int -> Boolean -> Effect Unit) -> Effect Unit
   , fxParam :: (FxParamId -> Number -> Effect Unit) -> Effect Unit
+  , fxBypass :: (FxId -> Boolean -> Effect Unit) -> Effect Unit
   , sendFx :: (SendId -> Number -> Effect Unit) -> Effect Unit
   , partChange :: (Clip -> Effect Unit) -> Effect Unit
   }
@@ -112,8 +115,10 @@ runListener port ref =
       , Osc.toOscCase "/channel/$d/mute/change" onChannelMuteChange
       , Osc.toOscCase "/part/change" onPartChange
       , Osc.toOscCase "/channel/$d/fx/param/change/$s/$s" onChannelFxParamChange
-      , Osc.toOscCase "/channel/$d/send/change/$s" onChannelSendFxChange
+      , Osc.toOscCase "/channel/$d/fx/bypass/change/$s" onChannelFxBypassChange
+      , Osc.toOscCase "/channel/$d/send/change/$d" onChannelSendFxChange
       , Osc.toOscCase "/master/fx/param/change/$s/$s" onMasterFxParamChange
+      , Osc.toOscCase "/master/fx/bypass/change/$s" onMasterFxBypassChange
       ]
 
     onBpm :: Int -> Effect Unit
@@ -150,6 +155,18 @@ runListener port ref =
             }
         listen.fxParam paramId value
 
+    onChannelFxBypassChange :: Tuple Number (Tuple String Number)  -> Effect Unit
+    onChannelFxBypassChange (Tuple channelId (Tuple name isBypassNumber)) =
+      withListen $ \listen -> do
+        let
+          fxId =
+            { channel: Just (round channelId)
+            , name: name
+            }
+        listen.fxBypass fxId (numberToBoolean isBypassNumber)
+
+    numberToBoolean x = round x == 1
+
     onChannelSendFxChange :: Tuple Number (Tuple Number Number) -> Effect Unit
     onChannelSendFxChange (Tuple fromChannelId (Tuple toChannelId value)) =
       withListen $ \listen -> do
@@ -170,6 +187,16 @@ runListener port ref =
             , param: param
             }
         listen.fxParam paramId value
+
+    onMasterFxBypassChange :: Tuple String Number -> Effect Unit
+    onMasterFxBypassChange (Tuple name isBypassNumber) =
+      withListen $ \listen -> do
+        let
+          fxId =
+            { channel: Nothing
+            , name: name
+            }
+        listen.fxBypass fxId (numberToBoolean isBypassNumber)
 
     withListen :: (Listen -> Effect Unit) -> Effect Unit
     withListen cont = do
@@ -223,6 +250,7 @@ setListeners ref =
   , channelMute: \f -> modify_ (\s -> s { channelMute = f }) ref
   , partChange: \f -> modify_ (\s -> s { partChange = f }) ref
   , fxParam: \f -> modify_ (\s -> s { fxParam = f }) ref
+  , fxBypass: \f -> modify_ (\s -> s { fxBypass = f }) ref
   , sendFx: \f -> modify_ (\s -> s { sendFx = f }) ref
   }
 
@@ -234,6 +262,9 @@ initMixer port =
   , setFxParam: \paramId value -> do
       logValue "Send fx param" (paramId /\ value /\ Osc.setFxParam paramId value)
       port.send (Osc.setFxParam paramId value)
+  , toggleFxBypass: \fxId -> do
+      logValue "Send fx bypass" (fxId /\ Osc.toggleFxBypass fxId)
+      port.send (Osc.toggleFxBypass fxId)
   , setSendFx: \sendId value -> do
       logValue "Send send fx" (sendId /\ value /\ Osc.setSendFx sendId value)
       port.send (Osc.setSendFx sendId value)
@@ -264,6 +295,7 @@ initMixerEcho =
   { setMasterVolume: logValue "Master volume"
   , setChannelVolume: \chan vol -> logValue "Channel volume" (chan /\ vol)
   , setFxParam: \param value -> logValue "FX param" (param /\ value)
+  , toggleFxBypass: \fxId -> logValue "FX bypass" fxId
   , setSendFx: \sendId value -> logValue "Send FX" (sendId /\ value)
   }
 

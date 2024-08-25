@@ -13,7 +13,7 @@ extra-deps:
   -  ../csound-expression/packages/core/csound-core-base
   -  ../csound-expression/packages/core/csound-core
     # - git: https://github.com/spell-music/csound-expression
-    # commit: f80dc5125dd46766c93688c283bd9f9ba2c466f0
+    # commit: 96bcc69b3fa7f3cf17cb0eba0da1aa154319cd49
     # subdirs:
     #     - packages/core/csound-expression-dynamic
     #     - packages/core/csound-core

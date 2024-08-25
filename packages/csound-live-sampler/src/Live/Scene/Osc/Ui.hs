@@ -66,6 +66,7 @@ data MixerChannelUi = MixerChannelUi
 
 data FxUi = FxUi
   { name :: Text
+  , bypass :: Bool
   , unit :: FxUnit
   , params :: [FxParamUi]
   }
@@ -256,6 +257,7 @@ getFxUiConfig :: Config.FxUnit -> FxUi
 getFxUiConfig fx =
   FxUi
     { name = fx.name
+    , bypass = fromMaybe False fx.bypass
     , unit = toFxUnit fx
     , params = fmap (uncurry getFxParamUi) $ Map.toList $ toFxParamNameInitMap fx
     }

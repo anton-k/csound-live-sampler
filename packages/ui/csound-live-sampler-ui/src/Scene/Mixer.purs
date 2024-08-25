@@ -44,7 +44,8 @@ import Scene.Mixer.AuxChannels
 import Scene.Mixer.Fx
   ( withFxs,
     fxChannelSetup,
-    sendChannelSetup
+    sendChannelSetup,
+    concatFxInfos
   )
 
 defColor0 = "#24bcbc"
@@ -62,6 +63,9 @@ emptySetChannel =
 
 emptySetFxParam :: SetFxParam
 emptySetFxParam = const (pure unit)
+
+emptyToggleFxBypass :: SetFxBypass
+emptyToggleFxBypass = const (pure unit)
 
 emptySetSendFx :: SetSendFx
 emptySetSendFx = const (pure unit)
@@ -81,11 +85,18 @@ initMixer mixer act =
         getChannelSetters chanId =
           fromMaybe emptySetChannel (Map.lookup chanId channelMap)
 
-      fxParamMap <- map (Map.fromFoldable <<< Array.concat) $
-        traverse (fxChannelSetup act) fxs
+      fxInfos <- map concatFxInfos $ traverse (fxChannelSetup act) fxs
       let
+        fxParamMap = Map.fromFoldable fxInfos.params
+
         getFxParamSetter paramId =
           fromMaybe emptySetFxParam (Map.lookup paramId fxParamMap)
+
+        fxBypassMap = Map.fromFoldable fxInfos.bypass
+
+        getFxBypassSetter fxId =
+          fromMaybe emptyToggleFxBypass (Map.lookup fxId fxBypassMap)
+
       sendFxMap <- map (Map.fromFoldable <<< Array.concat) $
         traverse (sendChannelSetup act) fxs
       let
@@ -95,6 +106,7 @@ initMixer mixer act =
         { setChannel: getChannelSetters
         , setFxParam: getFxParamSetter
         , setSendFx: getSendFxSetter
+        , setFxBypass: getFxBypassSetter
         , setMaster: setMaster
         }
   , html:
